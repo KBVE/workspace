@@ -26,5 +26,14 @@
 ; `git lfs pull` prompts and the system credential helper remembers. To clone
 ; without ever touching Forgejo, set GIT_LFS_SKIP_SMUDGE=1 -- everything except
 ; the 3D characters still builds.
+; Clones fetch no blobs. Every LFS object in this repository lives behind a
+; Forgejo account, so the default would make `git clone` prompt for credentials
+; that most work here never needs -- and pull hundreds of megabytes of another
+; game's character models to build a website.
+;
+; Blobs arrive on demand instead: a project tagged 'lfs' fetches its own tree
+; as part of its build, via tools/lfs/ensure.sh. Nothing else has to think
+; about it. `git lfs pull` by hand still works for the whole store.
 [lfs]
 	url = https://git.kbve.com/KBVE/friendslop.git/info/lfs
+	fetchexclude = *

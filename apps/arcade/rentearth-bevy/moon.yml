@@ -4,7 +4,7 @@
 layer: 'application'
 language: 'rust'
 stack: 'frontend'
-tags: ['bevy', 'game']
+tags: ['bevy', 'game', 'lfs']
 
 owners:
   defaultOwner: '@h0lybyte'

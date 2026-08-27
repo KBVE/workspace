@@ -71,7 +71,10 @@ runs:
         # artifact of the workspace.
         trap 'git config --local --unset-all "http.${host}/.extraheader" || true' EXIT
 
-        git lfs pull --include="${INCLUDE}"
+        # --exclude='' is required: .lfsconfig sets fetchexclude=* so clones
+        # pull nothing, and that exclude otherwise still filters an explicit
+        # include, leaving the pull a successful no-op.
+        git lfs pull --include="${INCLUDE}" --exclude=''
 
         echo "pulled=true" >> "$GITHUB_OUTPUT"
 

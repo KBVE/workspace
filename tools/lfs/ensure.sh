@@ -36,7 +36,10 @@ fi
 count=$(printf '%s\n' "$pointers" | wc -l | tr -d ' ')
 echo "Fetching $count LFS object(s) for $include"
 
-if ! git lfs pull --include="$include"; then
+# --exclude='' is required, not cosmetic. .lfsconfig sets fetchexclude=* so a
+# clone pulls nothing, and that exclude still applies to an explicit --include:
+# the pull then exits 0 having fetched nothing at all.
+if ! git lfs pull --include="$include" --exclude=''; then
   cat >&2 <<'MSG'
 ::error::Could not fetch LFS objects.
 
@@ -47,5 +50,17 @@ account. Authenticate once and the system credential helper remembers it:
 
 Create a token at https://git.kbve.com/user/settings/applications.
 MSG
+  exit 1
+fi
+
+# `git lfs pull` reports success whether or not it resolved anything -- a
+# missing credential, a filtered pattern and a complete fetch all exit 0. The
+# only reliable signal is the working tree.
+still=$(git lfs ls-files -n -I "$include" | while read -r f; do
+  head -c 42 "$f" 2>/dev/null | grep -q 'git-lfs.github.com/spec' && echo "$f" || true
+done)
+if [ -n "$still" ]; then
+  echo "::error::git lfs pull reported success but these are still pointers:" >&2
+  printf '%s\n' "$still" | sed 's/^/  /' >&2
   exit 1
 fi
