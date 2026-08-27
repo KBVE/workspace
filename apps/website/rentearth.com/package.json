@@ -12,6 +12,8 @@
     "astro": "catalog:"
   },
   "devDependencies": {
-    "@kbve/protobuf": "workspace:*"
+    "@kbve/protobuf": "workspace:*",
+    "@astrojs/check": "catalog:",
+    "typescript": "catalog:"
   }
 }

@@ -8,6 +8,8 @@ packages:
 # drift onto different Astro releases.
 catalog:
   astro: 7.2.8
+  '@astrojs/check': 0.9.4
+  typescript: 5.9.3
 
 # pnpm 11 blocks postinstall scripts by default. These fetch platform
 # binaries, so they have to be allowed explicitly.

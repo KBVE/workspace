@@ -1,0 +1,62 @@
+name: ci
+
+# Every project in the workspace. The protobuf module has its own workflow for
+# schema-specific concerns (lint, format, four-language compile); this one runs
+# the moon graph, so a project added later is covered without editing this file.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The generated CODEOWNERS is an artifact of each project's owners block, so
+  # it can fall behind when someone edits moon.yml without running a task.
+  sync:
+    name: sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
+        with:
+          auto-install: true
+
+      - name: CODEOWNERS is up to date
+        run: |
+          moon sync codeowners
+          git diff --exit-code -- .github/CODEOWNERS \
+            || { echo "::error::CODEOWNERS is stale. Run 'moon sync codeowners' and commit."; exit 1; }
+
+  ci:
+    name: ci (${{ matrix.index }}/${{ matrix.total }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        index: [0, 1]
+        total: [2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # moon compares against the base to decide what is affected.
+          fetch-depth: 0
+
+      - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
+        with:
+          auto-install: true
+
+      # buf resolves remote plugins from the BSR, which rate-limits anonymous
+      # requests. The token is absent on fork pull requests, where the
+      # anonymous limit has to do.
+      - name: Run affected tasks
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+        run: moon ci --job ${{ matrix.index }} --jobTotal ${{ matrix.total }}
