@@ -13,13 +13,9 @@
 # rule keeps its plaintext in history, and `git-crypt status` will still report
 # it as encrypted, because that command describes the working tree rather than
 # the history. tools/hooks/pre-commit-crypt.sh is what actually enforces this.
-private/**              filter=git-crypt diff=git-crypt
-**/private/**           filter=git-crypt diff=git-crypt
-
-# .gitattributes itself must stay readable, or the filters cannot load.
-.gitattributes          !filter !diff
-
 # --- normalisation ------------------------------------------------------
+# Kept above the git-crypt rules below: `binary` expands to -diff, so a later
+# `*.png binary` would strip diff=git-crypt off every encrypted texture.
 * text=auto eol=lf
 *.png binary
 *.jpg binary
@@ -28,6 +24,19 @@ private/**              filter=git-crypt diff=git-crypt
 *.woff2 binary
 pnpm-lock.yaml   linguist-generated=true -diff
 Cargo.lock       linguist-generated=true -diff
+
+# --- git-crypt rules (must stay below normalisation) ----------------------
+# A later rule wins per attribute, so these come after the `binary` lines that
+# would otherwise unset diff=git-crypt on encrypted images. Encryption itself
+# rides on `filter` and was never affected; `git diff` on those files was.
+#
+# `* text=auto` above is safe here: git only normalises content it detects as
+# text, and ciphertext begins with a NUL byte.
+private/**              filter=git-crypt diff=git-crypt
+**/private/**           filter=git-crypt diff=git-crypt
+
+# .gitattributes itself must stay readable, or the filters cannot load.
+.gitattributes          !filter !diff
 
 # --- git-lfs: gilded-gazette character art -------------------------------
 # Blobs live on git.kbve.com/KBVE/friendslop (see .lfsconfig); only pointers

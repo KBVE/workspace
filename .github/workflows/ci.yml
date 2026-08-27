@@ -56,6 +56,13 @@ jobs:
           # moon compares against the base to decide what is affected.
           fetch-depth: 0
 
+      # rentearth-bevy compiles src/private, which is git-crypt encrypted in the
+      # repository. Without the key that crate cannot build. Fork pull requests
+      # get no secrets, so this reports and continues rather than failing here.
+      - uses: ./.github/actions/git-crypt-unlock
+        with:
+          key: ${{ secrets.GIT_CRYPT_KEY }}
+
       - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
         with:
           auto-install: true

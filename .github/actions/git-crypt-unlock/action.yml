@@ -1,0 +1,56 @@
+name: 'git-crypt unlock'
+description: 'Decrypts the private source so the build can compile it.'
+
+# apps/arcade/rentearth-bevy/src/private is real Rust and WGSL that cargo
+# compiles, so without this the crate does not build in CI at all.
+#
+# The key is absent on pull requests from forks: GitHub does not pass secrets
+# to them, by design. This action reports that rather than failing, so the
+# reason a fork build cannot compile the private modules is stated once here
+# instead of appearing as a confusing missing-module error later.
+
+inputs:
+  key:
+    description: 'The git-crypt key, base64 encoded. Pass secrets.GIT_CRYPT_KEY.'
+    required: false
+    default: ''
+
+outputs:
+  unlocked:
+    description: 'true when the repository was unlocked.'
+    value: ${{ steps.unlock.outputs.unlocked }}
+
+runs:
+  using: composite
+  steps:
+    - id: unlock
+      shell: bash
+      env:
+        # Through the environment rather than in the command line, so it is
+        # never visible in a process listing on the runner.
+        GIT_CRYPT_KEY: ${{ inputs.key }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${GIT_CRYPT_KEY}" ]; then
+          echo "unlocked=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::GIT_CRYPT_KEY is not available; private source stays encrypted."
+          exit 0
+        fi
+
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq git-crypt
+
+        keyfile="${RUNNER_TEMP}/git-crypt.key"
+        # Created empty with restrictive permissions before anything is
+        # written, so the key is never briefly world-readable on disk.
+        install -m 600 /dev/null "$keyfile"
+        printf '%s' "${GIT_CRYPT_KEY}" | base64 -d > "$keyfile"
+
+        # git-crypt refuses to unlock a dirty tree, and a failure here must not
+        # leave the key sitting in the runner temp directory.
+        trap 'shred -u "$keyfile" 2>/dev/null || rm -f "$keyfile"' EXIT
+        git-crypt unlock "$keyfile"
+
+        echo "unlocked=true" >> "$GITHUB_OUTPUT"
+        echo "Private source decrypted."
