@@ -2,8 +2,13 @@
 
 A [moon](https://moonrepo.dev) monorepo.
 
-Secrets never enter this repository. `.env` and `env.sh` are ignored; values
-come from the secret manager and CI reads them from GitHub Actions secrets.
+Private source lives in `private/` directories and is encrypted in place with
+[git-crypt](https://github.com/AGWA/git-crypt), so the repository stays public
+without exposing it.
+
+Runtime secrets are a separate concern and never enter the repository at all:
+`.env` and `env.sh` are ignored, and CI reads credentials from GitHub Actions
+secrets.
 
 ## Layout
 
@@ -21,6 +26,7 @@ come from the secret manager and CI reads them from GitHub Actions secrets.
 ## Setup
 
     proto use                 # installs node, pnpm, rust, moon from .prototools
+    git-crypt unlock ~/.config/git-crypt/kbve-workspace.key
     pnpm install
     moon run proto:generate   # generates ts/rust/csharp/python from the schemas
 

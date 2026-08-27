@@ -1,3 +1,15 @@
+# --- git-crypt: private source ------------------------------------------
+# This repository is public. Anything matched here is AES-encrypted in the
+# repo and plaintext in the working tree for a clone holding the key.
+#
+# Convention: a `private/` directory at any depth is encrypted, so a project
+# opts in by placing code there rather than by editing this file.
+private/**              filter=git-crypt diff=git-crypt
+**/private/**           filter=git-crypt diff=git-crypt
+
+# .gitattributes itself must stay readable, or the filters cannot load.
+.gitattributes          !filter !diff
+
 # --- normalisation ------------------------------------------------------
 * text=auto eol=lf
 *.png binary
