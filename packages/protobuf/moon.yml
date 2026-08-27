@@ -49,3 +49,24 @@ tasks:
     command: 'buf format --diff --exit-code'
     toolchains: ['node']
     inputs: ['kbve/**/*.proto']
+
+  # DISABLED UNTIL PUBLICATION. Re-enable before the first `buf push`.
+  #
+  # Nothing consumes these schemas yet, so breaking changes are not only
+  # allowed but the point: retiring kbve/schema.proto deletes messages, and
+  # folding the per-domain rarity and element enums into common changes field
+  # types. This check would fail every one of those pull requests.
+  #
+  # The moment a consumer pins a published version that stops being true, and
+  # this becomes the most important task in the file. Uncommenting it is the
+  # last step before publishing, not an afterthought -- protobuf-publish.yml
+  # greps for an active `breaking:` task here and refuses to push without one.
+  #
+  # The command is verified working: against origin/main it rejects a deleted
+  # field and a changed field type, and accepts an added field. It resolves a
+  # git ref, so it needs the full clone ci.yml already checks out.
+  #
+  # breaking:
+  #   command: 'buf breaking --against .git#branch=origin/main'
+  #   toolchains: ['node']
+  #   inputs: ['kbve/**/*.proto', 'buf.yaml']

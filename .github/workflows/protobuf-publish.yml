@@ -43,17 +43,20 @@ jobs:
             echo "::notice::BUF_TOKEN is not set; skipping publish to the BSR."
           fi
 
-      # The breaking-change job in ci.yml is commented out while the schemas
-      # are still being reshaped. Publishing is the point at which that stops
-      # being acceptable, so fail loudly here rather than silently shipping a
-      # module with no compatibility guarantee behind it.
+      # The breaking-change task is commented out in the project config while
+      # the schemas are still being reshaped. Publishing is the point at which
+      # that stops being acceptable, so fail loudly here rather than silently
+      # shipping a module with no compatibility guarantee behind it.
+      #
+      # Commented task lines carry a '#' after the indent, so anchoring on the
+      # two-space indent distinguishes a defined task from the disabled block.
       - name: Breaking-change check must be enabled before publishing
         if: steps.creds.outputs.present == 'true'
         run: |
-          if grep -qE '^\s*-\s*name:\s*Breaking\s*$' "$GITHUB_WORKSPACE/.github/workflows/protobuf-ci.yml"; then
+          if grep -qE '^  breaking:' "$GITHUB_WORKSPACE/packages/protobuf/moon.yml"; then
             echo "Breaking-change check is enabled."
           else
-            echo "::error::ci.yml has no active Breaking job. Re-enable it before publishing to the BSR."
+            echo "::error::protobuf has no active 'breaking' task. Re-enable it in packages/protobuf/moon.yml before publishing to the BSR."
             exit 1
           fi
 
