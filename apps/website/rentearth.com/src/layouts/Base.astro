@@ -1,0 +1,60 @@
+---
+import '../styles/global.css';
+import { locales, defaultLocale, localizePath, stripLocale, type Locale } from '@kbve/i18n';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  lang?: string;
+}
+
+const { title, description = 'RentEarth', lang = defaultLocale } = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site);
+
+// The shared slug, with any locale prefix removed, so the alternates can be
+// rebuilt for every registered locale.
+const slug = stripLocale(Astro.url.pathname);
+
+const alternates = locales.map((locale) => ({
+  locale,
+  href: new URL(localizePath(locale as Locale, slug), Astro.site).toString(),
+}));
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {locales.length > 1 && alternates.map(({ locale, href }) => (
+      <link rel="alternate" hreflang={locale} href={href} />
+    ))}
+    {locales.length > 1 && (
+      <link rel="alternate" hreflang="x-default" href={new URL(localizePath(defaultLocale, slug), Astro.site).toString()} />
+    )}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+
+  </head>
+  <body>
+    <div class="wrap">
+      <a class="skip" href="#main">Skip to content</a>
+      <Nav />
+      <main id="main">
+        <slot />
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>

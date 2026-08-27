@@ -1,0 +1,14 @@
+# Locale list and URL rules shared by every site. Framework-agnostic on
+# purpose: it holds data and pure functions, so a consumer can build its own
+# validation on top without inheriting Astro or a particular zod version.
+layer: 'library'
+
+# The locale registry is kbve.common.v1.Locale, so a schema change rebuilds
+# this package and everything downstream of it.
+dependsOn:
+  - 'protobuf'
+language: 'typescript'
+stack: 'frontend'
+
+owners:
+  defaultOwner: '@h0lybyte'

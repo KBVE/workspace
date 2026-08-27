@@ -9,6 +9,8 @@ packages:
 catalog:
   astro: 7.2.8
   '@astrojs/check': 0.9.4
+  '@astrojs/mdx': 7.0.8
+  '@astrojs/sitemap': 3.7.3
   typescript: 5.9.3
 
 # pnpm 11 blocks postinstall scripts by default. These fetch platform

@@ -9,7 +9,10 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "astro": "catalog:"
+    "astro": "catalog:",
+    "@astrojs/mdx": "catalog:",
+    "@astrojs/sitemap": "catalog:",
+    "@kbve/i18n": "workspace:*"
   },
   "devDependencies": {
     "@kbve/protobuf": "workspace:*",

@@ -6,7 +6,7 @@ stack: 'frontend'
 tags: ['astro']
 
 dependsOn:
-  - 'protobuf'
+  - 'i18n'
 
 owners:
   defaultOwner: '@h0lybyte'

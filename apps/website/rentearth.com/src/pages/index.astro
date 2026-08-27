@@ -1,26 +1,8 @@
 ---
-// Types only: the generated code carries no runtime, so this import is
-// erased at build time and nothing protobuf-shaped reaches the browser.
-import type { Item } from '@kbve/protobuf/kbve/item/v1/item.ts';
-import { Rarity } from '@kbve/protobuf/kbve/common/v1/rarity.ts';
-
-// Stands in for a fetch against api.rentearth.com. Typed by the schema, so
-// renaming a field in the .proto breaks this build.
-const items: Pick<Item, 'name' | 'rarity'>[] = [
-  { name: 'Bronze Pickaxe', rarity: Rarity.COMMON },
-  { name: 'Verdant Sigil', rarity: Rarity.RARE },
-];
+import Base from '../layouts/Base.astro';
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Rent Earth</title>
-  </head>
-  <body>
-    <h1>Rent Earth</h1>
-    <ul>
-      {items.map((item) => <li>{item.name} — {item.rarity}</li>)}
-    </ul>
-  </body>
-</html>
+<Base title="RentEarth" description="RentEarth">
+  <h1>RentEarth</h1>
+  <p class="lede">Placeholder copy — replace with the real pitch.</p>
+</Base>

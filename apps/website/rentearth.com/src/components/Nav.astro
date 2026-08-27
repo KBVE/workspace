@@ -1,0 +1,23 @@
+---
+// One list drives the nav; adding a page is one entry.
+const links: { href: string; label: string }[] = [
+  { href: '/', label: 'Home' },
+];
+
+const path = Astro.url.pathname;
+const isCurrent = (href: string) =>
+  href === '/' ? path === '/' : path.startsWith(href);
+---
+
+<header class="nav">
+  <a class="brand" href="/">RentEarth</a>
+  <nav aria-label="Primary">
+    <ul>
+      {links.map(({ href, label }) => (
+        <li>
+          <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</header>

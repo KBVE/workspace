@@ -1,0 +1,43 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { localizePath, resolveLocale } from '@kbve/i18n';
+
+/**
+ * Content ids are `<locale>/<path>`. The locale segment is parsed against the
+ * registered list, so an unregistered directory stops the build and names the
+ * file rather than producing a page nobody can reach.
+ */
+export async function getStaticPaths() {
+  const entries = await getCollection('pages', ({ data }) => !data.draft);
+
+  return entries.map((entry) => {
+    const [segment, ...rest] = entry.id.split('/');
+    // Content ids arrive lower-cased, so the segment is matched case-insensitively
+    // against the registry and mapped back to its canonical BCP 47 form.
+    const locale = resolveLocale(segment);
+
+    if (!locale) {
+      throw new Error(
+        `Content "${entry.id}" sits under "${segment}/", which is not a registered locale. ` +
+          `Add it to kbve.common.v1.Locale in packages/protobuf or move the file.`,
+      );
+    }
+    const slug = localizePath(locale, rest.join('/')).replace(/^\//, '');
+
+    return { params: { slug }, props: { entry, locale } };
+  });
+}
+
+const { entry, locale } = Astro.props;
+const { Content } = await render(entry);
+---
+
+<Base
+  title={`${entry.data.title} — RentEarth`}
+  description={entry.data.description}
+  lang={locale}
+>
+  <h1>{entry.data.title}</h1>
+  <Content />
+</Base>
