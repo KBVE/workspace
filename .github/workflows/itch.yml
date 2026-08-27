@@ -1,0 +1,83 @@
+name: itch
+
+# Publishes the Fish and Chip HTML build to https://kbve.itch.io/fishchip.
+#
+# This is a workflow rather than a moon task because the execution context
+# differs from ci.yml in both ways that justify one: it needs BUTLER_API_KEY,
+# and it runs on a release tag rather than on every push. The build itself is
+# still `moon run fish-and-chip:build`, so what CI checks and what ships are
+# the same artifact produced the same way.
+#
+# The tag doubles as the itch user version, which is why it is verified first:
+# a tag that disagrees with package.json would label a channel with a version
+# the manifest never claimed, and itch has no way to tell afterwards.
+on:
+  push:
+    tags: ['fish-and-chip@*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish, e.g. fish-and-chip@0.1.0'
+        required: true
+
+permissions:
+  contents: read
+
+# Two pushes to the same channel would race inside butler's diffing, so
+# releases queue instead of cancelling: a half-uploaded build is worse than a
+# slow one.
+concurrency:
+  group: itch-fish-and-chip
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish to itch.io
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      ITCH_TARGET: kbve/fishchip
+      ITCH_CHANNEL: html
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
+        with:
+          auto-install: true
+
+      - name: Tag matches the manifest
+        run: node tools/release/verify-tag.mjs "$TAG"
+
+      - name: Build
+        run: moon run fish-and-chip:build
+
+      # itch serves an HTML build from an index.html at the root of the upload.
+      # Without this the push succeeds and the page shows itch's own "no index"
+      # error, which looks like a broken game rather than a broken upload.
+      - name: Build has an entry point
+        run: test -f apps/arcade/fish-and-chip/dist/index.html
+
+      # butler is fetched from itch's own broth channel rather than a
+      # third-party action, so nothing outside itch and GitHub is trusted with
+      # the API key.
+      - name: Install butler
+        run: |
+          curl -fsSL -o butler.zip \
+            https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d "$RUNNER_TEMP/butler"
+          chmod +x "$RUNNER_TEMP/butler/butler"
+          echo "$RUNNER_TEMP/butler" >> "$GITHUB_PATH"
+
+      - name: Push build
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "::error::BUTLER_API_KEY is not set. Add it from https://itch.io/user/settings/api-keys."
+            exit 1
+          fi
+          butler push apps/arcade/fish-and-chip/dist \
+            "$ITCH_TARGET:$ITCH_CHANNEL" \
+            --userversion "${TAG#fish-and-chip@}"
+          butler status "$ITCH_TARGET:$ITCH_CHANNEL"

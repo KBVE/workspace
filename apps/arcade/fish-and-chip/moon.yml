@@ -1,0 +1,48 @@
+# Fish and Chip Adventures: a Phaser game mounted inside a React root, built by
+# Vite into a static bundle. The publish target is an itch.io HTML page, which
+# is why vite.config.ts pins `base: './'` -- itch serves the build from a
+# hashed subdirectory, so absolute asset paths 404 there.
+#
+# Ported from the legacy Nx workspace, where the build wrote straight into a
+# sibling site's public/embed directory. It writes to its own dist/ here: the
+# itch upload and any embed both take the same artifact, rather than the build
+# knowing about its consumers.
+layer: 'application'
+language: 'typescript'
+stack: 'frontend'
+tags: ['phaser', 'game']
+
+owners:
+  defaultOwner: '@h0lybyte'
+
+fileGroups:
+  sources:
+    - 'src/**/*'
+    - 'public/**/*'
+    - 'index.html'
+  configs:
+    - 'vite.config.ts'
+    - 'tsconfig*.json'
+    - 'package.json'
+
+tasks:
+  build:
+    command: 'vite build'
+    toolchains: ['node']
+    inputs: ['@group(sources)', '@group(configs)']
+    outputs: ['dist']
+
+  dev:
+    command: 'vite'
+    toolchains: ['node']
+    preset: 'server'
+
+  typecheck:
+    command: 'tsc --noEmit'
+    toolchains: ['node']
+    inputs: ['@group(sources)', '@group(configs)']
+
+  test:
+    command: 'vitest run'
+    toolchains: ['node']
+    inputs: ['@group(sources)', '@group(configs)']
