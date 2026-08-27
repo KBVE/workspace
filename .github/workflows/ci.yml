@@ -1,8 +1,15 @@
 name: ci
 
-# Every project in the workspace. The protobuf module has its own workflow for
-# schema-specific concerns (lint, format, four-language compile); this one runs
-# the moon graph, so a project added later is covered without editing this file.
+# Every project in the workspace, off the moon graph, so a project added later
+# is covered without editing this file. That includes the schema checks -- buf
+# lint, buf format, generation, and the assertion that every language produced
+# output are all moon tasks.
+#
+# A workflow is only worth adding when the execution context differs: a runner
+# moon cannot reach, a secret, or a cadence. protobuf-ci.yml earns one because
+# it needs dotnet and python toolchains and uploads an artifact. Everything
+# else belongs in a task here, where the project graph already knows what a
+# change affects.
 on:
   push:
     branches: [main]

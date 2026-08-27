@@ -1,5 +1,16 @@
 name: protobuf-ci
 
+# What `moon ci` cannot do.
+#
+# buf lint, buf format, generation and the "every language produced output"
+# check are all moon tasks now, so they run in the main ci workflow off the
+# project graph. What is left here needs toolchains moon does not manage --
+# dotnet, python, a bare node -- and an artifact upload, which is a workflow
+# concern by definition.
+#
+# A new language to verify is a row in the compile matrix, not another
+# workflow. The path filter below is the one piece of duplication left: moon
+# derives the same thing from task inputs, but a workflow cannot ask it.
 on:
   push:
     branches: [main]
@@ -20,62 +31,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  buf:
-    name: buf
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/protobuf
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          # buf breaking resolves a git ref, so the comparison base has to be
-          # in the local clone.
-          fetch-depth: 0
-
-      - uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1.5.0
-        with:
-          setup_only: true
-
-      - name: Build
-        run: buf build
-
-      - name: Lint
-        run: buf lint
-
-      - name: Format
-        run: buf format --diff --exit-code
-
-      # DISABLED UNTIL PUBLICATION. Re-enable before the first `buf push`.
-      #
-      # Nothing consumes these schemas yet, so breaking changes are not only
-      # allowed but the point: retiring kbve/schema.proto deletes messages, and
-      # folding the per-domain rarity and element enums into common changes
-      # field types. This check would fail every one of those pull requests.
-      #
-      # The moment a consumer pins a published version that stops being true,
-      # and this becomes the most important job in the file. Uncommenting it is
-      # the last step before publishing, not an afterthought.
-      #
-      # The command below is verified working: against origin/main it rejects a
-      # deleted field and a changed field type, and accepts an added field.
-      #
-      # - name: Breaking
-      #   run: |
-      #     if git rev-parse --verify --quiet origin/main >/dev/null; then
-      #       buf breaking --against '.git#branch=origin/main'
-      #     else
-      #       echo "No origin/main yet; nothing to compare against."
-      #     fi
-
-  # Proves the schemas actually generate, not merely that they compile. A
-  # module can pass lint and still break a plugin, and it can break one
-  # language while leaving the others fine - a name that is legal in proto but
-  # reserved in C#, for instance. Consumers span four languages, so all four
-  # are generated here rather than discovering the failure in whichever
-  # downstream repository builds first.
-  codegen:
-    name: codegen
+  # The descriptor set is what non-buf tooling consumes: the zod emitters in
+  # KBVE/kbve read a FileDescriptorSet, not .proto text. Publishing it as an
+  # artifact means that tooling has something to fetch that is built from a
+  # reviewed commit.
+  descriptor:
+    name: descriptor
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -87,28 +48,6 @@ jobs:
         with:
           setup_only: true
 
-      - name: Generate
-        run: buf generate
-
-      # An empty directory means the plugin ran and produced nothing, which is
-      # a silent failure: buf exits zero either way.
-      - name: Every language produced output
-        run: |
-          status=0
-          for lang in ts rust csharp python; do
-            count=$(find "gen/$lang" -type f 2>/dev/null | wc -l | tr -d ' ')
-            printf '%-8s %s files\n' "$lang" "$count"
-            if [ "$count" -eq 0 ]; then
-              echo "::error::no output generated for $lang"
-              status=1
-            fi
-          done
-          exit $status
-
-      # The descriptor set is what non-buf tooling consumes: the zod emitters
-      # in KBVE/kbve read a FileDescriptorSet, not .proto text. Publishing it
-      # as an artifact means that tooling has something to fetch that is built
-      # from a reviewed commit.
       - name: Build descriptor set
         run: buf build --output descriptor.binpb --as-file-descriptor-set
 
@@ -122,9 +61,9 @@ jobs:
           retention-days: 30
 
   # Generating is not compiling. buf reports success as long as a plugin runs,
-  # so output that no toolchain will accept still passes the codegen job: a
-  # field name that is a C# keyword, a package layout that collides in Python,
-  # a prost module tree that does not resolve. Each language is compiled here
+  # so output that no toolchain will accept still passes generation: a field
+  # name that is a C# keyword, a package layout that collides in Python, a
+  # prost module tree that does not resolve. Each language is compiled here
   # with the same toolchain its consumers use.
   compile:
     name: compile (${{ matrix.lang }})
