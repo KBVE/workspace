@@ -1,23 +1,57 @@
 ---
-// One list drives the nav; adding a page is one entry.
-const links: { href: string; label: string }[] = [
-  { href: '/', label: 'Home' },
-];
+import { getCollection } from 'astro:content';
+import { defaultLocale, localizePath, resolveLocale, type Locale } from '@kbve/i18n';
 
-const path = Astro.url.pathname;
-const isCurrent = (href: string) =>
-  href === '/' ? path === '/' : path.startsWith(href);
+interface Props {
+  lang?: Locale;
+}
+
+const { lang = defaultLocale } = Astro.props;
+
+/**
+ * The nav is derived from the content collection rather than hand-listed, so
+ * it cannot drift: a page opts in with `nav: true`, and a deleted page leaves
+ * no dead link behind.
+ *
+ * Entries are filtered to the current locale, falling back to the default so
+ * a partially translated site still has a usable nav.
+ */
+const entries = await getCollection('pages', ({ data }) => data.nav && !data.draft);
+
+const forLocale = entries.filter((entry) => resolveLocale(entry.id.split('/')[0]) === lang);
+const fallback = entries.filter((entry) => resolveLocale(entry.id.split('/')[0]) === defaultLocale);
+
+const chosen = forLocale.length ? forLocale : fallback;
+
+const links = chosen
+  .map((entry) => {
+    const [, ...rest] = entry.id.split('/');
+    return {
+      href: localizePath(lang, rest.join('/')),
+      label: entry.data.title,
+      order: entry.data.order ?? Number.MAX_SAFE_INTEGER,
+    };
+  })
+  // Unset order sorts last, then alphabetically, so the list is stable rather
+  // than dependent on filesystem order.
+  .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+
+const path = Astro.url.pathname.replace(/(.+)\/$/, '$1');
+const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 ---
 
 <header class="nav">
-  <a class="brand" href="/">RentEarth</a>
-  <nav aria-label="Primary">
-    <ul>
-      {links.map(({ href, label }) => (
-        <li>
-          <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>
-        </li>
-      ))}
-    </ul>
-  </nav>
+  {/* The brand is the home link; a separate "Home" entry would duplicate it. */}
+  <a class="brand" href={localizePath(lang, '')}>RentEarth</a>
+  {links.length > 0 && (
+    <nav aria-label="Primary">
+      <ul>
+        {links.map(({ href, label }) => (
+          <li>
+            <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )}
 </header>

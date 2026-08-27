@@ -1,0 +1,27 @@
+# Cloudflare Pages reads this file. Rules are applied top to bottom, so the
+# broad rule comes first and the asset rules narrow it.
+
+/*
+  # Clickjacking: nothing here is meant to be framed.
+  X-Frame-Options: DENY
+  # Stop browsers guessing a type other than the one served.
+  X-Content-Type-Options: nosniff
+  # Send the origin cross-site, the full URL same-site.
+  Referrer-Policy: strict-origin-when-cross-origin
+  # No page here uses any of these.
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+  # HTTPS only, including subdomains. Remove `preload` unless the domain is
+  # actually submitted to the preload list.
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  # The site ships no JavaScript, so script-src can be closed entirely.
+  # style-src needs 'unsafe-inline' because Astro inlines the stylesheet into
+  # the document; a hash would have to change on every build.
+  Content-Security-Policy: default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+
+# Hashed assets are immutable; the filename changes when the content does.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML must revalidate or a deploy takes a day to reach anyone.
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate

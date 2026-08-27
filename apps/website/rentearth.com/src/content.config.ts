@@ -18,7 +18,10 @@ const pages = defineCollection({
       // 160 is what a search result shows before truncating.
       description: z.string().min(1).max(160).optional(),
       draft: z.boolean().default(false),
-      // Ordering for any generated index; unset sorts last.
+      /** Show this page in the primary nav. Off by default: most pages are
+       *  reachable by link, and a nav that lists everything stops being one. */
+      nav: z.boolean().default(false),
+      /** Nav and index ordering; unset sorts last, then alphabetically. */
       order: z.number().int().nonnegative().optional(),
 
       // --- SEO ---------------------------------------------------------
