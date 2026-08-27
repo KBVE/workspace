@@ -1,16 +1,22 @@
 {
   "folders": [
-    { "name": "root", "path": "." },
-    { "name": "apps", "path": "apps" },
-    { "name": "services", "path": "services" },
-    { "name": "packages", "path": "packages" },
-    { "name": "crates", "path": "crates" }
+    { "path": "." }
   ],
   "settings": {
+    // pnpm keeps the real package behind a symlink in node_modules/.pnpm, so
+    // the TS server has to use the workspace copy to resolve astro presets.
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
     "files.exclude": {
       "**/node_modules": true,
       "**/target": true,
-      "**/.moon/cache": true
+      "**/.moon/cache": true,
+      "**/dist": true,
+      "**/packages/protobuf/gen": true
+    },
+    "search.exclude": {
+      "**/pnpm-lock.yaml": true,
+      "**/packages/protobuf/gen": true
     },
     "rust-analyzer.linkedProjects": ["Cargo.toml"],
     "editor.formatOnSave": true
@@ -19,7 +25,8 @@
     "recommendations": [
       "moonrepo.moon-console",
       "rust-lang.rust-analyzer",
-      "astro-build.astro-vscode"
+      "astro-build.astro-vscode",
+      "bufbuild.vscode-buf"
     ]
   }
 }

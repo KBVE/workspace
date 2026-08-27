@@ -59,4 +59,4 @@ jobs:
       - name: Run affected tasks
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
-        run: moon ci --job ${{ matrix.index }} --jobTotal ${{ matrix.total }}
+        run: moon ci --job ${{ matrix.index }} --job-total ${{ matrix.total }}

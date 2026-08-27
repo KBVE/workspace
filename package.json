@@ -13,6 +13,7 @@
     "lint": "moon run :lint"
   },
   "devDependencies": {
-    "@bufbuild/buf": "1.72.0"
+    "@bufbuild/buf": "1.72.0",
+    "typescript": "catalog:"
   }
 }
