@@ -1,0 +1,36 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+# Inherited by every project tagged 'astro', so a new site declares the tag
+# and gets the whole task set.
+inheritedBy:
+  tag: 'astro'
+
+fileGroups:
+  sources:
+    - 'src/**/*'
+    - 'public/**/*'
+  configs:
+    - 'astro.config.*'
+    - 'tsconfig.json'
+    - 'package.json'
+
+tasks:
+  build:
+    command: 'astro build'
+    toolchains: ['node']
+    # '^:build' pulls in protobuf:generate's output before this runs, so the
+    # site can never compile against stale types.
+    deps: ['^:build']
+    inputs: ['@group(sources)', '@group(configs)']
+    outputs: ['dist']
+
+  dev:
+    command: 'astro dev'
+    toolchains: ['node']
+    preset: 'server'
+
+  check:
+    command: 'astro check'
+    toolchains: ['node']
+    deps: ['^:build']
+    inputs: ['@group(sources)', '@group(configs)']

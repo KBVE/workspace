@@ -1,0 +1,12 @@
+# The site is static, so the generated wire types are a build-time
+# dependency: a schema change has to rebuild this project.
+layer: 'application'
+language: 'typescript'
+stack: 'frontend'
+tags: ['astro']
+
+dependsOn:
+  - 'protobuf'
+
+owners:
+  defaultOwner: '@h0lybyte'

@@ -1,6 +1,11 @@
 $schema: 'https://moonrepo.dev/schemas/tasks.json'
 
-# moon 2 scopes global tasks with `inheritedBy`, not by filename.
+# Inherited by every project using the node toolchain.
+#
+# File groups only, deliberately. Tasks belong to tag-scoped files such as
+# astro.yml: a project inherits every file whose inheritedBy matches, and two
+# files defining the same task id merge their args rather than overriding,
+# which silently produces commands like `astro build run build`.
 inheritedBy:
   toolchain: 'node'
 
@@ -12,19 +17,3 @@ fileGroups:
     - 'src/**/*.test.*'
   configs:
     - '*.{js,cjs,mjs,json,ts}'
-
-tasks:
-  build:
-    command: 'pnpm run build'
-    # '^:build' = the `build` task of every project this one dependsOn.
-    deps: ['^:build']
-    inputs: ['@group(sources)', '@group(configs)']
-    outputs: ['dist']
-  test:
-    command: 'pnpm run test'
-    # '~:build' = the `build` task of THIS project.
-    deps: ['~:build']
-    inputs: ['@group(sources)', '@group(tests)', '@group(configs)']
-  lint:
-    command: 'pnpm run lint'
-    inputs: ['@group(sources)', '@group(configs)']

@@ -17,7 +17,8 @@ owners:
     'buf.gen.yaml': ['@h0lybyte']
 
 tasks:
-  generate:
+  # Named build so '^:build' from a consumer pulls generation in.
+  build:
     command: 'buf generate'
     toolchains: ['node']
     inputs:

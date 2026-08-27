@@ -18,6 +18,13 @@ plugins:
   - remote: buf.build/community/stephenh-ts-proto
     out: gen/ts
     opt:
+      # The sites are static and call the API over JSON, so they need the
+      # shapes and none of the wire codec. onlyTypes drops encode/decode and
+      # the protobufjs and long imports with them.
+      - onlyTypes=true
+      # forceLong defaults to number, which throws at runtime past
+      # MAX_SAFE_INTEGER. Any int64 id would hit that.
+      - forceLong=string
       - esModuleInterop=true
       - importSuffix=.js
       - outputServices=false

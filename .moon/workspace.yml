@@ -3,7 +3,8 @@ $schema: 'https://moonrepo.dev/schemas/workspace.json'
 # Project graph. Each glob entry expects a `moon.yml` in the matched directory.
 projects:
   globs:
-    - 'apps/*'
+    # Apps are grouped by kind: apps/website/<domain>, apps/game/<name>.
+    - 'apps/*/*'
     - 'services/*'
     - 'packages/*'
     - 'crates/*'
