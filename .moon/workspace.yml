@@ -24,6 +24,25 @@ codeowners:
 vcs:
   defaultBranch: 'main'
   provider: 'github'
+  # Generated into .moon/hooks and pointed at by core.hooksPath, so a fresh
+  # clone is protected without anyone wiring it up.
+  #
+  # core.hooksPath replaces .git/hooks wholesale rather than adding to it, so
+  # the Git LFS hooks have to be declared here too. Leaving them out silently
+  # stops pre-push from uploading LFS objects: pointers push, blobs do not, and
+  # the assets 404 for everyone else.
+  sync: true
+  hooks:
+    pre-commit:
+      - 'bash ./tools/hooks/pre-commit-crypt.sh'
+    pre-push:
+      - 'git lfs pre-push "$ARG1" "$ARG2"'
+    post-checkout:
+      - 'git lfs post-checkout "$ARG1" "$ARG2" "$ARG3"'
+    post-commit:
+      - 'git lfs post-commit'
+    post-merge:
+      - 'git lfs post-merge "$ARG1"'
 
 hasher:
   optimization: 'accuracy'

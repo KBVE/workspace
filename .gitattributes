@@ -4,6 +4,15 @@
 #
 # Convention: a `private/` directory at any depth is encrypted, so a project
 # opts in by placing code there rather than by editing this file.
+#
+# For a Godot project that means game logic, core systems and shaders live in
+# `godot/private/`, while vendored addons stay outside it: they are third-party
+# OSS, they are public anyway, and encrypting them would hide upstream diffs.
+#
+# Encrypting a path is not retroactive. A file committed before it matched a
+# rule keeps its plaintext in history, and `git-crypt status` will still report
+# it as encrypted, because that command describes the working tree rather than
+# the history. tools/hooks/pre-commit-crypt.sh is what actually enforces this.
 private/**              filter=git-crypt diff=git-crypt
 **/private/**           filter=git-crypt diff=git-crypt
 
