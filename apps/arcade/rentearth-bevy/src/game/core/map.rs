@@ -8,7 +8,7 @@
 
 use bevy::prelude::*;
 
-use super::hex::{Hex, HEX_HEIGHT_STEP, HEX_WIDTH};
+use super::hex::{HEX_HEIGHT_STEP, HEX_WIDTH, Hex};
 
 /// Where a world's coastlines come from.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -17,6 +17,10 @@ pub enum WorldSource {
     #[default]
     Earth,
     /// Generated coastlines. Same relief and biome rules, different land.
+    ///
+    /// Nothing constructs this yet -- it is reached by setting `MapSpec::source`
+    /// -- but `terrain::is_land` already branches on it.
+    #[allow(dead_code)]
     Procedural,
 }
 

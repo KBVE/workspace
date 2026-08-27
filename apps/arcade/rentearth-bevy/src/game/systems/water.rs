@@ -44,13 +44,12 @@ impl Plugin for WaterPlugin {
                 ));
             },
         )
-
-            // In PostUpdate, not Update: the camera wraps its focus during
-            // Update, and unordered against that this could place the water at
-            // the pre-wrap focus while the camera teleports a world away. At
-            // the poles that is a black frame, because the Arctic is all ocean
-            // and ocean tiles carry no mesh -- the plane is the only thing
-            // there is to draw.
+        // In PostUpdate, not Update: the camera wraps its focus during
+        // Update, and unordered against that this could place the water at
+        // the pre-wrap focus while the camera teleports a world away. At
+        // the poles that is a black frame, because the Arctic is all ocean
+        // and ocean tiles carry no mesh -- the plane is the only thing
+        // there is to draw.
         .add_systems(
             PostUpdate,
             follow_camera.before(TransformSystems::Propagate),

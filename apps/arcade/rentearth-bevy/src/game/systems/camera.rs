@@ -60,10 +60,7 @@ fn spawn_camera(mut commands: Commands, spec: Res<MapSpec>) {
             brightness: 260.0,
             ..default()
         },
-        CameraRig {
-            focus,
-            ..default()
-        },
+        CameraRig { focus, ..default() },
     ));
 
     // Sun, angled across the map rather than straight down so column sides
@@ -78,11 +75,7 @@ fn spawn_camera(mut commands: Commands, spec: Res<MapSpec>) {
     ));
 }
 
-fn pan_keyboard(
-    keys: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
-    mut rigs: Query<&mut CameraRig>,
-) {
+fn pan_keyboard(keys: Res<ButtonInput<KeyCode>>, time: Res<Time>, mut rigs: Query<&mut CameraRig>) {
     let mut dir = Vec2::ZERO;
     if keys.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) {
         dir.y -= 1.0;
@@ -150,8 +143,8 @@ fn zoom_scroll(mut wheel: MessageReader<MouseWheel>, mut rigs: Query<&mut Camera
     for mut rig in &mut rigs {
         // Multiplicative, so each notch changes the view by the same
         // proportion. Additive zoom crawls when far out and lurches when close.
-        rig.zoom = (rig.zoom * (1.0 - scroll * ZOOM_STEP))
-            .clamp(CameraRig::MIN_ZOOM, CameraRig::MAX_ZOOM);
+        rig.zoom =
+            (rig.zoom * (1.0 - scroll * ZOOM_STEP)).clamp(CameraRig::MIN_ZOOM, CameraRig::MAX_ZOOM);
     }
 }
 
@@ -169,14 +162,9 @@ fn apply_rig(mut rigs: Query<(&CameraRig, &mut Transform, &mut Projection)>) {
     for (rig, mut transform, mut projection) in &mut rigs {
         // Behind and above the focus, looking back at it. Pitch is fixed --
         // a 4X wants a consistent readable angle, not a free orbit.
-        let back = Vec3::new(
-            0.0,
-            CAMERA_PITCH.sin(),
-            CAMERA_PITCH.cos(),
-        ) * CAMERA_DISTANCE;
+        let back = Vec3::new(0.0, CAMERA_PITCH.sin(), CAMERA_PITCH.cos()) * CAMERA_DISTANCE;
 
-        *transform =
-            Transform::from_translation(rig.focus + back).looking_at(rig.focus, Vec3::Y);
+        *transform = Transform::from_translation(rig.focus + back).looking_at(rig.focus, Vec3::Y);
 
         if let Projection::Orthographic(ortho) = &mut *projection {
             ortho.scale = rig.zoom;

@@ -6,15 +6,15 @@ use bevy::asset::RenderAssetUsages;
 use bevy::image::{ImageAddressMode, ImageSampler, ImageSamplerDescriptor};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use bevy::transform::TransformSystems;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
+use bevy::transform::TransformSystems;
 
-use crate::game::components::tile::{BasePosition, Tile};
-use crate::game::core::hex::HEX_SIZE;
 use crate::game::components::camera::CameraRig;
+use crate::game::components::tile::{BasePosition, Tile};
 use crate::game::core::depth;
+use crate::game::core::hex::HEX_SIZE;
 use crate::game::core::map::{MapSpec, Offset};
-use crate::game::core::terrain::{self, Terrain, SEA_LEVEL};
+use crate::game::core::terrain::{self, SEA_LEVEL, Terrain};
 
 /// Y that every column is drawn down to. Only the sides between here and a
 /// tile's elevation are visible, so this just has to sit below the deepest
@@ -50,6 +50,9 @@ impl WorldTiles {
 /// position. Built once at startup; the water surface waits on it.
 #[derive(Resource, Clone)]
 pub struct SeaDepth {
+    // Read by the private water material. The field stays ungated so the
+    // resource has one shape either way; only the reader is conditional.
+    #[cfg_attr(not(feature = "water"), allow(dead_code))]
     pub image: Handle<Image>,
 }
 
@@ -146,7 +149,12 @@ pub fn spawn_map(
         image: images.add(depth_texture(*spec, &world)),
     });
 
-    info!("spawned {} tiles ({}x{})", world.len(), spec.cols, spec.rows);
+    info!(
+        "spawned {} tiles ({}x{})",
+        world.len(),
+        spec.cols,
+        spec.rows
+    );
 }
 
 /// Move every tile into the copy of the world nearest the camera.

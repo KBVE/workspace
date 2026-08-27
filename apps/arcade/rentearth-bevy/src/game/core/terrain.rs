@@ -101,17 +101,22 @@ pub fn generate(spec: MapSpec) -> Vec<(Offset, Terrain)> {
         !land[idx].1.is_water()
     };
 
-    // Decide coast while `is_land` still borrows `land`, then drop the borrow
-    // before consuming it.
+    // Coast is decided while `is_land` still borrows `land`. Collecting into
+    // its own vector ends that borrow, so `land` can be consumed below.
     let coastal: Vec<bool> = land
         .iter()
         .map(|(o, t)| *t == Terrain::Ocean && touches_land(*o, &is_land))
         .collect();
-    drop(is_land);
 
     land.into_iter()
         .zip(coastal)
-        .map(|((o, t), is_coast)| if is_coast { (o, Terrain::Coast) } else { (o, t) })
+        .map(|((o, t), is_coast)| {
+            if is_coast {
+                (o, Terrain::Coast)
+            } else {
+                (o, t)
+            }
+        })
         .collect()
 }
 

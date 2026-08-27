@@ -30,24 +30,8 @@ pub struct Hex {
 }
 
 impl Hex {
-    pub const ORIGIN: Self = Self { q: 0, r: 0 };
-
     pub const fn new(q: i32, r: i32) -> Self {
         Self { q, r }
-    }
-
-    /// The implied third cube axis.
-    const fn s(self) -> i32 {
-        -self.q - self.r
-    }
-
-    /// Steps between two tiles. In cube space this is the largest absolute
-    /// axis difference, which is why the third axis has to be reconstructed.
-    pub fn distance(self, other: Self) -> i32 {
-        let dq = (self.q - other.q).abs();
-        let dr = (self.r - other.r).abs();
-        let ds = (self.s() - other.s()).abs();
-        dq.max(dr).max(ds)
     }
 
     /// World centre of the tile on the ground plane.
@@ -59,11 +43,7 @@ impl Hex {
     pub fn to_world(self, height: f32) -> Vec3 {
         let q = self.q as f32;
         let r = self.r as f32;
-        Vec3::new(
-            HEX_WIDTH * (q + r / 2.0),
-            height,
-            HEX_HEIGHT_STEP * r,
-        )
+        Vec3::new(HEX_WIDTH * (q + r / 2.0), height, HEX_HEIGHT_STEP * r)
     }
 
     /// Inverse of [`to_world`], for picking. Returns the tile containing a
@@ -92,5 +72,4 @@ impl Hex {
         }
         Self::new(q as i32, r as i32)
     }
-
 }

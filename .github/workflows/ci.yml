@@ -67,6 +67,17 @@ jobs:
         with:
           auto-install: true
 
+      # setup-toolchain caches ~/.proto/tools but not ~/.rustup, and proto's
+      # rust plugin records the install in the former while rustup owns the
+      # latter. On a cache hit proto restores the marker, reports "installed",
+      # and moon then fails to locate ~/.rustup/toolchains/<version>/bin/cargo.
+      # Installing here makes the toolchain real regardless of the cache.
+      #
+      # No version argument: rustup reads rust-toolchain.toml, so the pin stays
+      # in one place rather than being repeated in this file.
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
       # buf resolves remote plugins from the BSR, which rate-limits anonymous
       # requests. The token is absent on fork pull requests, where the
       # anonymous limit has to do.

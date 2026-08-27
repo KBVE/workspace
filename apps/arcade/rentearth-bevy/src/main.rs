@@ -20,6 +20,7 @@ mod game;
 mod private;
 
 use game::core::map::MapSpec;
+#[cfg(feature = "water")]
 use game::core::terrain::SEA_LEVEL;
 use game::systems::camera::CameraPlugin;
 use game::systems::debug::DebugPlugin;
@@ -28,29 +29,31 @@ use game::systems::ui::UiPlugin;
 
 // The animated surface when the key is present and the feature is on, the flat
 // fallback otherwise. Same plugin shape either way, so `main` does not branch.
-#[cfg(feature = "water")]
-use private::water::WaterPlugin;
 #[cfg(not(feature = "water"))]
 use game::systems::water::WaterPlugin;
+#[cfg(feature = "water")]
+use private::water::WaterPlugin;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins
-            .set(AssetPlugin {
-                // Assets live beside the crate, not beside the binary. Resolved
-                // from the manifest directory so the game runs from anywhere in
-                // the workspace; a shipped build overrides this with a path
-                // relative to the executable.
-                file_path: concat!(env!("CARGO_MANIFEST_DIR"), "/assets").to_string(),
-                ..default()
-            })
-            .set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Rent Earth".into(),
-                ..default()
-            }),
-            ..default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(AssetPlugin {
+                    // Assets live beside the crate, not beside the binary. Resolved
+                    // from the manifest directory so the game runs from anywhere in
+                    // the workspace; a shipped build overrides this with a path
+                    // relative to the executable.
+                    file_path: concat!(env!("CARGO_MANIFEST_DIR"), "/assets").to_string(),
+                    ..default()
+                })
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "Rent Earth".into(),
+                        ..default()
+                    }),
+                    ..default()
+                }),
+        )
         // Frame time to the log, so map size changes are measured rather than
         // guessed at.
         .add_plugins((
