@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Refuse to commit plaintext into a git-crypt path.
+# Commit-time guards: encrypted paths, and repository hygiene.
+#
+# --- 1. Refuse to commit plaintext into a git-crypt path.
 #
 # The case this exists for: a clone that has never run `git-crypt unlock` has no
 # filter installed, so a file added under private/ is committed in the clear.
@@ -48,7 +50,40 @@ MSG
   exit 1
 fi
 
-# Advisory: game source outside an encrypted path. Not a failure — plenty of it
+# --- 2. Refuse a new top-level dot-directory that is not allowlisted.
+#
+# Editors and coding agents write per-machine state into a dot-directory at the
+# repository root. .hallmark/log.json reached main this way, in the same
+# `git add -A` that swept in the game tree. A .gitignore entry only stops the
+# tools that already exist; the next one invents a directory nobody has listed.
+#
+# Allowlisted below is everything the repository genuinely keeps at the root.
+# Adding to it should be a deliberate line in a diff.
+allowed='^\.(github|moon|vscode|proto|cargo|husky)$'
+
+new_dotdirs=$(git diff --cached --name-only --diff-filter=A \
+  | grep -E '^\.[^/]+/' \
+  | cut -d/ -f1 \
+  | sort -u \
+  | grep -Ev "$allowed" || true)
+
+if [ -n "$new_dotdirs" ]; then
+  cat >&2 <<MSG
+pre-commit: new top-level dot-directory staged
+
+$(printf '%s\n' "$new_dotdirs" | sed 's/^/  /')
+
+This is usually per-machine state written by an editor or a coding agent, and
+it does not belong in a public repository. Add it to .gitignore.
+
+If it is genuinely repository configuration that every clone needs, add it to
+the allowlist in tools/hooks/pre-commit.sh so the decision is visible in a
+diff.
+MSG
+  exit 1
+fi
+
+# --- 3. Advisory: game source outside an encrypted path. Not a failure — plenty of it
 # is meant to be public — but worth seeing before it is pushed.
 loose=$(printf '%s\n' "$staged" \
   | grep -E '^apps/.*\.(gd|gdshader|cs)$' \

@@ -32,3 +32,16 @@ target/
 .DS_Store
 Thumbs.db
 *.swp
+
+# --- agent and tool scratch ---------------------------------------------
+# Per-machine state written by editors and coding agents. None of it is
+# reproducible on another clone, and all of it is noise in a diff.
+#
+# .hallmark/log.json reached main once already, in the same `git add -A` that
+# swept in the game tree. The pre-commit hook now refuses any new top-level
+# dot-directory that is not on its allowlist, because the next tool to invent
+# one will not be listed here either.
+.hallmark/
+.aider*
+.cursor/
+.claude/settings.local.json

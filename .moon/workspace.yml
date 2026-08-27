@@ -41,7 +41,7 @@ vcs:
   sync: true
   hooks:
     pre-commit:
-      - 'bash ./tools/hooks/pre-commit-crypt.sh'
+      - 'bash ./tools/hooks/pre-commit.sh'
     pre-push:
       - 'git lfs pre-push "$ARG1" "$ARG2"'
     post-checkout:
