@@ -4,8 +4,7 @@
   // TypeScript bundled with the extension, which resolves the pnpm symlinks
   // in node_modules/.pnpm differently and reports workspace packages as
   // missing while the command line is green.
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
 
   // Astro projects live under apps/, so the language server has to be told
   // where to look rather than assuming the repository root.

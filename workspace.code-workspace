@@ -5,8 +5,7 @@
   "settings": {
     // pnpm keeps the real package behind a symlink in node_modules/.pnpm, so
     // the TS server has to use the workspace copy to resolve astro presets.
-    "typescript.tsdk": "node_modules/typescript/lib",
-    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "js/ts.tsdk.path": "node_modules/typescript/lib",
     "files.exclude": {
       "**/node_modules": true,
       "**/target": true,
