@@ -104,8 +104,12 @@ jobs:
       # Same workaround as ci.yml: proto's rust plugin can leave an empty
       # toolchain directory and still report success, so the toolchain is
       # installed for real before proto looks for it. See the comment there.
+      #
+      # Not gated on the project. moon sets up every toolchain the workspace
+      # declares before it runs anything, so a TypeScript game's build asks for
+      # cargo too and dies on `missing_executable` without this.
       - name: Install the pinned Rust toolchain
-        if: steps.mine.outputs.mine == 'true' && matrix.project == 'rentearth-bevy'
+        if: steps.mine.outputs.mine == 'true'
         run: |
           version="$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)"
           test -n "$version" || { echo "::error::no channel in rust-toolchain.toml"; exit 1; }
