@@ -1,0 +1,7 @@
+# moon reads this when it provisions the toolchain, and cargo reads it outside
+# moon, so both use the same compiler. Kept in sync with .moon/toolchains.yml
+# by hand: the automatic writer was reformatting Cargo.toml as a side effect.
+[toolchain]
+channel = "1.98.0"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

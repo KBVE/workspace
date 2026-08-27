@@ -5,7 +5,7 @@ projects:
   globs:
     # Apps are grouped by kind: apps/website/<domain>, apps/game/<name>.
     - 'apps/*/*'
-    - 'services/*'
+    - 'services/*/*'
     - 'packages/*'
     - 'crates/*'
     - 'tools/*'

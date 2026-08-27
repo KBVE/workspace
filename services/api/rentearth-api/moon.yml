@@ -1,0 +1,18 @@
+layer: 'application'
+stack: 'backend'
+toolchains:
+  default: 'rust'
+
+# The response shapes come out of the schemas, so the API rebuilds when they
+# change. kbve-proto carries the generated tree; protobuf generates it.
+dependsOn:
+  - 'kbve-proto'
+
+owners:
+  defaultOwner: '@h0lybyte'
+
+tasks:
+  dev:
+    command: 'cargo run'
+    preset: 'server'
+    deps: ['^:build']

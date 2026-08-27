@@ -29,8 +29,12 @@ typescript:
 
 rust:
   version: '1.98.0'
-  syncToolchainConfig: true
-  addMsrvConstraint: true
+  # Both of these rewrite Cargo.toml on sync: the writer reformats the file,
+  # drops the comments, and adds a member entry for every project it sees --
+  # including gilded-gazette, which has no Cargo.toml and breaks the workspace.
+  # rust-toolchain.toml is pinned by hand instead.
+  syncToolchainConfig: false
+  addMsrvConstraint: false
   components:
     - 'clippy'
     - 'rustfmt'
