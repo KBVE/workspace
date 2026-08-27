@@ -123,12 +123,7 @@ test.describe('fish and chip', () => {
 		await expect.poll(() => activeScenes(page), { timeout: 60_000 }).toContain('TownScene');
 	});
 
-	// Unverified: the key press does not move the player under Playwright, and
-	// it is not yet known whether that is Phaser 4 input drift or synthetic
-	// events not reaching the canvas the way a real keyboard does. The town
-	// loads and grid-engine reports a position, which is what the other tests
-	// cover; movement is checked by hand until someone chases this down.
-	test.fixme('walks the player with the keyboard', async ({ page }) => {
+	test('walks the player with the keyboard', async ({ page }) => {
 		await booted(page);
 		await expect.poll(() => activeScenes(page)).toContain('Preloader');
 
@@ -143,15 +138,37 @@ test.describe('fish and chip', () => {
 		await expect.poll(position).not.toBeNull();
 		const start = (await position())!;
 
-		// A real key event through Phaser's keyboard plugin into grid-engine --
-		// the whole path the Direction enum change touched.
+		// Right, not left: the player spawns at (5,12) with a blocked tile to
+		// its left, so walking that way is correctly a no-op and would look
+		// exactly like broken input.
 		await page.locator('canvas').click({ position: { x: 10, y: 10 } });
-		await page.keyboard.down('a');
+		await page.keyboard.down('d');
 		await expect.poll(position, { timeout: 30_000 }).not.toEqual(start);
-		await page.keyboard.up('a');
+		await page.keyboard.up('d');
 
 		const moved = (await position())!;
-		expect(moved.x).toBeLessThan(start.x);
+		expect(moved.x).toBe(start.x + 1);
 		expect(moved.y).toBe(start.y);
+	});
+
+	test('refuses to walk into a blocked tile', async ({ page }) => {
+		await booted(page);
+		await page.evaluate(() => window.__FISHCHIP_GAME__?.scene.start('TownScene'));
+		await expect.poll(() => activeScenes(page), { timeout: 60_000 }).toContain('TownScene');
+
+		const position = () =>
+			page.evaluate(() => window.__GRID_ENGINE__?.getPosition('player') ?? null);
+		await expect.poll(position).not.toBeNull();
+		const start = (await position())!;
+
+		// The wall west of the spawn. Collision comes from the Tiled map, so
+		// this fails if the tilemap stops loading or its collision property is
+		// renamed -- the player would walk through scenery instead.
+		await page.locator('canvas').click({ position: { x: 10, y: 10 } });
+		await page.keyboard.down('a');
+		await page.waitForTimeout(1_000);
+		await page.keyboard.up('a');
+
+		expect(await position()).toEqual(start);
 	});
 });
