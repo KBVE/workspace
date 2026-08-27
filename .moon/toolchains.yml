@@ -18,7 +18,12 @@ javascript:
   dependencyVersionFormat: 'workspace'
 
 typescript:
-  syncProjectReferences: true
+  # Project references are off on purpose. moon would write them from the
+  # dependsOn graph, and TypeScript then requires composite: true on every
+  # referenced project, which means declaration emit — something an Astro
+  # project, which is noEmit, cannot provide. Resolution already works through
+  # each package's exports map, so the references buy nothing here.
+  syncProjectReferences: false
   createMissingConfig: false
   includeSharedTypes: false
 
