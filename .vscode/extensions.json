@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "astro-build.astro-vscode",
+    "moonrepo.moon-console",
+    "rust-lang.rust-analyzer",
+    "bufbuild.vscode-buf"
+  ]
+}

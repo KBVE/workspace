@@ -1,0 +1,27 @@
+{
+  // Applies whether the folder is opened directly or through
+  // workspace.code-workspace. Without it the editor falls back to the
+  // TypeScript bundled with the extension, which resolves the pnpm symlinks
+  // in node_modules/.pnpm differently and reports workspace packages as
+  // missing while the command line is green.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // Astro projects live under apps/, so the language server has to be told
+  // where to look rather than assuming the repository root.
+  "astro.content-intellisense": true,
+
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/target": true,
+    "**/.moon/cache": true,
+    "**/dist": true,
+    "**/.astro": true
+  },
+  "search.exclude": {
+    "**/pnpm-lock.yaml": true,
+    "**/packages/protobuf/gen": true
+  },
+  "rust-analyzer.linkedProjects": ["Cargo.toml"],
+  "editor.formatOnSave": true
+}
