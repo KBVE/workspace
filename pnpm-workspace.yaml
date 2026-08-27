@@ -1,6 +1,7 @@
 packages:
   - 'apps/*/*'
   - 'packages/*'
+  - 'services/*'
   - 'tools/*'
 
 # One version per dependency for the whole workspace. Projects declare what
@@ -12,6 +13,7 @@ catalog:
   '@astrojs/mdx': 7.0.8
   '@astrojs/sitemap': 3.7.3
   typescript: 5.9.3
+  windmill-cli: 1.798.1
 
 # pnpm 11 blocks postinstall scripts by default. These fetch platform
 # binaries, so they have to be allowed explicitly.
@@ -52,3 +54,4 @@ minimumReleaseAgeExclude:
   - '@img/sharp-libvips-linux-x64@1.3.3'
   - '@img/sharp-libvips-linuxmusl-arm64@1.3.3'
   - '@img/sharp-libvips-linuxmusl-x64@1.3.3'
+  - windmill-cli@1.798.1

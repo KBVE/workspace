@@ -1,0 +1,50 @@
+# One project rather than one per script. The wmill CLI owns the tree under
+# f/: it decides the paths, writes the .script.yaml sidecars, and syncs both
+# directions with the running instance. Splitting it into moon projects would
+# put two owners on the same files.
+layer: 'application'
+language: 'typescript'
+stack: 'backend'
+tags: ['windmill']
+
+owners:
+  defaultOwner: '@h0lybyte'
+
+fileGroups:
+  scripts:
+    - 'f/**/*'
+  config:
+    - 'wmill.yaml'
+
+tasks:
+  # Pulls the instance into the repo. Run this after anyone edits in the
+  # Windmill UI, or the next push overwrites their change.
+  pull:
+    command: 'wmill sync pull --yes'
+    toolchains: ['node']
+    options:
+      cache: false
+      runInCI: false
+
+  # Deploys the repo to the instance.
+  push:
+    command: 'wmill sync push --yes'
+    toolchains: ['node']
+    options:
+      cache: false
+      runInCI: false
+
+  # Fails when the instance holds something the repo does not, which is what
+  # a UI edit looks like. Without this the UI quietly becomes the source of
+  # truth and the next push reverts it.
+  drift:
+    command: 'node tools/drift.mjs'
+    toolchains: ['node']
+    inputs:
+      - '@group(scripts)'
+      - '@group(config)'
+    options:
+      cache: false
+      # Needs a workspace token, so it runs from its own workflow with the
+      # secret rather than failing `moon ci` for anyone without one.
+      runInCI: false

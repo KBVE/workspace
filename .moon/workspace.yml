@@ -5,10 +5,17 @@ projects:
   globs:
     # Apps are grouped by kind: apps/website/<domain>, apps/game/<name>.
     - 'apps/*/*'
-    - 'services/*/*'
+    # One glob per service group rather than 'services/*/*': the wide form
+    # also matches node_modules and anything else a group happens to contain.
+    # A new deploy target adds a line here.
+    - 'services/api/*'
     - 'packages/*'
     - 'crates/*'
     - 'tools/*'
+  sources:
+    # windmill is a single project, not a group: the wmill CLI owns the tree
+    # under f/, so there is nothing below it to glob.
+    windmill: 'services/windmill'
 
 codeowners:
   # Ownership is declared per project in its moon.yml and synced here, so it

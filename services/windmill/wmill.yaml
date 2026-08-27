@@ -1,0 +1,7 @@
+# Mirrors the legacy apps/windmill layout: the CLI owns everything under f/,
+# and this file is the root it syncs from.
+defaultTs: bun
+includes:
+  - f/**
+excludes: []
+codebases: []

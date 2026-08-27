@@ -1,11 +1,19 @@
 [workspace]
 resolver = "3"
-# Services are grouped by kind: services/api/<name>.
-members = ["services/*/*", "crates/*", "apps/arcade/*"]
+# Services are grouped by deploy target. Only the container-deployed group is
+# Rust, so the glob names it: a services/*/* form would match the TypeScript
+# groups and fail on their missing manifests.
+members = ["services/api/*", "crates/*", "apps/arcade/*"]
 # gilded-gazette is a Godot/TypeScript project that happens to sit under
 # apps/arcade, so the glob picks it up and cargo then fails on the missing
 # manifest. Excluding it keeps the glob rather than listing every game.
-exclude = ["apps/arcade/gilded-gazette"]
+exclude = [
+    "apps/arcade/gilded-gazette",
+    # windmill is a Node service, so services/*/* matches its subdirectories --
+    # node_modules, tools -- and cargo hard-errors on any member whose manifest
+    # it cannot read. Excluding the service covers all of them.
+    "services/windmill",
+]
 
 [workspace.package]
 edition = "2024"
@@ -31,3 +39,13 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 lto = "thin"
 codegen-units = 1
 strip = "symbols"
+
+# Bevy is unusably slow in a debug build unless the engine itself is optimised.
+# Optimising dependencies only keeps our own crates fast to rebuild while the
+# renderer still runs at a real frame rate. Profiles are only read from the
+# workspace root -- cargo ignores them in member manifests.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

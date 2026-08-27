@@ -1,0 +1,8 @@
+{
+  "name": "@kbve/windmill",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "windmill-cli": "catalog:"
+  }
+}
