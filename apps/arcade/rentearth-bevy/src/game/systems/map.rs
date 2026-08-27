@@ -5,11 +5,11 @@ use std::f32::consts::FRAC_PI_2;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 
-use crate::components::tile::{BasePosition, Tile};
-use crate::core::hex::HEX_SIZE;
-use crate::components::camera::CameraRig;
-use crate::core::map::MapSpec;
-use crate::core::terrain::{self, Terrain};
+use crate::game::components::tile::{BasePosition, Tile};
+use crate::game::core::hex::HEX_SIZE;
+use crate::game::components::camera::CameraRig;
+use crate::game::core::map::MapSpec;
+use crate::game::core::terrain::{self, Terrain, SEA_LEVEL};
 
 /// Y that every column is drawn down to. Only the sides between here and a
 /// tile's elevation are visible, so this just has to sit below the deepest
@@ -43,6 +43,7 @@ fn spawn_map(
     // the sharing goes.
     let assets: HashMap<Terrain, (Handle<Mesh>, Handle<StandardMaterial>)> = Terrain::ALL
         .iter()
+        .filter(|t| !t.is_water())
         .map(|t| {
             let mesh = meshes.add(Extrusion::new(
                 RegularPolygon::new(HEX_SIZE * TILE_INSET, 6),
@@ -66,6 +67,22 @@ fn spawn_map(
     let world = terrain::generate(*spec);
 
     for (offset, kind) in &world {
+        // Water is one plane, drawn by the water crate. The tiles still exist
+        // -- gameplay has to know a hex is ocean -- they just carry no mesh,
+        // because a surface built from separate columns cracks at every seam
+        // once the waves displace it. Earth being two thirds water, this is
+        // also most of the geometry gone.
+        if kind.is_water() {
+            commands.spawn((
+                Transform::from_translation(offset.to_hex().to_world(SEA_LEVEL)),
+                BasePosition(offset.to_hex().to_world(SEA_LEVEL)),
+                Tile,
+                *offset,
+                *kind,
+            ));
+            continue;
+        }
+
         let (mesh, material) = &assets[kind];
 
         // Extrusion is centred on its own origin, so the column's midpoint

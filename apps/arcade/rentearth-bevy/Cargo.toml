@@ -7,5 +7,13 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+[features]
+# Off by default, and that default is load-bearing: it is what lets a clone
+# without the git-crypt key build. `src/private/**` is encrypted in the
+# repository, and rustc never opens a module that is cfg'd out. Turning this on
+# without the key fails to compile, which is the honest outcome.
+default = []
+water = []
+
 [dependencies]
 bevy = "0.19.1"

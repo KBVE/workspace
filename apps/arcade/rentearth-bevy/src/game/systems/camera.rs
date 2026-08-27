@@ -4,8 +4,8 @@ use bevy::camera::ScalingMode;
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 
-use crate::components::camera::CameraRig;
-use crate::core::map::MapSpec;
+use crate::game::components::camera::CameraRig;
+use crate::game::core::map::MapSpec;
 
 /// Tilt, as a fraction of the way from overhead to horizontal. About 40
 /// degrees down: shallow enough that column sides show, steep enough that near

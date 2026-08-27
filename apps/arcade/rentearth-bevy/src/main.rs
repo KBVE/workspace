@@ -15,13 +15,22 @@
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 
-mod components;
-mod core;
-mod systems;
+mod game;
+#[cfg(feature = "water")]
+mod private;
 
-use systems::camera::CameraPlugin;
-use systems::debug::DebugPlugin;
-use systems::map::MapPlugin;
+use game::core::map::MapSpec;
+use game::core::terrain::SEA_LEVEL;
+use game::systems::camera::CameraPlugin;
+use game::systems::debug::DebugPlugin;
+use game::systems::map::MapPlugin;
+
+// The animated surface when the key is present and the feature is on, the flat
+// fallback otherwise. Same plugin shape either way, so `main` does not branch.
+#[cfg(feature = "water")]
+use private::water::WaterPlugin;
+#[cfg(not(feature = "water"))]
+use game::systems::water::WaterPlugin;
 
 fn main() {
     App::new()
@@ -39,5 +48,22 @@ fn main() {
             LogDiagnosticsPlugin::default(),
         ))
         .add_plugins((MapPlugin, CameraPlugin, DebugPlugin))
+        .add_plugins(water_plugin())
         .run();
+}
+
+/// Sized from the same `MapSpec` the map uses, so the plane covers the world
+/// exactly rather than by a guessed margin.
+fn water_plugin() -> WaterPlugin {
+    let spec = MapSpec::default();
+    let size = Vec2::new(spec.world_width(), spec.world_depth());
+
+    #[cfg(feature = "water")]
+    return WaterPlugin {
+        size,
+        sea_level: SEA_LEVEL,
+    };
+
+    #[cfg(not(feature = "water"))]
+    return WaterPlugin { size };
 }

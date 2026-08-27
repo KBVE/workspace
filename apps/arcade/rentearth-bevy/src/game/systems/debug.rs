@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::components::tile::Tile;
+use crate::game::components::tile::Tile;
 
 pub struct DebugPlugin;
 
