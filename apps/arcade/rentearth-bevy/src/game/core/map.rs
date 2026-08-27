@@ -111,6 +111,51 @@ pub struct Offset {
 }
 
 impl Offset {
+    /// The six neighbours, in odd-r offset coordinates.
+    ///
+    /// The column deltas differ between even and odd rows -- that is the price
+    /// of storing a sheared grid as a rectangle. Wrapping is the caller's job,
+    /// because it needs the map dimensions and this does not.
+    pub fn neighbours(self) -> [Offset; 6] {
+        let shift = if self.row & 1 == 1 { 0 } else { -1 };
+        [
+            (-1, 0),
+            (1, 0),
+            (shift, -1),
+            (shift + 1, -1),
+            (shift, 1),
+            (shift + 1, 1),
+        ]
+        .map(|(dc, dr)| Offset {
+            col: self.col + dc,
+            row: self.row + dr,
+        })
+    }
+
+    /// Bring a neighbour back inside the map. Both axes wrap.
+    pub fn wrapped(self, spec: MapSpec) -> Offset {
+        Offset {
+            col: self.col.rem_euclid(spec.cols),
+            row: self.row.rem_euclid(spec.rows),
+        }
+    }
+
+    /// Index into a row-major buffer of `spec.tile_count()` entries.
+    pub fn index(self, spec: MapSpec) -> usize {
+        (self.row * spec.cols + self.col) as usize
+    }
+
+    /// Inverse of [`to_hex`]: axial back to column and row.
+    ///
+    /// Needed for picking, where the geometry gives an axial coordinate but the
+    /// map is addressed by column and row.
+    pub fn from_hex(hex: Hex) -> Self {
+        Self {
+            col: hex.q + (hex.r - (hex.r & 1)) / 2,
+            row: hex.r,
+        }
+    }
+
     /// Convert to axial for anything geometric -- distance, neighbours,
     /// world position.
     ///

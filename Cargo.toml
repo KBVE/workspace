@@ -9,6 +9,11 @@ members = ["services/api/*", "crates/*", "apps/arcade/*"]
 # manifest. Excluding it keeps the glob rather than listing every game.
 exclude = [
     "apps/arcade/gilded-gazette",
+    # fish-and-chip is TypeScript. Non-Rust games under apps/arcade are turning
+    # out to be the norm rather than the exception, so this list will keep
+    # growing -- naming the Rust crates explicitly may end up cleaner than a
+    # glob plus a lengthening set of exclusions.
+    "apps/arcade/fish-and-chip",
     # windmill is a Node service, so services/*/* matches its subdirectories --
     # node_modules, tools -- and cargo hard-errors on any member whose manifest
     # it cannot read. Excluding the service covers all of them.

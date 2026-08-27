@@ -4,6 +4,7 @@
 pub mod camera;
 pub mod debug;
 pub mod map;
+pub mod ui;
 
 // Only the fallback. The animated surface is `private::water`, chosen in
 // `main` when the `water` feature is on.
