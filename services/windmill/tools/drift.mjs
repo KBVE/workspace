@@ -9,18 +9,28 @@
 // uncommitted work under f/, which is the same signal by a different cause.
 
 import { execFileSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Resolved from this file rather than from cwd: moon runs the task with the
+// project as the working directory, but a `node services/windmill/tools/...`
+// from the repo root would otherwise match nothing under f/ and pass without
+// having checked anything.
+const project = dirname(dirname(fileURLToPath(import.meta.url)));
+const scripts = join(project, 'f');
 
 const wmill = process.platform === 'win32' ? 'wmill.cmd' : 'wmill';
 
 try {
-  execFileSync(wmill, ['sync', 'pull', '--yes'], { stdio: 'inherit' });
+  execFileSync(wmill, ['sync', 'pull', '--yes'], { stdio: 'inherit', cwd: project });
 } catch (error) {
   console.error('wmill sync pull failed. Is WMILL_TOKEN set for this workspace?');
   process.exit(error.status ?? 1);
 }
 
-const changed = execFileSync('git', ['status', '--porcelain', '--', 'f'], {
+const changed = execFileSync('git', ['status', '--porcelain', '--', scripts], {
   encoding: 'utf8',
+  cwd: project,
 }).trim();
 
 if (changed) {

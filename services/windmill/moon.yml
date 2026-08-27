@@ -17,11 +17,22 @@ fileGroups:
     - 'wmill.yaml'
 
 tasks:
+  # Fails when the private scripts are still encrypted in the working tree.
+  # Both sync directions read that tree, so a locked clone would push
+  # ciphertext into the instance and call it a success.
+  preflight:
+    command: 'node tools/preflight.mjs'
+    toolchains: ['node']
+    inputs:
+      - '@group(scripts)'
+      - 'tools/preflight.mjs'
+
   # Pulls the instance into the repo. Run this after anyone edits in the
   # Windmill UI, or the next push overwrites their change.
   pull:
     command: 'wmill sync pull --yes'
     toolchains: ['node']
+    deps: ['~:preflight']
     options:
       cache: false
       runInCI: false
@@ -30,6 +41,7 @@ tasks:
   push:
     command: 'wmill sync push --yes'
     toolchains: ['node']
+    deps: ['~:preflight']
     options:
       cache: false
       runInCI: false
@@ -40,6 +52,7 @@ tasks:
   drift:
     command: 'node tools/drift.mjs'
     toolchains: ['node']
+    deps: ['~:preflight']
     inputs:
       - '@group(scripts)'
       - '@group(config)'
