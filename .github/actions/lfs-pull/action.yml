@@ -1,0 +1,96 @@
+name: 'lfs pull'
+description: 'Fetches Git LFS blobs for one project from the self-hosted endpoint.'
+
+# .lfsconfig points every LFS object in this monorepo at Forgejo
+# (git.kbve.com/KBVE/friendslop), which requires authentication -- an anonymous
+# batch request returns 401. actions/checkout only knows how to authenticate
+# against GitHub, so `lfs: true` there cannot fetch these blobs. Checkout runs
+# with lfs disabled and this action pulls afterwards, once a credential for the
+# LFS host exists.
+#
+# `include` is what makes this scale. The blob store is shared across games and
+# already holds hundreds of objects; a job that needs one project's textures
+# has no reason to download another project's character models. Pass the
+# project's source directory, which the caller gets from the project graph:
+#
+#   moon query projects --id "$project"   ->   .projects[0].source
+#
+# Without a credential the action reports and continues, so a fork pull request
+# fails on the missing asset rather than on a confusing auth error.
+
+inputs:
+  user:
+    description: 'Forgejo username. Pass secrets.FORGEJO_USER.'
+    required: false
+    default: ''
+  token:
+    description: 'Forgejo token. Pass secrets.FORGEJO_TOKEN.'
+    required: false
+    default: ''
+  include:
+    description: 'Path pattern to fetch, e.g. apps/arcade/rentearth-bevy/**'
+    required: true
+
+outputs:
+  pulled:
+    description: 'true when blobs were fetched.'
+    value: ${{ steps.pull.outputs.pulled }}
+
+runs:
+  using: composite
+  steps:
+    - id: pull
+      shell: bash
+      env:
+        FORGEJO_USER: ${{ inputs.user }}
+        FORGEJO_TOKEN: ${{ inputs.token }}
+        INCLUDE: ${{ inputs.include }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${FORGEJO_TOKEN}" ] || [ -z "${FORGEJO_USER}" ]; then
+          echo "pulled=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::No Forgejo credential; LFS blobs stay as pointers."
+          exit 0
+        fi
+
+        # The endpoint is declared once, at the repository root: git-lfs reads
+        # .lfsconfig from there only. Reading it back rather than hard-coding
+        # the host means moving the blob store is a one-line change.
+        url=$(git config -f .lfsconfig lfs.url)
+        host="${url%%/*}//$(echo "${url#*//}" | cut -d/ -f1)"
+
+        # Same mechanism actions/checkout uses for GitHub, scoped to this host
+        # so no other remote sees the header.
+        auth=$(printf '%s:%s' "${FORGEJO_USER}" "${FORGEJO_TOKEN}" | base64 | tr -d '\n')
+        echo "::add-mask::$auth"
+        git config --local "http.${host}/.extraheader" "AUTHORIZATION: basic ${auth}"
+
+        # Scrub the credential from the repository config even if the pull
+        # fails, so it does not survive into a later step or an uploaded
+        # artifact of the workspace.
+        trap 'git config --local --unset-all "http.${host}/.extraheader" || true' EXIT
+
+        git lfs pull --include="${INCLUDE}"
+
+        echo "pulled=true" >> "$GITHUB_OUTPUT"
+
+    # A pointer left in place builds without error and fails at runtime on a
+    # malformed asset, which is far harder to diagnose than a failed fetch.
+    - if: steps.pull.outputs.pulled == 'true'
+      shell: bash
+      env:
+        INCLUDE: ${{ inputs.include }}
+      run: |
+        set -euo pipefail
+        # -I takes the same pattern as the pull; a trailing pathspec would be
+        # read as a ref instead and fail with "not a valid object name".
+        remaining=$(git lfs ls-files -n -I "${INCLUDE}" | while read -r f; do
+          head -c 42 "$f" 2>/dev/null | grep -q 'git-lfs.github.com/spec' && echo "$f" || true
+        done)
+        if [ -n "$remaining" ]; then
+          echo "::error::LFS pointers were not resolved:"
+          printf '%s\n' "$remaining" | sed 's/^/  /'
+          exit 1
+        fi
+        echo "All LFS blobs for ${INCLUDE} are materialised."
