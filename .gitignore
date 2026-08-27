@@ -1,0 +1,34 @@
+# --- secrets -----------------------------------------------------------
+# Secrets never enter this repository, encrypted or otherwise. They live in
+# a secret manager; env.sh materialises them locally.
+.env
+.env.*
+!.env.example
+env.sh
+secrets/
+*.pem
+*.key
+
+# --- node ---------------------------------------------------------------
+node_modules/
+.pnpm-store/
+*-debug.log*
+
+# --- build output -------------------------------------------------------
+dist/
+build/
+out/
+target/
+.astro/
+.vite/
+.output/
+
+# --- moon ---------------------------------------------------------------
+.moon/cache
+.moon/docker
+
+# --- editor / os --------------------------------------------------------
+.idea/
+.DS_Store
+Thumbs.db
+*.swp

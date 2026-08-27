@@ -1,0 +1,25 @@
+{
+  "folders": [
+    { "name": "root", "path": "." },
+    { "name": "apps", "path": "apps" },
+    { "name": "services", "path": "services" },
+    { "name": "packages", "path": "packages" },
+    { "name": "crates", "path": "crates" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/target": true,
+      "**/.moon/cache": true
+    },
+    "rust-analyzer.linkedProjects": ["Cargo.toml"],
+    "editor.formatOnSave": true
+  },
+  "extensions": {
+    "recommendations": [
+      "moonrepo.moon-console",
+      "rust-lang.rust-analyzer",
+      "astro-build.astro-vscode"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+# Compiles the generated Rust. Nothing depends on this crate; it exists so a
+# schema that generates but does not compile fails here rather than in a Bevy
+# crate downstream.
+[package]
+name = "verify-rust"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+prost = "0.13"
+prost-types = "0.13"
+
+[workspace]

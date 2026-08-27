@@ -1,0 +1,31 @@
+$schema: 'https://moonrepo.dev/schemas/toolchains.json'
+
+# moon 2 splits the old monolithic node toolchain into discrete plugins:
+# runtime (node), package manager (pnpm), ecosystem (javascript),
+# type layer (typescript). Each must be registered here to be active.
+
+node:
+  version: '26.8.1'
+
+pnpm:
+  version: '11.24.0'
+
+javascript:
+  packageManager: 'pnpm'
+  dedupeOnLockfileChange: true
+  inferTasksFromScripts: false
+  syncProjectWorkspaceDependencies: true
+  dependencyVersionFormat: 'workspace'
+
+typescript:
+  syncProjectReferences: true
+  createMissingConfig: false
+  includeSharedTypes: false
+
+rust:
+  version: '1.98.0'
+  syncToolchainConfig: true
+  addMsrvConstraint: true
+  components:
+    - 'clippy'
+    - 'rustfmt'

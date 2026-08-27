@@ -1,0 +1,52 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    # Unity consumers expect KBVE.Proto.<Domain>; setting it here keeps the
+    # option out of every individual file.
+    - file_option: csharp_namespace_prefix
+      value: KBVE.Proto
+
+# Every language a consumer uses is generated from the same command, so a
+# schema change that breaks one of them fails locally rather than in whichever
+# downstream repository happens to build first.
+#
+# Remote plugins are not version-pinned yet. Until they are, generated output
+# can change without a schema change.
+plugins:
+  # TypeScript - Astro applications and Node services.
+  - remote: buf.build/community/stephenh-ts-proto
+    out: gen/ts
+    opt:
+      - esModuleInterop=true
+      - importSuffix=.js
+      - outputServices=false
+      - oneof=unions
+      - enumsAsLiterals=true
+      - stringEnums=true
+      - useOptionals=messages
+      - useExactTypes=true
+      - exportCommonSymbols=true
+      - removeEnumPrefix=true
+      - snakeToCamel=false
+
+  # Rust - Bevy crates and Axum services, replacing the per-crate build.rs
+  # invocations of prost_build against a relative path.
+  - remote: buf.build/community/neoeinstein-prost
+    out: gen/rust
+
+  # prost emits files that refer to each other with relative module paths
+  # (super::super::r#type::v1::Ulid), so without a module tree the output does
+  # not compile. This plugin writes that tree as mod.rs.
+  - remote: buf.build/community/neoeinstein-prost-crate
+    out: gen/rust
+    opt:
+      - no_features
+
+  # C# - Unity.
+  - remote: buf.build/protocolbuffers/csharp
+    out: gen/csharp
+
+  # Python.
+  - remote: buf.build/protocolbuffers/python
+    out: gen/python

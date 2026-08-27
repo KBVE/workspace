@@ -1,0 +1,31 @@
+$schema: 'https://moonrepo.dev/schemas/workspace.json'
+
+# Project graph. Each glob entry expects a `moon.yml` in the matched directory.
+projects:
+  globs:
+    - 'apps/*'
+    - 'services/*'
+    - 'packages/*'
+    - 'crates/*'
+    - 'tools/*'
+
+codeowners:
+  # Ownership is declared per project in its moon.yml and synced here, so it
+  # cannot drift from the project it describes.
+  sync: true
+  orderBy: 'file-source'
+  globalPaths:
+    # Repo-wide fallback: everything has an owner even before its project
+    # declares one.
+    '*': ['@h0lybyte']
+    '/.github/': ['@h0lybyte']
+
+vcs:
+  defaultBranch: 'main'
+  provider: 'github'
+
+hasher:
+  optimization: 'accuracy'
+
+pipeline:
+  inheritColorsForPipedTasks: true

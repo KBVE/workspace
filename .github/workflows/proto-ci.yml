@@ -1,0 +1,191 @@
+name: proto-ci
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/proto/**', '.github/workflows/proto-ci.yml']
+  pull_request:
+    paths: ['packages/proto/**', '.github/workflows/proto-ci.yml']
+  merge_group:
+
+# Least privilege. Nothing in this workflow writes to the repository, and on a
+# public repo the default token grant would otherwise be handed to every fork
+# pull request that runs here.
+permissions:
+  contents: read
+
+# A second push to the same branch makes the first run irrelevant.
+concurrency:
+  group: proto-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  buf:
+    name: buf
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/proto
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # buf breaking resolves a git ref, so the comparison base has to be
+          # in the local clone.
+          fetch-depth: 0
+
+      - uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1.5.0
+        with:
+          setup_only: true
+
+      - name: Build
+        run: buf build
+
+      - name: Lint
+        run: buf lint
+
+      - name: Format
+        run: buf format --diff --exit-code
+
+      # DISABLED UNTIL PUBLICATION. Re-enable before the first `buf push`.
+      #
+      # Nothing consumes these schemas yet, so breaking changes are not only
+      # allowed but the point: retiring kbve/schema.proto deletes messages, and
+      # folding the per-domain rarity and element enums into common changes
+      # field types. This check would fail every one of those pull requests.
+      #
+      # The moment a consumer pins a published version that stops being true,
+      # and this becomes the most important job in the file. Uncommenting it is
+      # the last step before publishing, not an afterthought.
+      #
+      # The command below is verified working: against origin/main it rejects a
+      # deleted field and a changed field type, and accepts an added field.
+      #
+      # - name: Breaking
+      #   run: |
+      #     if git rev-parse --verify --quiet origin/main >/dev/null; then
+      #       buf breaking --against '.git#branch=origin/main'
+      #     else
+      #       echo "No origin/main yet; nothing to compare against."
+      #     fi
+
+  # Proves the schemas actually generate, not merely that they compile. A
+  # module can pass lint and still break a plugin, and it can break one
+  # language while leaving the others fine - a name that is legal in proto but
+  # reserved in C#, for instance. Consumers span four languages, so all four
+  # are generated here rather than discovering the failure in whichever
+  # downstream repository builds first.
+  codegen:
+    name: codegen
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/proto
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1.5.0
+        with:
+          setup_only: true
+
+      - name: Generate
+        run: buf generate
+
+      # An empty directory means the plugin ran and produced nothing, which is
+      # a silent failure: buf exits zero either way.
+      - name: Every language produced output
+        run: |
+          status=0
+          for lang in ts rust csharp python; do
+            count=$(find "gen/$lang" -type f 2>/dev/null | wc -l | tr -d ' ')
+            printf '%-8s %s files\n' "$lang" "$count"
+            if [ "$count" -eq 0 ]; then
+              echo "::error::no output generated for $lang"
+              status=1
+            fi
+          done
+          exit $status
+
+      # The descriptor set is what non-buf tooling consumes: the zod emitters
+      # in KBVE/kbve read a FileDescriptorSet, not .proto text. Publishing it
+      # as an artifact means that tooling has something to fetch that is built
+      # from a reviewed commit.
+      - name: Build descriptor set
+        run: buf build --output descriptor.binpb --as-file-descriptor-set
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: descriptor-set
+          path: descriptor.binpb
+          retention-days: 30
+
+  # Generating is not compiling. buf reports success as long as a plugin runs,
+  # so output that no toolchain will accept still passes the codegen job: a
+  # field name that is a C# keyword, a package layout that collides in Python,
+  # a prost module tree that does not resolve. Each language is compiled here
+  # with the same toolchain its consumers use.
+  compile:
+    name: compile (${{ matrix.lang }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/proto
+    strategy:
+      # One language failing should not hide the state of the other three.
+      fail-fast: false
+      matrix:
+        lang: [rust, ts, csharp, python]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1.5.0
+        with:
+          setup_only: true
+
+      - name: Generate
+        run: buf generate
+
+      - name: Rust
+        if: matrix.lang == 'rust'
+        working-directory: packages/proto/verify/rust
+        run: |
+          mkdir -p src
+          cp -r "$GITHUB_WORKSPACE/packages/proto/gen/rust/." src/
+          # prost-crate names the module tree mod.rs; cargo wants lib.rs.
+          mv src/mod.rs src/lib.rs
+          cargo check --locked || cargo check
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: matrix.lang == 'ts'
+        with:
+          node-version: '22'
+
+      - name: TypeScript
+        if: matrix.lang == 'ts'
+        working-directory: packages/proto/verify/ts
+        run: |
+          cp -r "$GITHUB_WORKSPACE/packages/proto/gen/ts" src
+          npm install --no-audit --no-fund
+          npx tsc --noEmit
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        if: matrix.lang == 'csharp'
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: C#
+        if: matrix.lang == 'csharp'
+        working-directory: packages/proto/verify/csharp
+        run: |
+          find "$GITHUB_WORKSPACE/packages/proto/gen/csharp" -name '*.cs' -exec cp {} . \;
+          dotnet build --nologo -v quiet
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        if: matrix.lang == 'python'
+        with:
+          python-version: '3.12'
+
+      - name: Python
+        if: matrix.lang == 'python'
+        run: |
+          pip install --quiet protobuf
+          python verify/python/verify.py gen/python

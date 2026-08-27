@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'tools/*'
+
+# pnpm 11 blocks postinstall scripts by default. buf's install script fetches
+# the platform binary, so it has to be allowed explicitly.
+allowBuilds:
+  '@bufbuild/buf': true

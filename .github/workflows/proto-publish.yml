@@ -1,0 +1,67 @@
+name: proto-publish
+
+# Publishing happens only after a change has landed on main, so the BSR module
+# always reflects a reviewed state. Never runs on pull requests: secrets are
+# not available to forks, and should not be.
+on:
+  push:
+    branches: [main]
+    paths: ['packages/proto/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Pushes to the registry must not overlap.
+concurrency:
+  group: proto-publish
+  cancel-in-progress: false
+
+jobs:
+  push:
+    name: buf push
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/proto
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      # The token is absent until someone adds it. Detect that and skip with a
+      # notice rather than failing every push to main with a credential error.
+      - name: Check for registry credentials
+        id: creds
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+        run: |
+          if [ -n "$BUF_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::BUF_TOKEN is not set; skipping publish to the BSR."
+          fi
+
+      # The breaking-change job in ci.yml is commented out while the schemas
+      # are still being reshaped. Publishing is the point at which that stops
+      # being acceptable, so fail loudly here rather than silently shipping a
+      # module with no compatibility guarantee behind it.
+      - name: Breaking-change check must be enabled before publishing
+        if: steps.creds.outputs.present == 'true'
+        run: |
+          if grep -qE '^\s*-\s*name:\s*Breaking\s*$' "$GITHUB_WORKSPACE/.github/workflows/proto-ci.yml"; then
+            echo "Breaking-change check is enabled."
+          else
+            echo "::error::ci.yml has no active Breaking job. Re-enable it before publishing to the BSR."
+            exit 1
+          fi
+
+      - uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1.5.0
+        if: steps.creds.outputs.present == 'true'
+        with:
+          token: ${{ secrets.BUF_TOKEN }}
+          push: true
+          # Labels the commit on the registry so a consumer can pin to an exact
+          # published state rather than tracking the module head.
+          push_labels: ${{ github.sha }}

@@ -1,0 +1,18 @@
+{
+  "name": "@kbve/workspace",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=26.8.1"
+  },
+  "scripts": {
+    "check": "moon check --all",
+    "build": "moon run :build",
+    "test": "moon run :test",
+    "lint": "moon run :lint"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "1.72.0"
+  }
+}

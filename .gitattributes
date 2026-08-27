@@ -1,0 +1,9 @@
+# --- normalisation ------------------------------------------------------
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+*.woff2 binary
+pnpm-lock.yaml   linguist-generated=true -diff
+Cargo.lock       linguist-generated=true -diff

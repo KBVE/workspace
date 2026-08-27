@@ -1,0 +1,38 @@
+# The single source of truth for every wire type in the workspace. Consumers
+# depend on this project, so touching a .proto invalidates their builds too.
+layer: 'library'
+language: 'unknown'
+stack: 'systems'
+tags: ['proto']
+
+owners:
+  defaultOwner: '@h0lybyte'
+  # Schema changes fan out to every consumer and are breaking by default.
+  paths:
+    # The shared layers are imported by every domain: a change here is a
+    # change to all of them.
+    'kbve/type/': ['@h0lybyte']
+    'kbve/common/': ['@h0lybyte']
+    'buf.yaml': ['@h0lybyte']
+    'buf.gen.yaml': ['@h0lybyte']
+
+tasks:
+  generate:
+    command: 'buf generate'
+    toolchains: ['node']
+    inputs:
+      - 'kbve/**/*.proto'
+      - 'buf.gen.yaml'
+      - 'buf.yaml'
+    outputs:
+      - 'gen/**/*'
+
+  lint:
+    command: 'buf lint'
+    toolchains: ['node']
+    inputs: ['kbve/**/*.proto', 'buf.yaml']
+
+  format:
+    command: 'buf format --diff --exit-code'
+    toolchains: ['node']
+    inputs: ['kbve/**/*.proto']

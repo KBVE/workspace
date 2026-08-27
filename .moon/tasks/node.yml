@@ -1,0 +1,30 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+# moon 2 scopes global tasks with `inheritedBy`, not by filename.
+inheritedBy:
+  toolchain: 'node'
+
+fileGroups:
+  sources:
+    - 'src/**/*'
+  tests:
+    - 'tests/**/*'
+    - 'src/**/*.test.*'
+  configs:
+    - '*.{js,cjs,mjs,json,ts}'
+
+tasks:
+  build:
+    command: 'pnpm run build'
+    # '^:build' = the `build` task of every project this one dependsOn.
+    deps: ['^:build']
+    inputs: ['@group(sources)', '@group(configs)']
+    outputs: ['dist']
+  test:
+    command: 'pnpm run test'
+    # '~:build' = the `build` task of THIS project.
+    deps: ['~:build']
+    inputs: ['@group(sources)', '@group(tests)', '@group(configs)']
+  lint:
+    command: 'pnpm run lint'
+    inputs: ['@group(sources)', '@group(configs)']
