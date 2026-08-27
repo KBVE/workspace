@@ -34,16 +34,27 @@ use game::systems::water::WaterPlugin;
 #[cfg(feature = "water")]
 use private::water::WaterPlugin;
 
+/// Where the asset server looks.
+///
+/// Natively the assets live beside the crate rather than beside the binary, so
+/// the path is resolved from the manifest directory and the game runs from
+/// anywhere in the workspace. On the web there is no filesystem to resolve
+/// against: assets are fetched over HTTP relative to the page, and the build
+/// copies them next to index.html.
+fn asset_path() -> String {
+    #[cfg(target_arch = "wasm32")]
+    return "assets".to_string();
+
+    #[cfg(not(target_arch = "wasm32"))]
+    return concat!(env!("CARGO_MANIFEST_DIR"), "/assets").to_string();
+}
+
 fn main() {
     App::new()
         .add_plugins(
             DefaultPlugins
                 .set(AssetPlugin {
-                    // Assets live beside the crate, not beside the binary. Resolved
-                    // from the manifest directory so the game runs from anywhere in
-                    // the workspace; a shipped build overrides this with a path
-                    // relative to the executable.
-                    file_path: concat!(env!("CARGO_MANIFEST_DIR"), "/assets").to_string(),
+                    file_path: asset_path(),
                     ..default()
                 })
                 .set(WindowPlugin {

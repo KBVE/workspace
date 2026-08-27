@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>Rent Earth</title>
+    <style>
+      /* itch serves this in an iframe, so the page has to fill whatever box it
+         is given rather than assuming a viewport. */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #05070d;
+        color: #e8ecf4;
+        font: 14px/1.5 system-ui, sans-serif;
+      }
+
+      /* Bevy appends its own canvas to the body. Sizing it here rather than
+         from Rust keeps the layout in one place. */
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        outline: none;
+        /* The map is made of flat-shaded hexes; smoothing on upscale reads as
+           blur rather than as detail. */
+        image-rendering: pixelated;
+      }
+
+      #status {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        gap: 0.5rem;
+      }
+
+      #status.failed {
+        color: #ff9a9a;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Replaced by the canvas once the module runs. The wasm bundle is tens of
+         megabytes, so without this the page is a black rectangle for several
+         seconds and reads as broken. -->
+    <div id="status">
+      <div>Loading Rent Earth…</div>
+      <div id="detail" style="opacity: 0.6">first load fetches a large bundle</div>
+    </div>
+
+    <script type="module">
+      const status = document.getElementById('status');
+      const detail = document.getElementById('detail');
+
+      // Bevy compiles its wgpu backend in, so WebGPU and WebGL2 are separate
+      // binaries rather than one binary that falls back. Only one is fetched.
+      //
+      // navigator.gpu is presence-only: it says the browser exposes the API,
+      // not that an adapter exists. requestAdapter settles that, and a browser
+      // that exposes WebGPU over a blocklisted driver returns null here --
+      // which is exactly the case where loading the WebGPU bundle would give a
+      // blank canvas rather than a fallback.
+      async function pickBackend() {
+        if (!navigator.gpu) return 'webgl2';
+        try {
+          return (await navigator.gpu.requestAdapter()) ? 'webgpu' : 'webgl2';
+        } catch {
+          return 'webgl2';
+        }
+      }
+
+      const backend = await pickBackend();
+      detail.textContent = `first load fetches a large bundle (${backend})`;
+
+      try {
+        const { default: init } = await import(`./rentearth-${backend}.js`);
+        await init();
+        status.remove();
+      } catch (error) {
+        // A thrown "Using exceptions for control flow" is how wasm-bindgen
+        // unwinds Bevy's event loop on some browsers; it is not a failure.
+        if (`${error}`.includes('control flow')) {
+          status.remove();
+        } else {
+          status.className = 'failed';
+          status.textContent = `Rent Earth failed to start: ${error}`;
+          throw error;
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,5 +1,6 @@
-# The 4X game. Rust and Bevy, targeting native for development and WebGPU in
-# the browser for release.
+# The 4X game. Rust and Bevy, targeting native for development and a
+# single-threaded WebGPU build in the browser for release, with a WebGL2
+# bundle beside it for browsers that cannot run the first.
 layer: 'application'
 language: 'rust'
 stack: 'frontend'
@@ -7,3 +8,20 @@ tags: ['bevy', 'game']
 
 owners:
   defaultOwner: '@h0lybyte'
+
+tasks:
+  # The browser bundles. Inherited `build` stays native: CI compiles that on
+  # every change, and cross-compiling to wasm as well would treble the slowest
+  # task in the pipeline -- there are two wasm binaries -- for something only a
+  # release consumes.
+  build-web:
+    command: 'bash ./tools/build-web.sh'
+    inputs:
+      - 'src/**/*'
+      - 'assets/**/*'
+      - 'web/**/*'
+      - 'tools/build-web.sh'
+      - 'Cargo.toml'
+      - '/Cargo.lock'
+    outputs:
+      - 'dist'

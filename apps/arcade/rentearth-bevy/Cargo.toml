@@ -15,5 +15,12 @@ rust-version.workspace = true
 default = []
 water = []
 
+# WebGPU for the browser build. Bevy resolves the backend at compile time --
+# `webgpu` overrides the default `webgl2` in a cfg rather than falling back at
+# runtime, so a single wasm binary speaks exactly one of them. Reaching
+# browsers without WebGPU therefore means a second bundle with this feature
+# off; build-web.sh produces both and index.html picks on navigator.gpu.
+webgpu = ["bevy/webgpu"]
+
 [dependencies]
 bevy = "0.19.1"
