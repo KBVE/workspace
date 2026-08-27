@@ -55,6 +55,10 @@ jobs:
             # before anything is uploaded. Leave it off a game that has no such
             # task and the gate simply skips.
             e2e: fish-and-chip:e2e
+            # Its assets are plain git objects, and .lfsconfig points LFS at a
+            # private Forgejo the runner cannot reach -- asking for LFS here
+            # fails the checkout over files this game does not have.
+            lfs: false
           # A wasm-bindgen bundle rather than a Vite one, but the channel is
           # still `html`: itch treats any browser build the same way.
           - project: rentearth-bevy
@@ -62,6 +66,9 @@ jobs:
             dist: apps/arcade/rentearth-bevy/dist
             itch: kbve/rentearth
             channel: html
+            # The water textures are LFS objects. Without this they check out
+            # as pointer files and the game ships with placeholder water.
+            lfs: true
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
     # A tag names exactly one project, so every other matrix entry no-ops. The
@@ -81,9 +88,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: steps.mine.outputs.mine == 'true'
         with:
-          # The water textures are LFS objects. Without this they check out as
-          # pointer files and the game ships with placeholder water.
-          lfs: true
+          # Per game: see the matrix. Fetching LFS is not free of consequence
+          # here, because the objects live on a remote a public runner has no
+          # credentials for.
+          lfs: ${{ matrix.lfs }}
 
       # rentearth-bevy's water shader lives in git-crypt encrypted source. A
       # release has the key, so it ships the real shader rather than the
