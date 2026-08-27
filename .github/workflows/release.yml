@@ -1,0 +1,58 @@
+name: release
+
+# Runs only when a release tag is pushed. Nothing here fires on a normal push
+# or pull request, so the cost of having it is zero until someone releases.
+#
+# Tags are `<moon project id>@<semver>` -- rentearth-api@0.2.0 -- which means a
+# tag resolves to a node in the project graph. That is what replaces the hand
+# maintained dispatch manifest: the graph already knows every project's source
+# directory, so the only thing left to state is the version.
+#
+# Tagging is deliberate and manual on purpose. GitHub generates release notes
+# by diffing against the chronologically previous tag, which in a monorepo
+# interleaves every other project's commits, so the notes have to be written by
+# hand to be worth reading. What a human cannot do reliably by hand is keep the
+# tag and the manifest in step, which is the job below.
+on:
+  push:
+    tags: ['*@*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to verify, e.g. rentearth-api@0.2.0'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: verify tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
+        with:
+          auto-install: true
+
+      # Resolves the tag against the project graph and the project's own
+      # manifest. A mismatch means the version bump was never committed, and
+      # publishing it would label an artifact with a version its manifest
+      # never claimed.
+      - name: Tag matches the manifest
+        run: node tools/release/verify-tag.mjs "${{ inputs.tag || github.ref_name }}"
+
+      # No artifact is published yet: there is no registry to push to and no
+      # deployable service. This job exists so a tag is checked from the day
+      # tags start being used, rather than the check arriving after the first
+      # wrong one has shipped. The build and push steps land here alongside
+      # the registry.
+      - name: Nothing to publish yet
+        run: |
+          echo "::notice::Tag verified. No publish target is configured yet."
