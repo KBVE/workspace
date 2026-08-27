@@ -1,26 +1,69 @@
 # Godot editor, pinned by proto.
 #
-# Scope: the macOS editor binary and nothing else. Deliberately not covered yet:
-#   - linux/windows  (CI installs Godot itself; add when a runner needs it)
-#   - mono builds    (no C# in any project here)
-#   - export templates, which `--export-release` needs. Those ship as a separate
-#     .tpz that unpacks into ~/Library/Application Support/Godot/export_templates
-#     -- outside anything a proto plugin manages. So this pins the editor used
-#     for tests and imports, not a full web-export toolchain.
+# proto has no Godot tool built in, and `proto plugin search godot` is empty as
+# of proto 0.61, so this is a local schema plugin.
+#
+# Scope: the standard (non-mono) editor binary. Deliberately not covered:
+#
+#   - mono/C# builds. No project here uses C#; adding them means a second tool
+#     entry, since the asset names differ rather than the arch.
+#
+#   - export templates. `--export-release` needs Godot_v{version}-stable_
+#     export_templates.tpz, a 1.2GB artifact that unpacks into an absolute path
+#     (~/Library/Application Support/Godot/export_templates/{version}.stable on
+#     macOS, ~/.local/share/godot/export_templates elsewhere). proto installs
+#     into its own tool dir and has no hook for that, so a web export still
+#     needs a separate fetch. This pins the editor used for imports, gdUnit4
+#     runs and the editor GUI -- not a full export toolchain.
+#
+#   - Windows on ARM. Godot names it `windows_arm64.exe.zip` while x86 is
+#     `win64.exe.zip` / `win32.exe.zip`; the prefix itself changes, so one
+#     {arch} template cannot cover both. Not worth a second platform block for
+#     a target nobody here builds on.
 name = "Godot"
 type = "language"
 
+# Layouts differ per platform and were checked against the real 4.7.2 archives:
+#   macos   -> Godot.app/            (app bundle at the zip root)
+#   linux   -> a single bare binary at the zip root, version in its name
+#   windows -> two exes at the zip root, the console one alongside the real one
+# None of them has a wrapping directory, so archive-prefix is never needed.
+
 [platform.macos]
-# The zip's root is the app bundle itself, so there is no prefix directory to
-# strip, and the real binary sits inside Contents/MacOS.
+# Universal binary -- one download for both Intel and Apple Silicon, so no
+# {arch} token here.
 exe-path = "Godot.app/Contents/MacOS/Godot"
 download-file = "Godot_v{version}-stable_macos.universal.zip"
 
+[platform.linux]
+exe-path = "Godot_v{version}-stable_linux.{arch}"
+download-file = "Godot_v{version}-stable_linux.{arch}.zip"
+
+[platform.linux.arch]
+x86_64 = "x86_64"
+aarch64 = "arm64"
+x86 = "x86_32"
+arm = "arm32"
+
+[platform.windows]
+# The zip also carries Godot_v{version}-stable_win{arch}_console.exe, a small
+# launcher that reopens the editor with a console attached. Pointing at it
+# instead would break headless CLI use, so the plain exe is the one.
+exe-path = "Godot_v{version}-stable_win{arch}.exe"
+download-file = "Godot_v{version}-stable_win{arch}.exe.zip"
+
+[platform.windows.arch]
+x86_64 = "64"
+x86 = "32"
+
 [install]
+# Godot publishes a .sha256 for the source tarball only, not for the per
+# platform binaries, so there is no checksum-url to point at.
 download-url = "https://github.com/godotengine/godot/releases/download/{version}-stable/{download_file}"
 
 [resolve]
 git-url = "https://github.com/godotengine/godot"
-# Tags are `4.7.1-stable` and `4.7-stable`; patch is optional. Only -stable is
-# matched, so betas and rcs never resolve.
+# Tags are `4.7.1-stable`, and `4.7-stable` for a first release with no patch,
+# so patch is optional. Matching -stable only means betas, rcs and devs never
+# resolve as installable versions.
 version-pattern = "^((?<major>\\d+)\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?)-stable$"
