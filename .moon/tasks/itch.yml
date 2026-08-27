@@ -1,0 +1,23 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+# Inherited by every project tagged 'itch', so shipping a new game to itch.io
+# is a tag and an ITCH_TARGET in that project's own moon.yml -- no entry in a
+# shared matrix, no workflow edit.
+#
+# The publish workflow's only job is to turn a `<project>@<version>` tag into a
+# project id and run this task. It never names a game, so it stops growing.
+inheritedBy:
+  tag: 'itch'
+
+tasks:
+  publish:
+    command: 'bash $workspaceRoot/tools/itch/push.sh'
+    toolchains: ['node']
+    # Publishing what CI never built would defeat the point of checking it, so
+    # the artifact comes from the same build task.
+    deps: ['~:build']
+    options:
+      # Never on a push: this task uploads to a public page. It runs from the
+      # release workflow, on a tag, and nowhere else.
+      runInCI: false
+      cache: false

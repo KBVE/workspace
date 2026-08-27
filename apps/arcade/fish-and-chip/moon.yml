@@ -10,10 +10,17 @@
 layer: 'application'
 language: 'typescript'
 stack: 'frontend'
-tags: ['phaser', 'game']
+tags: ['phaser', 'game', 'itch']
 
 owners:
   defaultOwner: '@h0lybyte'
+
+# The one thing the project graph cannot answer: the itch page slug lives on
+# itch, not in this repository, and this project ships to a page called
+# `fishchip`. Declared here so the publish task inherited from the 'itch' tag
+# needs no per-game entry in a shared file.
+env:
+  ITCH_TARGET: 'kbve/fishchip:html'
 
 fileGroups:
   sources:
