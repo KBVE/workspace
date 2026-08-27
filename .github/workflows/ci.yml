@@ -63,20 +63,49 @@ jobs:
         with:
           key: ${{ secrets.GIT_CRYPT_KEY }}
 
+      # Both of the next two steps exist to work around proto's rust plugin.
+      # It shells out to rustup, then returns `installed: true` whatever the
+      # result -- its own source says "Always mark as installed so that
+      # binaries can be located!". When that rustup call does nothing (it
+      # returns in about a second, far too fast to have downloaded anything)
+      # the plugin leaves an empty toolchain directory behind, and moon then
+      # fails with:
+      #
+      #   Unable to find an executable for Rust, expected file
+      #   ~/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo
+      #
+      # An empty directory is also enough for rustup to answer "using existing
+      # install", so a plain `rustup toolchain install` will not repair it.
+      # Installing with --force before proto runs means the plugin finds a
+      # populated bin/ and skips its own install entirely.
+      #
+      # The runner image ships only the stable toolchain, from
+      # /etc/skel/.rustup, so the pinned version is always a fresh download.
+      # Caching it keeps that to once per toolchain change rather than once
+      # per job.
+      - name: Restore the Rust toolchain
+        id: rustup-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.rustup/toolchains
+          key: rustup-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}
+
+      - name: Install the pinned Rust toolchain
+        if: steps.rustup-cache.outputs.cache-hit != 'true'
+        # The version is read from rust-toolchain.toml rather than written out
+        # again here, so the pin still lives in one place. --profile and the
+        # components have to be passed explicitly: --force bypasses the file.
+        run: |
+          version="$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)"
+          test -n "$version" || { echo "::error::no channel in rust-toolchain.toml"; exit 1; }
+          rustup toolchain install "$version" \
+            --profile minimal --component clippy --component rustfmt --force
+          test -x "$HOME/.rustup/toolchains/$version-$(uname -m)-unknown-linux-gnu/bin/cargo" \
+            || { echo "::error::rustup did not produce a cargo binary for $version"; exit 1; }
+
       - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
         with:
           auto-install: true
-
-      # setup-toolchain caches ~/.proto/tools but not ~/.rustup, and proto's
-      # rust plugin records the install in the former while rustup owns the
-      # latter. On a cache hit proto restores the marker, reports "installed",
-      # and moon then fails to locate ~/.rustup/toolchains/<version>/bin/cargo.
-      # Installing here makes the toolchain real regardless of the cache.
-      #
-      # No version argument: rustup reads rust-toolchain.toml, so the pin stays
-      # in one place rather than being repeated in this file.
-      - name: Install the pinned Rust toolchain
-        run: rustup toolchain install
 
       # buf resolves remote plugins from the BSR, which rate-limits anonymous
       # requests. The token is absent on fork pull requests, where the

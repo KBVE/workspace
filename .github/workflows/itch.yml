@@ -1,19 +1,27 @@
 name: itch
 
-# Publishes the Fish and Chip HTML build to https://kbve.itch.io/fishchip.
+# Publishes a game's web build to its itch.io page.
 #
 # This is a workflow rather than a moon task because the execution context
 # differs from ci.yml in both ways that justify one: it needs BUTLER_API_KEY,
 # and it runs on a release tag rather than on every push. The build itself is
-# still `moon run fish-and-chip:build`, so what CI checks and what ships are
-# the same artifact produced the same way.
+# still a moon task, so what CI checks and what ships are the same artifact
+# produced the same way.
 #
-# The tag doubles as the itch user version, which is why it is verified first:
-# a tag that disagrees with package.json would label a channel with a version
-# the manifest never claimed, and itch has no way to tell afterwards.
+# Adding a game is one entry in the matrix below. Everything that differs
+# between games lives there -- the moon build task, where that task leaves its
+# output, and the itch page and channel it belongs on. Nothing else in this
+# file names a project.
+#
+# The itch page slug is the one thing the project graph cannot answer: it lives
+# on itch, not in this repository, and `fish-and-chip` ships to a page called
+# `fishchip`. That is what the matrix is for. The version is not in it -- the
+# tag carries that, and it is verified against the project's own manifest
+# before anything is uploaded, so a channel can never be labelled with a
+# version the manifest never claimed.
 on:
   push:
-    tags: ['fish-and-chip@*']
+    tags: ['*@*']
   workflow_dispatch:
     inputs:
       tag:
@@ -23,45 +31,74 @@ on:
 permissions:
   contents: read
 
-# Two pushes to the same channel would race inside butler's diffing, so
-# releases queue instead of cancelling: a half-uploaded build is worse than a
-# slow one.
+# Keyed by tag rather than by game: two pushes to the same channel would race
+# inside butler's diffing, and a half-uploaded build is worse than a slow one.
 concurrency:
-  group: itch-fish-and-chip
+  group: itch-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   publish:
-    name: publish to itch.io
+    name: publish ${{ matrix.project }} to itch.io
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: fish-and-chip
+            build: fish-and-chip:build
+            dist: apps/arcade/fish-and-chip/dist
+            itch: kbve/fishchip
+            channel: html
+          # rentearth-bevy lands here once it has a web build task. It is a
+          # Bevy game, so its `dist` is a wasm-bindgen bundle rather than a
+          # Vite one, and its channel will still be `html` -- itch treats any
+          # browser build the same way.
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
-      ITCH_TARGET: kbve/fishchip
-      ITCH_CHANNEL: html
+    # A tag names exactly one project, so every other matrix entry no-ops. The
+    # guard has to be repeated per step rather than set once on the job: the
+    # matrix context is not available in a job-level `if`.
     steps:
+      - name: Does this tag belong to ${{ matrix.project }}?
+        id: mine
+        run: |
+          if [ "${TAG%@*}" = "${{ matrix.project }}" ]; then
+            echo "mine=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "mine=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$TAG is not a ${{ matrix.project }} release; nothing to do."
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: steps.mine.outputs.mine == 'true'
 
       - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
+        if: steps.mine.outputs.mine == 'true'
         with:
           auto-install: true
 
       - name: Tag matches the manifest
+        if: steps.mine.outputs.mine == 'true'
         run: node tools/release/verify-tag.mjs "$TAG"
 
       - name: Build
-        run: moon run fish-and-chip:build
+        if: steps.mine.outputs.mine == 'true'
+        run: moon run ${{ matrix.build }}
 
       # itch serves an HTML build from an index.html at the root of the upload.
       # Without this the push succeeds and the page shows itch's own "no index"
-      # error, which looks like a broken game rather than a broken upload.
+      # error, which reads as a broken game rather than a broken upload.
       - name: Build has an entry point
-        run: test -f apps/arcade/fish-and-chip/dist/index.html
+        if: steps.mine.outputs.mine == 'true'
+        run: test -f "${{ matrix.dist }}/index.html"
 
       # butler is fetched from itch's own broth channel rather than a
       # third-party action, so nothing outside itch and GitHub is trusted with
       # the API key.
       - name: Install butler
+        if: steps.mine.outputs.mine == 'true'
         run: |
           curl -fsSL -o butler.zip \
             https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
@@ -70,14 +107,17 @@ jobs:
           echo "$RUNNER_TEMP/butler" >> "$GITHUB_PATH"
 
       - name: Push build
+        if: steps.mine.outputs.mine == 'true'
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_TARGET: ${{ matrix.itch }}:${{ matrix.channel }}
         run: |
           if [ -z "$BUTLER_API_KEY" ]; then
             echo "::error::BUTLER_API_KEY is not set. Add it from https://itch.io/user/settings/api-keys."
             exit 1
           fi
-          butler push apps/arcade/fish-and-chip/dist \
-            "$ITCH_TARGET:$ITCH_CHANNEL" \
-            --userversion "${TAG#fish-and-chip@}"
-          butler status "$ITCH_TARGET:$ITCH_CHANNEL"
+          # Split on the LAST @, the way verify-tag.mjs does, so a scoped
+          # project id keeps parsing.
+          butler push "${{ matrix.dist }}" "$ITCH_TARGET" \
+            --userversion "${TAG##*@}"
+          butler status "$ITCH_TARGET"
