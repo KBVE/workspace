@@ -115,7 +115,10 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: descriptor-set
-          path: descriptor.binpb
+          # upload-artifact resolves paths from the workspace, not the job's
+          # working directory, and only warns when it finds nothing.
+          path: packages/protobuf/descriptor.binpb
+          if-no-files-found: error
           retention-days: 30
 
   # Generating is not compiling. buf reports success as long as a plugin runs,

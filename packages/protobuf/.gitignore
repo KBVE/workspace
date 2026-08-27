@@ -1,3 +1,6 @@
 gen/
 node_modules/
 .DS_Store
+
+# Derived from the schemas; distributed as a CI artifact, never committed.
+descriptor.binpb
