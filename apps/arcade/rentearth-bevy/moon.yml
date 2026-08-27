@@ -1,0 +1,9 @@
+# The 4X game. Rust and Bevy, targeting native for development and WebGPU in
+# the browser for release.
+layer: 'application'
+language: 'rust'
+stack: 'frontend'
+tags: ['bevy', 'game']
+
+owners:
+  defaultOwner: '@h0lybyte'
