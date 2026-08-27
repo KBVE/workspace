@@ -4,9 +4,18 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
   },
   "dependencies": {
     "@kbve/protobuf": "workspace:*"
-  }
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "astro": "catalog:"
+  },
+  "types": "./src/index.ts",
+  "main": "./src/index.ts"
 }

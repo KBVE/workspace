@@ -12,3 +12,10 @@ stack: 'frontend'
 
 owners:
   defaultOwner: '@h0lybyte'
+
+tasks:
+  check:
+    command: 'tsc --noEmit'
+    toolchains: ['node']
+    deps: ['^:build']
+    inputs: ['src/**/*', 'tsconfig.json']

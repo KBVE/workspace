@@ -26,9 +26,14 @@ secrets.
 ## Setup
 
     proto use                 # installs node, pnpm, rust, moon from .prototools
-    git-crypt unlock ~/.config/git-crypt/kbve-workspace.key
+    git-crypt unlock <your git-crypt key>
     pnpm install
-    moon run proto:generate   # generates ts/rust/csharp/python from the schemas
+    moon run protobuf:build   # generates ts/rust/csharp/python from the schemas
+
+The generate step is not optional. `packages/protobuf/gen` is not committed,
+and `@kbve/protobuf` points at it, so until it exists the editor reports
+`Cannot find module '@kbve/protobuf/...'` and every type from it degrades to
+`any`. `moon run <project>:check` does the same thing as part of the graph.
 
 ## Common commands
 

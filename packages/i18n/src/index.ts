@@ -13,20 +13,42 @@ import { Locale as ProtoLocale } from '@kbve/protobuf/kbve/common/v1/locale.ts';
  * derives from it.
  */
 
-/** `LOCALE_PT_BR` -> `pt-BR`. */
+/**
+ * `LOCALE_PT_BR` -> `pt-BR`, at the type level.
+ *
+ * The union is computed from the generated enum rather than written out, so it
+ * cannot drift from the schema, and a typo in a locale is a compile error
+ * instead of a value that silently routes nowhere.
+ */
+type ProtoValue = (typeof ProtoLocale)[keyof typeof ProtoLocale];
+
+/** Enum values that name an actual language. */
+type LanguageValue = Exclude<ProtoValue, 'LOCALE_UNSPECIFIED' | 'UNRECOGNIZED'>;
+
+/** `EN` -> `en`, `PT_BR` -> `pt-BR`. */
+type Tagify<S extends string> = S extends `${infer Language}_${infer Region}`
+  ? `${Lowercase<Language>}-${Uppercase<Region>}`
+  : Lowercase<S>;
+
+type TagOf<S extends string> = S extends `LOCALE_${infer Rest}` ? Tagify<Rest> : never;
+
+/** `LOCALE_PT_BR` -> `pt-BR`, at runtime. Mirrors `TagOf`. */
 function toTag(name: string): string {
   const [language, ...region] = name.replace(/^LOCALE_/, '').toLowerCase().split('_');
   return region.length ? `${language}-${region.join('-').toUpperCase()}` : language;
 }
 
+/** Every language the schemas declare: `'en' | 'pt-BR' | ...`. */
+export type Locale = TagOf<LanguageValue>;
+
+// UNSPECIFIED is proto's required zero value and UNRECOGNIZED is ts-proto's
+// escape hatch for a value this build does not know; neither is a language.
 const registered = Object.values(ProtoLocale).filter(
-  (value): value is string =>
-    typeof value === 'string' && value.startsWith('LOCALE_') && value !== 'LOCALE_UNSPECIFIED',
+  (value): value is LanguageValue =>
+    value !== ProtoLocale.UNSPECIFIED && value !== ProtoLocale.UNRECOGNIZED,
 );
 
-export const locales = registered.map(toTag) as readonly string[] as readonly [string, ...string[]];
-
-export type Locale = (typeof locales)[number];
+export const locales: readonly Locale[] = registered.map((value) => toTag(value) as Locale);
 
 export const defaultLocale: Locale = 'en';
 
@@ -52,17 +74,24 @@ export function toProto(locale: Locale): ProtoLocale {
   return `LOCALE_${locale.replace('-', '_').toUpperCase()}` as ProtoLocale;
 }
 
-export function fromProto(value: ProtoLocale): Locale {
-  return toTag(value);
+/**
+ * Protobuf value to locale tag. UNSPECIFIED and UNRECOGNIZED are not
+ * languages, so they resolve to nothing rather than being coerced into one.
+ */
+export function fromProto(value: ProtoLocale): Locale | undefined {
+  if (value === ProtoLocale.UNSPECIFIED || value === ProtoLocale.UNRECOGNIZED) {
+    return undefined;
+  }
+  return toTag(value) as Locale;
 }
 
 /** Endonyms: a picker should name a language the way its speakers write it. */
-export const localeNames: Record<string, string> = {
+export const localeNames: Record<Locale, string> = {
   en: 'English',
 };
 
 export function isLocale(value: string): value is Locale {
-  return locales.includes(value);
+  return (locales as readonly string[]).includes(value);
 }
 
 /** URL for a slug within a locale. The default locale is served unprefixed. */

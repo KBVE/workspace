@@ -5,6 +5,9 @@
   "type": "module",
   "//": "gen/ts is produced by the protobuf:generate task and is not committed.",
   "exports": {
-    "./*": "./gen/ts/*"
+    "./*": {
+      "types": "./gen/ts/*",
+      "default": "./gen/ts/*"
+    }
   }
 }
