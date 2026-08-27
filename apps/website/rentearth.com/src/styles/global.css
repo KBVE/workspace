@@ -1,90 +1,137 @@
-/*
- * Dark is the default: the bare :root block is the dark palette, and light is
- * an override for viewers who ask for it. That way the first paint on an
- * unknown preference is dark rather than a flash of white.
+/* Hallmark · genre: atmospheric · macrostructure: Manifesto · theme: Midnight
+ * enrichment: none (typography only) · nav: N5 floating pill · footer: Ft5 statement
+ * pre-emit critique: P5 H4 E4 S4 R5 V4
+ * tone: austere · audience: players through investors · use: follow the build
  */
+
+/* ----------------------------------------------------------------- font */
+
+/* Self-hosted so font-src stays 'self' and there is no third-party origin in
+   the critical path. Latin subset of the variable face; display use only,
+   which is why the body stack stays on system fonts and costs nothing. */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('/fonts/bricolage-grotesque-latin.woff2') format('woff2');
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ---------------------------------------------------------------- tokens */
+
 :root {
-  --bg: #14150f;
-  --fg: #ecebe6;
-  --muted: #9a988f;
-  --rule: #2a2b24;
-  --accent: #7fbf95;
+  /* Dark is the default. Light is an override for viewers who ask, so the
+     first paint on an unknown preference is dark rather than a white flash. */
+  --color-paper: oklch(14% 0.021 265);
+  --color-paper-2: oklch(18% 0.022 265);
+  --color-paper-3: oklch(22% 0.022 265);
+  --color-ink: oklch(95% 0.006 262);
+  --color-muted: oklch(70% 0.011 262);
+  --color-accent: oklch(74% 0.155 55);
+  --color-accent-ink: oklch(16% 0.03 55);
+  --color-rule: oklch(95% 0.006 262 / 0.11);
+  --color-focus: oklch(74% 0.155 55);
+
+  /* 4pt scale. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-display: clamp(2.75rem, 7.5vw + 0.5rem, 5.5rem);
+
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+  --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --measure: 34rem;
+  --wrap: 60rem;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+
+  --radius-pill: 999px;
+  --radius-sm: 4px;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #fbfaf8;
-    --fg: #1a1a18;
-    --muted: #6b6b66;
-    --rule: #e4e2dd;
-    --accent: #2f6f4e;
+    --color-paper: oklch(97% 0.006 265);
+    --color-paper-2: oklch(94% 0.007 265);
+    --color-paper-3: oklch(90% 0.008 265);
+    --color-ink: oklch(19% 0.018 265);
+    --color-muted: oklch(46% 0.012 265);
+    --color-accent: oklch(50% 0.15 52);
+    --color-accent-ink: oklch(98% 0.01 52);
+    --color-rule: oklch(19% 0.018 265 / 0.14);
+    --color-focus: oklch(50% 0.15 52);
   }
 }
 
-/*
- * Native cross-document view transitions. The browser animates between page
- * loads with no client router and no JavaScript; browsers without support
- * simply navigate as usual.
- */
-@view-transition {
-  navigation: auto;
-}
+/* ------------------------------------------------------------------ base */
 
-/* Respect a reduced-motion preference: cut the animation, keep the navigation. */
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
-  }
-}
-
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html {
-  /* Anchor targets clear the sticky header. */
-  scroll-padding-top: 5rem;
+  overflow-x: clip;
+  scroll-padding-top: var(--space-24);
 }
 
 body {
   margin: 0;
-  /* Long words and URLs must not force a horizontal scrollbar on narrow screens. */
+  overflow-x: clip;
   overflow-wrap: break-word;
-  background: var(--bg);
-  color: var(--fg);
-  font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
 }
 
-.wrap {
-  max-width: 46rem;
-  margin: 0 auto;
-  /* Fluid gutters: 1rem on a phone, 1.5rem once there is room. */
-  padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 4vw, 1.5rem);
-  /* Push the footer down on short pages. */
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-}
-
-main {
-  flex: 1;
-}
-
 img,
-video,
-svg {
+svg,
+video {
   max-width: 100%;
   height: auto;
 }
 
-/* Keyboard focus must stay visible; the ring follows the palette. */
+a {
+  color: var(--color-ink);
+  text-decoration-color: var(--color-rule);
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-color: var(--color-accent);
+}
+
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 3px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .skip {
@@ -95,67 +142,353 @@ svg {
 .skip:focus {
   position: static;
   display: inline-block;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
-h1 {
-  font-size: clamp(2rem, 6vw, 3rem);
-  line-height: 1.1;
-  margin: 0 0 1rem;
+/* Native cross-document transitions: no client router, no JavaScript. */
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --------------------------------------------------------------- layout */
+
+.wrap {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.bleed {
+  padding-inline: clamp(var(--space-4), 5vw, var(--space-12));
+}
+
+main {
+  flex: 1;
+}
+
+.measure {
+  max-width: var(--measure);
+}
+
+/* ------------------------------------------------------------------ nav */
+/* N5 floating pill. Sticky rather than fixed so it never covers content on a
+   short viewport. */
+
+.nav {
+  position: sticky;
+  top: var(--space-4);
+  z-index: 10;
+  margin: var(--space-4) auto var(--space-16);
+  max-width: var(--wrap);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklch, var(--color-paper) 78%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.nav .brand {
+  view-transition-name: brand;
+  font-family: var(--font-display);
+  font-weight: 650;
   letter-spacing: -0.02em;
+  text-decoration: none;
 }
 
-p.lede {
-  font-size: 1.125rem;
-  color: var(--muted);
-  margin: 0 0 2.5rem;
-  max-width: 34rem;
+.nav ul {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-a {
-  color: var(--accent);
+.nav ul a {
+  display: block;
+  /* Nav labels must never wrap to two lines. */
+  white-space: nowrap;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
 }
 
-/* --- prose -------------------------------------------------------------- */
-
-main h2 {
-  font-size: 1.375rem;
-  margin: 2.5rem 0 0.75rem;
-  letter-spacing: -0.01em;
+.nav ul a:hover {
+  color: var(--color-ink);
+  background: var(--color-paper-2);
 }
 
-main h3 {
-  font-size: 1.125rem;
-  margin: 2rem 0 0.5rem;
+.nav ul a[aria-current='page'] {
+  color: var(--color-ink);
+  background: var(--color-paper-2);
 }
 
-main p {
-  margin: 0 0 1.25rem;
+/* ------------------------------------------------------------- manifesto */
+
+.statement {
+  position: relative;
+  max-width: var(--wrap);
+  margin: 0 auto var(--space-32);
+  padding-top: var(--space-8);
 }
 
-main ul,
-main ol {
-  margin: 0 0 1.25rem;
-  padding-left: 1.25rem;
+/* A triangular lattice — the ground a turn-based map game is played on.
+   Three gradients, no image request, no animation. It is masked to fade out
+   before it reaches the text, so it reads as ground rather than pattern. */
+.statement::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--space-16) * -1) calc(var(--space-16) * -1) 0;
+  z-index: -1;
+  background-image:
+    repeating-linear-gradient(60deg, var(--color-rule) 0 1px, transparent 1px 42px),
+    repeating-linear-gradient(-60deg, var(--color-rule) 0 1px, transparent 1px 42px),
+    repeating-linear-gradient(0deg, var(--color-rule) 0 1px, transparent 1px 36px);
+  -webkit-mask-image: radial-gradient(120% 80% at 12% 0%, #000 0%, transparent 68%);
+  mask-image: radial-gradient(120% 80% at 12% 0%, #000 0%, transparent 68%);
+  pointer-events: none;
 }
 
-main li {
-  margin-bottom: 0.375rem;
+.statement h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: 700;
+  font-style: normal;
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* The verb is the landmark: an accent block, not a gradient and not italics. */
+.statement h1 .mark {
+  display: inline-block;
+  padding: 0 0.18em 0.06em;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+.statement .lede {
+  margin: var(--space-8) 0 0;
+  max-width: var(--measure);
+  font-size: var(--text-xl);
+  line-height: 1.5;
+  color: var(--color-muted);
+  text-wrap: pretty;
+}
+
+/* Each claim is one assertion, large enough to read across the room. */
+.claims {
+  max-width: var(--wrap);
+  margin: 0 auto var(--space-32);
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-12);
+}
+
+.claim {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-rule);
+}
+
+.claim h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 620;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.claim p {
+  margin: 0;
+  max-width: var(--measure);
+  color: var(--color-muted);
+  text-wrap: pretty;
+}
+
+/* A bleed block between sections, per the macrostructure's divider language. */
+.ledger {
+  background: var(--color-paper-2);
+  border-block: 1px solid var(--color-rule);
+  padding-block: var(--space-24);
+  margin-bottom: var(--space-32);
+}
+
+.ledger-inner {
+  max-width: var(--wrap);
+  margin: 0 auto;
+}
+
+.ledger h2 {
+  margin: 0 0 var(--space-8);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+}
+
+.ledger dl {
+  margin: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ledger div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding-block: var(--space-3);
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.ledger dt {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-weight: 560;
+}
+
+.ledger dd {
+  margin: 0;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Oversized solid block, set far below the fold. */
+.close {
+  max-width: var(--wrap);
+  margin: 0 auto var(--space-32);
+}
+
+.close p {
+  margin: 0 0 var(--space-8);
+  max-width: var(--measure);
+  font-size: var(--text-xl);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.button {
+  display: inline-block;
+  padding: var(--space-4) var(--space-8);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-weight: 620;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+
+.button:hover {
+  background: transparent;
+  color: var(--color-accent);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+/* --------------------------------------------------------------- prose */
+
+.prose {
+  max-width: var(--measure);
+  margin: 0 auto var(--space-32);
+}
+
+.prose h1 {
+  margin: 0 0 var(--space-8);
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: 680;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.prose h2 {
+  margin: var(--space-12) 0 var(--space-3);
+  font-size: var(--text-xl);
+  font-weight: 620;
+  letter-spacing: -0.015em;
+}
+
+.prose h3 {
+  margin: var(--space-8) 0 var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.prose p,
+.prose ul,
+.prose ol {
+  margin: 0 0 var(--space-6);
+}
+
+.prose ul,
+.prose ol {
+  padding-left: var(--space-6);
+}
+
+.prose li {
+  margin-bottom: var(--space-2);
+}
+
+.prose a {
+  color: var(--color-accent);
 }
 
 code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 0.9em;
-  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  background: var(--color-paper-2);
   padding: 0.15em 0.4em;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 pre {
   overflow-x: auto;
-  padding: 1rem;
-  border-radius: 6px;
-  border: 1px solid var(--rule);
+  padding: var(--space-4);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper-2);
 }
 
 pre code {
@@ -164,83 +497,76 @@ pre code {
 }
 
 blockquote {
-  margin: 0 0 1.25rem;
-  padding-left: 1rem;
-  border-left: 2px solid var(--rule);
-  color: var(--muted);
+  margin: 0 0 var(--space-6);
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--color-accent);
+  color: var(--color-muted);
 }
 
-/* --- chrome ------------------------------------------------------------- */
+/* --------------------------------------------------------------- footer */
+/* Ft5 statement: the page argues something, so the footer states it. */
 
-.nav,
 .footer {
+  border-top: 1px solid var(--color-rule);
+  padding-block: var(--space-16) var(--space-12);
+}
+
+.footer-inner {
+  max-width: var(--wrap);
+  margin: 0 auto;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
   flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-6);
 }
 
-.nav {
-  padding-bottom: clamp(1.5rem, 5vw, 2.5rem);
+.footer .statement-line {
+  margin: 0;
+  max-width: 28rem;
+  font-size: var(--text-lg);
+  line-height: 1.4;
+  text-wrap: pretty;
 }
 
-/* Below this the header stacks rather than cramping the links. */
-@media (max-width: 32rem) {
-  .nav,
-  .footer {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-}
-
-/* Named so the browser ties the two together across a navigation instead of
-   cross-fading the whole page. */
-.nav .brand {
-  view-transition-name: brand;
-  font-weight: 600;
-  color: var(--fg);
-  text-decoration: none;
-  letter-spacing: -0.01em;
-}
-
-.nav ul,
 .footer ul {
   display: flex;
-  gap: 1.25rem;
+  flex-wrap: wrap;
+  gap: var(--space-6);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.nav a:not(.brand),
 .footer a {
-  color: var(--muted);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
   text-decoration: none;
 }
 
-.nav a:not(.brand):hover,
 .footer a:hover {
-  color: var(--fg);
+  color: var(--color-ink);
 }
 
-.nav a[aria-current='page'] {
-  color: var(--fg);
+.footer small {
+  display: block;
+  margin-top: var(--space-12);
+  max-width: var(--wrap);
+  margin-inline: auto;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
 }
 
-main {
-  view-transition-name: main;
-}
+@media (max-width: 34rem) {
+  .nav {
+    top: 0;
+    margin-top: 0;
+    border-radius: var(--radius-sm);
+  }
 
-.footer {
-  border-top: 1px solid var(--rule);
-  margin-top: 4rem;
-  padding-top: 1.5rem;
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-
-.footer p {
-  margin: 0;
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

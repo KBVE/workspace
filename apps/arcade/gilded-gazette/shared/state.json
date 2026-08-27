@@ -1,0 +1,45 @@
+{
+  "$comment": "Single source of truth for packed state, thus never edit the generated files, edit this one and run `npm run gen:state` from vite/. the ci fails if the generated output drifts from this file.",
+  "enums": {
+    "RunState": {
+      "description": "Where the game as a whole is; replaces sniffing scene paths on the React side.",
+      "values": {
+        "BOOTING": 0,
+        "MENU": 1,
+        "PLAYING": 2,
+        "PAUSED": 3,
+        "ENDED": 4
+      }
+    },
+    "WorldMode": {
+      "description": "Which kind of world the player is in right now. A murder mystery moves between flat interior scenes and spatial sections, and both React and the ECS need to know which without guessing from the scene path.",
+      "values": {
+        "NONE": 0,
+        "MODE_2D": 1,
+        "MODE_3D": 2
+      }
+    },
+    "JournalKind": {
+      "description": "What kind of fact a journal entry records. The journal is the run's memory: who spoke to whom, what was used on what, where the player has been. Each entry carries a ULID, so entries sort by when they happened without a clock field being trusted or compared.",
+      "values": {
+        "ENTERED": 0,
+        "TALKED": 1,
+        "SHOWED": 2,
+        "USED": 3,
+        "FOUND": 4,
+        "ACCUSED": 5
+      }
+    }
+  },
+  "flags": {
+    "PlayerFlags": {
+      "description": "Per frame player state! Packed because systems test these thousands of times a second; a bit test is a single AND against a register but overkill for now, damn safari.",
+      "bits": {
+        "ALIVE": 0,
+        "MOVING": 1,
+        "ATTACKING": 2,
+        "INVULNERABLE": 3
+      }
+    }
+  }
+}

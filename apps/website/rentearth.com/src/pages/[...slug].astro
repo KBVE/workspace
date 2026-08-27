@@ -45,6 +45,8 @@ const { Content } = await render(entry);
   publishedAt={entry.data.publishedAt}
   updatedAt={entry.data.updatedAt}
 >
-  <h1>{entry.data.title}</h1>
-  <Content />
+  <article class="prose">
+    <h1>{entry.data.title}</h1>
+    <Content />
+  </article>
 </Base>

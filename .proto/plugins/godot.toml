@@ -1,0 +1,26 @@
+# Godot editor, pinned by proto.
+#
+# Scope: the macOS editor binary and nothing else. Deliberately not covered yet:
+#   - linux/windows  (CI installs Godot itself; add when a runner needs it)
+#   - mono builds    (no C# in any project here)
+#   - export templates, which `--export-release` needs. Those ship as a separate
+#     .tpz that unpacks into ~/Library/Application Support/Godot/export_templates
+#     -- outside anything a proto plugin manages. So this pins the editor used
+#     for tests and imports, not a full web-export toolchain.
+name = "Godot"
+type = "language"
+
+[platform.macos]
+# The zip's root is the app bundle itself, so there is no prefix directory to
+# strip, and the real binary sits inside Contents/MacOS.
+exe-path = "Godot.app/Contents/MacOS/Godot"
+download-file = "Godot_v{version}-stable_macos.universal.zip"
+
+[install]
+download-url = "https://github.com/godotengine/godot/releases/download/{version}-stable/{download_file}"
+
+[resolve]
+git-url = "https://github.com/godotengine/godot"
+# Tags are `4.7.1-stable` and `4.7-stable`; patch is optional. Only -stable is
+# matched, so betas and rcs never resolve.
+version-pattern = "^((?<major>\\d+)\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?)-stable$"

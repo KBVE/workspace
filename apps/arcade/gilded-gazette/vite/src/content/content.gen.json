@@ -1,0 +1,1324 @@
+{
+  "$generated": "GENERATED FILE - DO NOT EDIT. Source: shared/data/gazette.json + shared/data/*/*.mdx. Regenerate: npm run gen (from vite/). Runs automatically on dev and build.",
+  "gazette": {
+    "masthead": {
+      "title": "The Gilded Gazette",
+      "issue": "No. 4,182",
+      "dateline": "Sunday, October 14, 1906",
+      "price": "Price Two Pence"
+    },
+    "standing": {
+      "weather": "Rain expected after midnight. Fog in the passes.",
+      "notices": [
+        [
+          "Meet M. Dupont",
+          "8:30 PM"
+        ],
+        [
+          "Investigate Car No. 4",
+          "Before the border"
+        ],
+        [
+          "Return the guard's lamp",
+          "At leisure"
+        ]
+      ],
+      "runningOrder": [
+        "Aisle",
+        "Orbit",
+        "Side"
+      ]
+    },
+    "kickers": {
+      "won": "Case Advanced",
+      "lost": "Enquiry Stalled"
+    },
+    "wire": {
+      "level:start": {
+        "label": "Edition",
+        "text": "{level} — chapter {chapter} of {total}."
+      },
+      "level:won": {
+        "label": "Verdict",
+        "text": "{level} settled. The enquiry moves on TODO."
+      },
+      "level:lost": {
+        "label": "Setback",
+        "text": "{level} lost. The carriage is walked again TODO."
+      },
+      "scene:loading": {
+        "label": "Presses",
+        "text": "Setting the next edition, TODO."
+      },
+      "scene:ready": {
+        "label": "Presses",
+        "text": "Edition printed, TODO"
+      },
+      "scene:failed": {
+        "label": "Presses",
+        "text": "The type would not set: {scene} TODO"
+      },
+      "game:score": {
+        "label": "Ledger",
+        "text": "Evidence tallied at {score}. TODO"
+      },
+      "game:run_over": {
+        "label": "Final",
+        "text": "The affair is concluded. Presses stopped. TODO"
+      },
+      "edition:new": {
+        "label": "Stop Press",
+        "text": "{title}"
+      }
+    },
+    "plate": {
+      "board": "click the photograph to board",
+      "quiet": "The wire is quiet."
+    }
+  },
+  "locations": [
+    {
+      "id": "cabin",
+      "name": "The Sleeping Cabins",
+      "carriage": 3,
+      "furnishings": [],
+      "lede": "Berths one to eight, each with a door that locks from inside and a key that opens it from without.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "A folding basin, a reading lamp, and a mirror mounted where it catches the corridor whenever the door stands open."
+          ],
+          "bullets": []
+        },
+        "the_keys": {
+          "heading": "The Keys",
+          "paragraphs": [
+            "The conductor holds a pass key and says he has not used it. There is a second pass key, and no ledger records who signed for it."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/cabin.mdx"
+    },
+    {
+      "id": "corridor",
+      "name": "The Corridor",
+      "carriage": 2,
+      "furnishings": [],
+      "lede": "Feels about a yard wide, just enough room to avoid a leg cramp but it is a full length of the train. And the only way from any berth to any other.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Windows down one side, doors down the other, and a runner of carpet that shows every step taken on it while the rain was falling."
+          ],
+          "bullets": []
+        },
+        "why_it_matters": {
+          "heading": "Why It Matters",
+          "paragraphs": [
+            "Nobody stays in the corridor. Everybody crosses it. Whoever was where, they were here first."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/corridor.mdx"
+    },
+    {
+      "id": "dining",
+      "name": "The Dining Car",
+      "carriage": 1,
+      "furnishings": [
+        {
+          "prop": "dining_table",
+          "along": -5.4,
+          "across": 1.1,
+          "above": 0,
+          "facing": 0
+        },
+        {
+          "prop": "dining_chair",
+          "along": -4.74,
+          "across": 1.1,
+          "above": 0,
+          "facing": 1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_chair",
+          "along": -6.06,
+          "across": 1.1,
+          "above": 0,
+          "facing": -1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_table",
+          "along": -1.8,
+          "across": 1.1,
+          "above": 0,
+          "facing": 0
+        },
+        {
+          "prop": "dining_chair",
+          "along": -1.14,
+          "across": 1.1,
+          "above": 0,
+          "facing": 1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_chair",
+          "along": -2.46,
+          "across": 1.1,
+          "above": 0,
+          "facing": -1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_table",
+          "along": 1.8,
+          "across": 1.1,
+          "above": 0,
+          "facing": 0
+        },
+        {
+          "prop": "dining_chair",
+          "along": 2.46,
+          "across": 1.1,
+          "above": 0,
+          "facing": 1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_chair",
+          "along": 1.14,
+          "across": 1.1,
+          "above": 0,
+          "facing": -1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_table",
+          "along": 5.4,
+          "across": 1.1,
+          "above": 0,
+          "facing": 0
+        },
+        {
+          "prop": "dining_chair",
+          "along": 6.06,
+          "across": 1.1,
+          "above": 0,
+          "facing": 1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_chair",
+          "along": 4.74,
+          "across": 1.1,
+          "above": 0,
+          "facing": -1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_table",
+          "along": -5.4,
+          "across": -1.1,
+          "above": 0,
+          "facing": 0
+        },
+        {
+          "prop": "dining_chair",
+          "along": -4.74,
+          "across": -1.1,
+          "above": 0,
+          "facing": 1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_chair",
+          "along": -6.06,
+          "across": -1.1,
+          "above": 0,
+          "facing": -1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_table",
+          "along": -1.8,
+          "across": -1.1,
+          "above": 0,
+          "facing": 0
+        },
+        {
+          "prop": "dining_chair",
+          "along": -1.14,
+          "across": -1.1,
+          "above": 0,
+          "facing": 1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_chair",
+          "along": -2.46,
+          "across": -1.1,
+          "above": 0,
+          "facing": -1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_table",
+          "along": 1.8,
+          "across": -1.1,
+          "above": 0,
+          "facing": 0
+        },
+        {
+          "prop": "dining_chair",
+          "along": 2.46,
+          "across": -1.1,
+          "above": 0,
+          "facing": 1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_chair",
+          "along": 1.14,
+          "across": -1.1,
+          "above": 0,
+          "facing": -1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_table",
+          "along": 5.4,
+          "across": -1.1,
+          "above": 0,
+          "facing": 0
+        },
+        {
+          "prop": "dining_chair",
+          "along": 6.06,
+          "across": -1.1,
+          "above": 0,
+          "facing": 1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "prop": "dining_chair",
+          "along": 4.74,
+          "across": -1.1,
+          "above": 0,
+          "facing": -1.5708,
+          "seats": true,
+          "cushionHeight": 0.48
+        }
+      ],
+      "lede": "Eight tables, six of them laid, and a steward who remembers what everyone drinks without being told.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "White cloth, brass rail, and the window glass gone black by eight o'clock so the car dines looking at itself."
+          ],
+          "bullets": []
+        },
+        "service": {
+          "heading": "Service",
+          "paragraphs": [
+            "The last order is taken at half past nine and the car is dark by ten. Anyone still seated after that was not eating."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/dining.mdx"
+    },
+    {
+      "id": "guard_van",
+      "name": "The Guard's Van",
+      "carriage": 0,
+      "furnishings": [
+        {
+          "prop": "crate",
+          "along": -6.4,
+          "across": 1.15,
+          "above": 0,
+          "facing": 0
+        },
+        {
+          "prop": "crate",
+          "along": -5.6,
+          "across": 1.15,
+          "above": 0,
+          "facing": 0.35
+        },
+        {
+          "prop": "crate",
+          "along": 6.6,
+          "across": -1.15,
+          "above": 0,
+          "facing": 0
+        },
+        {
+          "prop": "lockbox",
+          "along": 6.9,
+          "across": 1.05,
+          "above": 0,
+          "facing": 1.5708
+        }
+      ],
+      "lede": "Last car of the consist, and the only one with a door that opens onto nothing but weather.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Crates roped to the wall, a stove nobody has lit, and the guard's ledger open on a nail. The lamp swings wider here than anywhere forward, which is how you know you have reached the end of the train."
+          ],
+          "bullets": []
+        },
+        "what_is_kept_here": {
+          "heading": "What Is Kept Here",
+          "paragraphs": [
+            "Everything nobody wanted in their berth. The ledger records what was loaded at Paris and what was loaded at Calais, and the two hands do not match."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/guard_van.mdx"
+    },
+    {
+      "id": "platform",
+      "name": "The Platform",
+      "furnishings": [],
+      "lede": "Not aboard at all. Where the passengers were before they were passengers, and the only place the enquiry cannot follow them.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Gas lamps at intervals, a clock two minutes fast, and porters who have already gone home."
+          ],
+          "bullets": []
+        },
+        "why_it_matters": {
+          "heading": "Why It Matters",
+          "paragraphs": [
+            "Everyone boarded somewhere. What they were carrying when they did is a question the manifest answers and the passengers do not."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/platform.mdx"
+    },
+    {
+      "id": "vestibule",
+      "name": "The Vestibule",
+      "carriage": 4,
+      "furnishings": [],
+      "lede": "The joint between cars, where the floor moves under you and conversation is impossible.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Concertina walls, a handrail worn bright, and a door to the trackside that is supposed to be locked while the train is moving."
+          ],
+          "bullets": []
+        },
+        "why_it_matters": {
+          "heading": "Why It Matters",
+          "paragraphs": [
+            "The loudest six feet on the train, which makes it the only place aboard where two people can speak and be certain of not being overheard."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/vestibule.mdx"
+    }
+  ],
+  "articles": [
+    {
+      "id": "aisle_midnight",
+      "when": {
+        "level": "Aisle",
+        "after": "23:00",
+        "before": "03:00"
+      },
+      "priority": 10,
+      "kicker": "Stop Press",
+      "title": "Lamps Found Extinguished End to End",
+      "caption": "The aisle after midnight, lamps cold.",
+      "lede": "The conductor, with a face of confusion, insisted the lamps were trimmed at eight.",
+      "body": [
+        "Yet no passenger admits to having passed that way since, and the corridor now lies dark from vestibule to vestibule.",
+        "Our correspondent walked its length twice and met no one, which he notes is itself remarkable on a train carrying forty-one souls.",
+        "As the wind continued to howl, the conductor became increasingly agitated and emotional distraught.",
+        "Questions concerning the lamps are now met not with answers, but accusations, curses, and theories implicating nearly every demon aboard."
+      ],
+      "sections": {},
+      "source": "shared/data/articles/aisle_midnight.mdx"
+    },
+    {
+      "id": "aisle_woman",
+      "when": {
+        "level": "Aisle"
+      },
+      "priority": 0,
+      "kicker": "Aboard the Express",
+      "title": "Mysterious Woman Seen Walking the Aisle",
+      "caption": "The aisle of Car No. 7, looking forward.",
+      "lede": "Railway employees report unusual activity shortly after midnight, and the steward is unable to account for a second setting laid at table nine.",
+      "body": [
+        "The steward maintains that the fourth chair was drawn out before the soup, and that no one sat in it.",
+        "> \"I did not lay it,\" he told our correspondent. \"But the chair was drawn out before the soup came, as though someone had already taken her seat.\"",
+        "A porter questioned afterward disputed the steward’s account, but became visibly uneasy when asked whether he had seen anyone in the aisle.",
+        "> \"I saw somebody,\" he said. \"That is not the same thing.\"",
+        "He would say no more.",
+        "Several passengers later reported seeing a woman walking alone toward the forward vestibule shortly after midnight. No description agrees beyond this: she wore dark clothing, moved without haste, and was not seen returning.",
+        "Passengers were thereafter asked to remain in their compartments until the border and to report any door found unlocked that ought not to have been."
+      ],
+      "sections": {},
+      "source": "shared/data/articles/aisle_woman.mdx"
+    },
+    {
+      "id": "departure",
+      "when": {
+        "boot": true
+      },
+      "priority": 0,
+      "kicker": "Late Extra",
+      "title": "The Continental Express Departs Under Cover of Rain",
+      "caption": "The platform, moments before departure.",
+      "lede": "The Continental Express departed through a hard evening rain, the platform heavy with the smell of wet timber, musky tobacco, coal smoke, and hot iron. Glisening, the lamps were already burning against the weather and the station nearly deserted by the time the last whistle sounded.",
+      "body": [
+        "Boarding was otherwise without incident, save for two small irregularities which railway officials have thus far been unable to explain: one berth appears to have been claimed by two passengers, while a trunk was found aboard which no porter remembers carrying. Our correspondent, travelling in Car No. 7, observed the guard make two complete examinations of the train after departure. On the second occasion he was heard asking a steward, in some irritation,",
+        "> \"Then where is the other one?\"",
+        "The steward gave no answer within our hearing.",
+        "At the last halt, the stationmaster declined to discuss the matter and ordered the platform cleared before the train resumed its journey. Railway officials continue their enquiries. Any passenger possessing knowledge of the disputed berth, the unidentified luggage, or the person to whom either may belong is requested to present themselves to the conductor before the border crossing.",
+        "Passengers boarded without incident, though the guard reports one berth claimed twice and a trunk no porter admits to carrying.",
+        "Our correspondent, travelling in Car No. 7, reports that the guard has twice walked the length of the train without satisfying himself as to the whereabouts of the missing party. The stationmaster at the last halt declined to comment.",
+        "Enquiries continue. Any passenger with knowledge of the affair is asked to present themselves at the conductor's office before the border crossing."
+      ],
+      "sections": {},
+      "source": "shared/data/articles/departure.mdx"
+    },
+    {
+      "id": "orbit_circled",
+      "when": {
+        "level": "Orbit"
+      },
+      "priority": 0,
+      "kicker": "From the Trackside",
+      "title": "The Whole Carriage Circled by Our Photographer",
+      "caption": "The carriage, circled at speed.",
+      "lede": "A circuit of the carriage made from the trackside disclosed several particulars not apparent from within.",
+      "body": [
+        "One window stood unlatched. Beneath it, on the rain-darkened paintwork, our photographer found the distinct mark of a hand. Farther along, a lamp still burned behind the curtain of a berth whose occupant insisted it had been extinguished before midnight.",
+        "A full turn about the coach reveals a window unlatched from within and a lamp still burning in a berth its occupant swears was dark.",
+        "From the trackside the coach gives up what its corridors hide: one window unlatched, and the mark of a hand below it on the paintwork.",
+        "The railway declines to say whether the train was stopped between halts. Our photographer, who was standing beside it, says it was."
+      ],
+      "sections": {},
+      "source": "shared/data/articles/orbit_circled.mdx"
+    },
+    {
+      "id": "side_cutaway",
+      "when": {
+        "level": "Side"
+      },
+      "priority": 0,
+      "kicker": "Cutaway Edition",
+      "title": "Near Wall Removed: The Compartments Laid Bare",
+      "caption": "Car No. 7 in section, near wall removed.",
+      "lede": "With the trackside wall cut away, every compartment can be read at once. Our readers are invited to draw their own conclusions.",
+      "body": [
+        "Presented in section, the coach reads as a row of small rooms, each with its own account of the night, and no two accounts agreeing.",
+        "The Gazette offers no verdict. It offers the plan of the carriage, the hour of each movement, and the names of those aboard."
+      ],
+      "sections": {},
+      "source": "shared/data/articles/side_cutaway.mdx"
+    }
+  ],
+  "passengers": [
+    {
+      "id": "beaumont",
+      "name": "Lady Beaumont",
+      "listed": "Lady Beaumont",
+      "role": "Widow of the late Sir Rupert Beaumont",
+      "berth": "Car No. 7, berth 1",
+      "boarded": {
+        "at": "18:15",
+        "where": "Calais"
+      },
+      "location": "cabin",
+      "suspect": true,
+      "traits": [
+        "imperious",
+        "travels without a maid",
+        "answers a question with a question"
+      ],
+      "relationships": [
+        {
+          "who": "weiss",
+          "tie": "Denies knowing him; addressed him by name at the barrier."
+        },
+        {
+          "who": "carrow",
+          "tie": "Interviewed her for a position in the spring, and did not offer it."
+        }
+      ],
+      "timeline": [
+        {
+          "at": "18:15",
+          "where": "platform",
+          "note": "Boards early, ahead of the general call."
+        },
+        {
+          "at": "20:30",
+          "where": "corridor",
+          "note": "Passes berth 4 twice, though her own is at the far end."
+        },
+        {
+          "at": "23:40",
+          "where": "cabin",
+          "note": "Door heard to close. Lamp still burning at one."
+        }
+      ],
+      "lede": "Travelling without a maid, which the conductor notes and does not explain.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Mourning black of a cut three seasons old, worn as though it were this year's. A jet brooch at the throat, and gloves she does not remove, not for dinner and not for the customs officer."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "She says she did not leave her compartment after the dinner service, and that she heard nothing until the guard began knocking on doors."
+          ],
+          "bullets": [
+            "Says she retired at nine",
+            "Says the corridor was lit when she last saw it",
+            "Says she has never met Dr. Weiss"
+          ]
+        },
+        "what_the_guard_says": {
+          "heading": "What the Guard Says",
+          "paragraphs": [
+            "Her trunk was carried aboard by no porter anyone can name, and it went into the van without a label. He is certain of both things and will say neither in front of her."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "The brooch is jet, which is mourning wear. The ring beneath the left glove is not, and she has worn it since Calais."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/beaumont.mdx"
+    },
+    {
+      "id": "carrow",
+      "name": "Amelia Carrow",
+      "listed": "Miss A. Carrow",
+      "role": "Lady's companion, between positions",
+      "berth": "Car No. 7, berth 6",
+      "boarded": {
+        "at": "18:48",
+        "where": "Calais"
+      },
+      "location": "cabin",
+      "suspect": false,
+      "traits": [
+        "a light sleeper by trade",
+        "will not name her employer",
+        "notices what she is not meant to"
+      ],
+      "relationships": [
+        {
+          "who": "beaumont",
+          "tie": "Was interviewed by her in the spring, and not engaged."
+        }
+      ],
+      "timeline": [
+        {
+          "at": "18:48",
+          "where": "platform",
+          "note": "Boards alone, with a case borrowed from someone taller."
+        },
+        {
+          "at": "21:45",
+          "where": "corridor",
+          "note": "Fetches water, and passes berth 1 on the way back."
+        },
+        {
+          "at": "01:00",
+          "where": "cabin",
+          "note": "Awake, and certain of the hour."
+        }
+      ],
+      "lede": "A companion by profession, returning to an employer she will not name.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Neat, plain, and dressed to be looked past, which she has made a professional skill."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "She was in her compartment and awake, and she is the only passenger who does not claim to have slept through anything."
+          ],
+          "bullets": [
+            "Says she heard a door in the small hours",
+            "Says it was not her own",
+            "Says she did not look"
+          ]
+        },
+        "what_she_heard": {
+          "heading": "What She Heard",
+          "paragraphs": [
+            "A door, then a pause too long for someone passing through, then the same door again. She places it at one, and she is a light sleeper by trade."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "She will not name her employer, and the position she is returning to was filled in June."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/carrow.mdx"
+    },
+    {
+      "id": "dupont",
+      "name": "Marcel Dupont",
+      "listed": "M. Dupont",
+      "role": "Commercial traveller, aboard since Paris",
+      "berth": "Car No. 7, berth 8",
+      "boarded": {
+        "at": "16:05",
+        "where": "Paris"
+      },
+      "location": "dining",
+      "suspect": false,
+      "traits": [
+        "known to the guard by name",
+        "keeps an appointment book",
+        "pays for his own wine"
+      ],
+      "relationships": [
+        {
+          "who": "thompson",
+          "tie": "Shared a table by chance, and talked business neither seems to conduct."
+        }
+      ],
+      "timeline": [
+        {
+          "at": "16:05",
+          "where": "platform",
+          "note": "Boards at Paris, first of the through passengers."
+        },
+        {
+          "at": "20:00",
+          "where": "dining",
+          "note": "Dines alone, at the same table he always takes."
+        },
+        {
+          "at": "20:30",
+          "where": "dining",
+          "note": "Waits for an appointment nobody sees him keep."
+        }
+      ],
+      "lede": "The only passenger aboard since Paris, and the only one the guard greets by name.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Travelling clothes worn comfortable, a sample case he never opens, and the calm of a man who has made this run forty times."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "He was in the dining car until the service closed, which the steward confirms without being asked, and which is the trouble with it."
+          ],
+          "bullets": [
+            "Says he dined at eight, as always",
+            "Says he waited for a colleague who did not come",
+            "Says he noticed nothing unusual"
+          ]
+        },
+        "the_appointment_book": {
+          "heading": "The Appointment Book",
+          "paragraphs": [
+            "Tonight's page carries a single entry at half past eight, in a hand that is not his, and the page before it has been removed."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "He is the only passenger with no reason to be nervous, and he is nervous."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/dupont.mdx"
+    },
+    {
+      "id": "marchand",
+      "name": "Dame Ysolde Marchand",
+      "listed": "Dame Marchand",
+      "role": "Sworn of the Order of the Kept Flame, escorting cargo to Constantinople",
+      "berth": "Car No. 7, berth 2",
+      "boarded": {
+        "at": "18:15",
+        "where": "Calais"
+      },
+      "location": "guard_van",
+      "suspect": true,
+      "traits": [
+        "travels armoured under a travelling cloak",
+        "will not be parted from the guard's van key",
+        "answers questions about the cargo with the same sentence each time"
+      ],
+      "relationships": [
+        {
+          "who": "moreau",
+          "tie": "Made him sign her crate aboard, and has asked him twice since who else has a key."
+        },
+        {
+          "who": "beaumont",
+          "tie": "Boarded at the same platform, and each has been at pains to say they did not."
+        }
+      ],
+      "timeline": [
+        {
+          "at": "18:15",
+          "where": "platform",
+          "note": "Boards at Calais behind a crate that takes four men to lift."
+        },
+        {
+          "at": "19:10",
+          "where": "guard_van",
+          "note": "Sits with the cargo through the first sitting, and does not dine."
+        },
+        {
+          "at": "21:40",
+          "where": "corridor",
+          "note": "Walks the corridor once, slowly, looking at doors rather than people."
+        },
+        {
+          "at": "23:55",
+          "where": "cabin",
+          "note": "Retires, still dressed, with the door unlocked behind her."
+        }
+      ],
+      "lede": "An order that has not existed on any map since the crusades, travelling first class with a crate nobody is permitted to open.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "A travelling cloak over mail that shows at the wrist, and the flat calm of someone who has been in a fight and expects another."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "She was with the cargo, which is where her oath puts her, and which nobody can confirm because nobody else is allowed in there."
+          ],
+          "bullets": [
+            "Says she did not leave the guard's van before eleven",
+            "Says the crate was sealed at Calais and has not been opened since",
+            "Says she has never met Lady Beaumont"
+          ]
+        },
+        "the_warrant": {
+          "heading": "The Warrant",
+          "paragraphs": [
+            "Sealed in wax that is not any nation's, countersigned by a house that fell four hundred years ago, and honoured at Calais without a word."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "The only passenger armed, the only passenger with a reason to be, and the only one whose story cannot be broken because nothing about it can be checked."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/marchand.mdx"
+    },
+    {
+      "id": "moreau",
+      "name": "Gaspard Moreau",
+      "listed": "The Guard",
+      "role": "Conductor of Car No. 7, thirty years on the line",
+      "berth": "Guard's van, no berth",
+      "boarded": {
+        "at": "16:05",
+        "where": "Paris"
+      },
+      "location": "corridor",
+      "suspect": false,
+      "traits": [
+        "holds a key to every door on the train",
+        "marks the register at every stop",
+        "has walked this corridor ten thousand times"
+      ],
+      "relationships": [
+        {
+          "who": "dupont",
+          "tie": "Greets him by name, and has done since before either had grey in his hair."
+        },
+        {
+          "who": "marchand",
+          "tie": "Signed her cargo aboard at Calais without reading what the warrant said."
+        }
+      ],
+      "timeline": [
+        {
+          "at": "16:05",
+          "where": "platform",
+          "note": "Takes the register at Paris and hands up the last of the luggage."
+        },
+        {
+          "at": "17:20",
+          "where": "corridor",
+          "note": "The first walk of the evening, door to door, as the light goes."
+        },
+        {
+          "at": "19:30",
+          "where": "dining",
+          "note": "Stands at the service end while the first sitting eats."
+        },
+        {
+          "at": "22:15",
+          "where": "corridor",
+          "note": "Turns the lamps down and walks the length of the car."
+        },
+        {
+          "at": "01:30",
+          "where": "guard_van",
+          "note": "Where he sits between walks, with the register and the strongbox."
+        }
+      ],
+      "lede": "Thirty years of this corridor, and the only man aboard who is paid to notice everything.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "The company's dark blue, worn to the shine at the elbows, and a chain of keys that announces him a carriage before he arrives."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "He was walking the train, which is what he is for, and which means he was everywhere and nowhere in particular."
+          ],
+          "bullets": [
+            "Says he turned the lamps down at a quarter past ten, as the book requires",
+            "Says he saw no one in the corridor who had no business in it",
+            "Says the guard's van was locked, and that he has the only key"
+          ]
+        },
+        "the_register": {
+          "heading": "The Register",
+          "paragraphs": [
+            "Every passenger, every stop, in a copperplate hand that has not changed in thirty years. Tonight's page has one boarding entered out of order."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "He is not a suspect and he knows it, which is why what he chooses not to say is worth more than anything the passengers volunteer."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/moreau.mdx"
+    },
+    {
+      "id": "thompson",
+      "name": "Edward Thompson",
+      "listed": "Mr. E. Thompson",
+      "role": "Grain factor, of Norwich",
+      "berth": "Car No. 7, berth 3",
+      "boarded": {
+        "at": "18:40",
+        "where": "Calais"
+      },
+      "location": "dining",
+      "suspect": false,
+      "traits": [
+        "describes his business twice and differently",
+        "dines early and alone",
+        "asks about the timetable"
+      ],
+      "relationships": [
+        {
+          "who": "dupont",
+          "tie": "Shared a table by chance, or says it was chance."
+        }
+      ],
+      "timeline": [
+        {
+          "at": "18:40",
+          "where": "platform",
+          "note": "Boards with one case and no trunk."
+        },
+        {
+          "at": "19:30",
+          "where": "dining",
+          "note": "Dines before the service properly opens."
+        },
+        {
+          "at": "22:00",
+          "where": "cabin",
+          "note": "Retires early and is not seen again before the alarm."
+        }
+      ],
+      "lede": "A grain factor from Norwich, travelling on business he describes twice and differently.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "A good coat kept too long, boots newly resoled, and a case with a lock that has been forced and repaired."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "He dined early, retired early, and slept through it, which is what a man says when he has nothing to hide and also when he has."
+          ],
+          "bullets": [
+            "Says he was asleep by ten",
+            "Says he heard the guard and nothing before it",
+            "Says he has never travelled this line before"
+          ]
+        },
+        "the_question_he_asked": {
+          "heading": "The Question He Asked",
+          "paragraphs": [
+            "He asked the steward whether the train stops between halts. Told that it does not, he said nothing further, and did not look surprised."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "The lock on his case was forced from the inside."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/thompson.mdx"
+    },
+    {
+      "id": "weiss",
+      "name": "Doctor Heinrich Weiss",
+      "listed": "Dr. H. Weiss",
+      "role": "Physician, of Vienna",
+      "berth": "Car No. 7, berth 5",
+      "boarded": {
+        "at": "18:52",
+        "where": "Calais"
+      },
+      "location": "corridor",
+      "suspect": true,
+      "traits": [
+        "offers help before it is asked for",
+        "watches the corridor, not the window",
+        "carries his case everywhere"
+      ],
+      "relationships": [
+        {
+          "who": "beaumont",
+          "tie": "Greeted her at the barrier; now says they have never met."
+        },
+        {
+          "who": "thompson",
+          "tie": "Dined at the next table and left when Thompson did."
+        }
+      ],
+      "timeline": [
+        {
+          "at": "18:52",
+          "where": "platform",
+          "note": "Boards last, after the general call."
+        },
+        {
+          "at": "21:10",
+          "where": "dining",
+          "note": "Takes coffee he does not drink."
+        },
+        {
+          "at": "00:20",
+          "where": "corridor",
+          "note": "Found at the far end, in the dark, fully dressed."
+        }
+      ],
+      "lede": "A physician, he says, of Vienna, though his case holds instruments no physician carries.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Grey at the temples, spectacles he cleans when asked a direct question, and a coat too heavy for a heated carriage."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "He was walking the corridor because he could not sleep, and he offered his help because he is a doctor and that is what a doctor does."
+          ],
+          "bullets": [
+            "Says he slept badly and rose after midnight",
+            "Says he saw no one in the corridor",
+            "Says the lamps were already out when he passed"
+          ]
+        },
+        "the_case": {
+          "heading": "The Case",
+          "paragraphs": [
+            "Brass fittings, Viennese maker's mark, and a tray of instruments too fine for surgery and too sharp for anything else. He does not let a porter carry it."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "He asked whether help was wanted before anyone aboard had said that anything was wrong."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/weiss.mdx"
+    }
+  ],
+  "items": [
+    {
+      "id": "brass_key",
+      "name": "Brass Key",
+      "kind": "key",
+      "carried": true,
+      "reveals": [
+        "the_number_belongs_to_another_carriage"
+      ],
+      "lede": "Small, worn bright at the bow, and stamped with a number that belongs to no berth in this carriage.",
+      "body": [],
+      "sections": {
+        "markings": {
+          "heading": "Markings",
+          "paragraphs": [
+            "Number 14, and this carriage ends at 8. The stamping is old; the wear on the bow is not."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "It was in the player's coat before Calais, and the player does not remember putting it there."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/items/brass_key.mdx"
+    },
+    {
+      "id": "pocket_watch",
+      "name": "Pocket Watch",
+      "kind": "personal",
+      "carried": true,
+      "reveals": [],
+      "lede": "Silver, stopped, and running eleven minutes behind the carriage clock when last it ran.",
+      "body": [
+        "The case holds a portrait that has been cut down to fit, and cut badly."
+      ],
+      "sections": {},
+      "source": "shared/data/items/pocket_watch.mdx"
+    },
+    {
+      "id": "telegram",
+      "name": "Telegram",
+      "kind": "document",
+      "carried": true,
+      "owner": "dupont",
+      "reveals": [
+        "dupont_travels_under_a_false_name",
+        "someone_knew_about_the_nine_oclock_service"
+      ],
+      "lede": "Handed aboard at Paris, folded twice, and addressed to a name that is not the one M. Dupont travels under.",
+      "body": [],
+      "sections": {
+        "text": {
+          "heading": "Text",
+          "paragraphs": [
+            "It reads, in full: DO NOT DINE AT NINE."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "Filed at Paris at half past three, an hour before the train left, by a sender the clerk recorded only as \"a lady\"."
+          ],
+          "bullets": [
+            "Filed 15:30, Paris",
+            "No sender name on the counterfoil",
+            "Delivered to the carriage, not the platform office"
+          ]
+        }
+      },
+      "source": "shared/data/items/telegram.mdx"
+    },
+    {
+      "id": "train_ticket",
+      "name": "Train Ticket",
+      "kind": "document",
+      "carried": true,
+      "reveals": [],
+      "lede": "Continental Express, Calais to the border, berth 4 of Car No. 7.",
+      "body": [
+        "The clerk's hand has corrected the berth number once, and the correction is initialled by nobody."
+      ],
+      "sections": {},
+      "source": "shared/data/items/train_ticket.mdx"
+    }
+  ],
+  "notices": [
+    {
+      "id": "goblins",
+      "title": "Goblins Are Banned",
+      "image": "banner-goblins",
+      "carriage": 1,
+      "along": 2.35,
+      "side": -1,
+      "above": 1.95,
+      "width": 1.1,
+      "lede": "The strip is printed in the red the Gazette keeps for losses and warnings, which is the Order's way of saying this one is not a formality.",
+      "body": [],
+      "sections": {
+        "the_rule": {
+          "heading": "The Rule",
+          "paragraphs": [
+            "Goblins are banned from the Northern Line. They will be slain by law, and the Order is held blameless in the carrying out of it."
+          ],
+          "bullets": []
+        },
+        "what_nobody_says": {
+          "heading": "What Nobody Says",
+          "paragraphs": [
+            "No clause explains how a guard is to tell. In practice the question is settled by whoever is holding the lamp."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/notices/goblins.mdx"
+    },
+    {
+      "id": "order",
+      "title": "Notice to Passengers",
+      "image": "notice-order",
+      "carriage": 2,
+      "along": 0,
+      "side": 1,
+      "above": 1.95,
+      "width": 1,
+      "lede": "The full posting, by order of the Knights of the Northern Line, in the frame every carriage carries beside the third window.",
+      "body": [],
+      "sections": {
+        "the_clauses": {
+          "heading": "The Clauses",
+          "paragraphs": [],
+          "bullets": [
+            "Elves not allowed without permits.",
+            "Goblins are banned, and will be slain by law.",
+            "The rear cars are reserved for the older bloods and are locked between stations.",
+            "The Order's word is the record, and the record is not open to reading."
+          ]
+        },
+        "what_nobody_says": {
+          "heading": "What Nobody Says",
+          "paragraphs": [
+            "The fourth clause is the one that matters. Everything the other three claim rests on a record no passenger is permitted to check."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/notices/order.mdx"
+    },
+    {
+      "id": "permits",
+      "title": "Elves Not Allowed Without Permits",
+      "image": "banner-permits",
+      "carriage": 0,
+      "along": -2.35,
+      "side": 1,
+      "above": 1.95,
+      "width": 1.1,
+      "lede": "Posted at Aldermoor and pasted in every carriage before the train left the platform.",
+      "body": [],
+      "sections": {
+        "the_rule": {
+          "heading": "The Rule",
+          "paragraphs": [
+            "Permits are issued at Aldermoor and nowhere else on this line. A permit names one journey, one direction, and one carriage, and the guard is entitled to ask for it at any point between stations."
+          ],
+          "bullets": []
+        },
+        "what_nobody_says": {
+          "heading": "What Nobody Says",
+          "paragraphs": [
+            "The permit office at Aldermoor keeps no evening hours. Anyone who boards after dark boards without one."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/notices/permits.mdx"
+    }
+  ]
+}

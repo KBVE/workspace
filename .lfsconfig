@@ -1,0 +1,30 @@
+; Git LFS endpoint override.
+;
+; This monorepo lives on GitHub; the gilded-gazette character art does not. Blobs are stored on the
+; self-hosted Forgejo instance at git.kbve.com, in the same LFS-only repo the
+; friendslop game already uses:
+;
+;   KBVE/friendslop  <- godot-friendslop and this game, sharing one blob store
+;
+; Pointing here rather than at a repo of our own is the whole point. LFS objects
+; are addressed by the sha256 of their contents, so a pointer copied out of
+; apps/friendslop/godot-friendslop resolves against this endpoint without anyone
+; re-uploading a byte. Two games, one copy of each model.
+;
+; Forgejo scopes objects per repo, so the endpoint has to name friendslop
+; specifically; KBVE/workspace.git would 404 on every one of these OIDs.
+;
+; git-lfs reads .lfsconfig from the repository root only, so this is the LFS
+; endpoint for the whole monorepo, not just apps/arcade/gilded-gazette. Nothing
+; else here is LFS-tracked today.
+;
+; git.kbve.com routes through ingress-nginx rather than the Cilium gateway,
+; because Cloudflare's path to the gateway hits 522 origin-timeouts on the LFS
+; batch endpoint. See the monorepo's own .lfsconfig for that story.
+;
+; First pull needs a Forgejo account: a personal access token, or basic auth.
+; `git lfs pull` prompts and the system credential helper remembers. To clone
+; without ever touching Forgejo, set GIT_LFS_SKIP_SMUDGE=1 -- everything except
+; the 3D characters still builds.
+[lfs]
+	url = https://git.kbve.com/KBVE/friendslop.git/info/lfs

@@ -2,7 +2,8 @@
 export const site = {
   name: 'RentEarth',
   /** Falls back into <title> and og:site_name when a page gives nothing. */
-  description: 'RentEarth',
+  description:
+    'A turn-based 4X built schema first: one set of definitions the client, the servers and this site all read from.',
   /** Social card, relative to the site root. Absent until one exists: an
    *  og:image pointing at a 404 is worse than no og:image. */
   image: undefined as string | undefined,

@@ -1,0 +1,109 @@
+# A Godot 4 game with a React front end. Three runtimes in one project, in a
+# fixed order: shared/ compiles into both godot/ and vite/, the Godot web export
+# lands in vite/public/godot, then vite builds around it. CMakeLists.txt encodes
+# the same order for a local `cmake --build build --target ci`.
+#
+# The web layer still carries its own package.json and package-lock.json under
+# vite/, outside the pnpm workspace globs. It is an npm island on purpose for
+# now -- adopting the catalog means moving it onto pnpm, which is a separate
+# change from landing the code.
+layer: 'application'
+language: 'typescript'
+stack: 'frontend'
+tags: ['godot', 'game']
+
+owners:
+  defaultOwner: '@h0lybyte'
+
+fileGroups:
+  # The contract: edited by hand, compiled into both runtimes. Anything here
+  # invalidates every generated output on both sides.
+  contract:
+    - 'shared/state.json'
+    - 'shared/events.json'
+    - 'shared/data/**/*'
+  generators:
+    - 'tools/*.mjs'
+
+tasks:
+  install:
+    command: 'npm --prefix vite ci'
+    options:
+      cache: false
+      runInCI: false
+    inputs:
+      - 'vite/package-lock.json'
+      - 'vite/package.json'
+
+  # shared/ -> godot/scripts/ecs/*.gd and vite/src/**. Never edit the outputs.
+  gen:
+    command: 'npm --prefix vite run gen'
+    inputs:
+      - '@group(contract)'
+      - '@group(generators)'
+
+  # CI's real gate: fails when a committed generated file has drifted from
+  # shared/. Read-only, so it is the one safe to run everywhere.
+  gen-check:
+    command: 'npm --prefix vite run gen:check'
+    inputs:
+      - '@group(contract)'
+      - '@group(generators)'
+      - 'godot/scripts/ecs/**/*.gd'
+      - 'vite/src/**/*'
+
+  typecheck:
+    command: 'npm --prefix vite run typecheck'
+    inputs:
+      - 'vite/src/**/*'
+      - 'vite/tsconfig*.json'
+
+  build:
+    command: 'npm --prefix vite run build'
+    deps:
+      - '~:gen'
+    inputs:
+      - 'vite/src/**/*'
+      - 'vite/index.html'
+      - 'vite/vite.config.ts'
+      - 'vite/tsconfig*.json'
+    outputs:
+      - 'vite/dist'
+
+  # Everything below shells out to a Godot 4.7 binary with the export templates
+  # installed, and the character art has to be smudged from Forgejo first (see
+  # the repo-root .lfsconfig). Neither is true of a bare CI runner, so these are
+  # opted out of `moon ci` and driven by the game's own workflow instead.
+  build-shell:
+    command: 'npm --prefix vite run build:shell'
+    options:
+      runInCI: false
+    inputs:
+      - 'vite/src/**/*'
+      - 'vite/vite.shell.config.ts'
+    outputs:
+      - 'godot/web/shell.html'
+
+  build-godot:
+    command: 'npm --prefix vite run build:godot'
+    options:
+      runInCI: false
+      cache: false
+    deps:
+      - '~:build-shell'
+    outputs:
+      - 'vite/public/godot'
+
+  test-godot:
+    command: 'npm --prefix vite run test:godot'
+    options:
+      runInCI: false
+      cache: false
+
+  e2e:
+    command: 'npm --prefix vite run e2e'
+    options:
+      runInCI: false
+      cache: false
+    deps:
+      - '~:build'

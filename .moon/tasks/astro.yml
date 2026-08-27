@@ -28,6 +28,9 @@ tasks:
     command: 'astro dev'
     toolchains: ['node']
     preset: 'server'
+    # Generated types have to exist before the server starts, or the first
+    # request fails on a module that has not been written yet.
+    deps: ['^:build']
 
   check:
     command: 'astro check'

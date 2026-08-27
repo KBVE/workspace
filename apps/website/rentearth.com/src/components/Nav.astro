@@ -40,7 +40,7 @@ const path = Astro.url.pathname.replace(/(.+)\/$/, '$1');
 const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 ---
 
-<header class="nav">
+<header class="nav bleed">
   {/* The brand is the home link; a separate "Home" entry would duplicate it. */}
   <a class="brand" href={localizePath(lang, '')}>RentEarth</a>
   {links.length > 0 && (

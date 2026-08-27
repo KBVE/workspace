@@ -19,3 +19,49 @@ private/**              filter=git-crypt diff=git-crypt
 *.woff2 binary
 pnpm-lock.yaml   linguist-generated=true -diff
 Cargo.lock       linguist-generated=true -diff
+
+# --- git-lfs: gilded-gazette character art -------------------------------
+# Blobs live on git.kbve.com/KBVE/friendslop (see .lfsconfig); only pointers
+# are in this repo. Kept below the `* text=auto` rule above and carrying -text,
+# because a later rule wins per attribute and eol translation would corrupt the
+# smudged binaries.
+#
+# These paths must never also match a git-crypt rule: git allows one filter per
+# file, so an encrypted path and an LFS path are mutually exclusive.
+
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.glb   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.gltf  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.fbx   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.bin   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.blend filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.png   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.jpg   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.jpeg  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.tga   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.webp  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.exr   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/characters/**/*.hdr   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.glb   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.gltf  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.fbx   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.bin   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.blend filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.png   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.jpg   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.jpeg  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.tga   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.webp  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.exr   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/player/**/*.hdr   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.glb   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.gltf  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.fbx   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.bin   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.blend filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.png   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.jpg   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.jpeg  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.tga   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.webp  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.exr   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/cast/**/*.hdr   filter=lfs diff=lfs merge=lfs -text

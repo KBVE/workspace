@@ -1,0 +1,152 @@
+{
+  "asset": {
+    "generator": "Khronos glTF Blender I/O v5.0.21",
+    "version": "2.0"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "seating",
+      "translation": [
+        0,
+        1.22978675365448,
+        0
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "QR_BL_carriage.002",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "seating",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2,
+            "COLOR_0": 3
+          },
+          "indices": 4,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    }
+  ],
+  "images": [
+    {
+      "mimeType": "image/png",
+      "name": "QR_BL_carriage_BaseColor",
+      "uri": "QR_BL_carriage_BaseColor.png"
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 6424,
+      "max": [
+        8.659049034118652,
+        1.418165683746338,
+        1.5285234451293945
+      ],
+      "min": [
+        -8.659049034118652,
+        0.03583415225148201,
+        -1.5285234451293945
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 6424,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 6424,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 6424,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5123,
+      "count": 8898,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 77088,
+      "byteOffset": 0,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 77088,
+      "byteOffset": 77088,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 51392,
+      "byteOffset": 154176,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 77088,
+      "byteOffset": 205568,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 17796,
+      "byteOffset": 282656,
+      "target": 34963
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 300452,
+      "uri": "carriage_seating.bin"
+    }
+  ]
+}

@@ -13,10 +13,12 @@
   # HTTPS only, including subdomains. Remove `preload` unless the domain is
   # actually submitted to the preload list.
   Strict-Transport-Security: max-age=63072000; includeSubDomains
-  # The site ships no JavaScript, so script-src can be closed entirely.
+  # script-src is 'self' rather than 'none': Astro's prefetch ships a module,
+  # and application code is coming. No inline scripts are allowed, so an
+  # injected <script> still cannot execute — only files this origin serves.
   # style-src needs 'unsafe-inline' because Astro inlines the stylesheet into
   # the document; a hash would have to change on every build.
-  Content-Security-Policy: default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
 
 # Hashed assets are immutable; the filename changes when the content does.
 /_astro/*

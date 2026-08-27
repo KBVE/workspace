@@ -1,0 +1,39 @@
+{
+  "name": "gilded-gazette-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "gen": "node ../tools/gen-contract.mjs && node ../tools/gen-content.mjs",
+    "gen:check": "node ../tools/gen-contract.mjs --check && node ../tools/gen-content.mjs --check",
+    "dev": "vite",
+    "dev:full": "npm run build:godot && vite",
+    "editor": "godot --editor --path ../godot",
+    "test:godot": "godot --headless --path ../godot -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a res://tests",
+    "build:godot": "npm run build:shell && godot --headless --path ../godot --import && godot --headless --path ../godot --export-release \"Web\" ../vite/public/godot/index.html",
+    "build:shell": "vite build --config vite.shell.config.ts",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "shell:check": "npm run build:shell && git diff --exit-code -- ../godot/web/shell.html",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "bitecs": "^0.4.0",
+    "lucide-react": "^1.33.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  }
+}

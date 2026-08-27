@@ -1,0 +1,212 @@
+:root { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  /* &urlbar -> mobile chrome slides away, and 100% keeps the taller measurement */
+  height: 100dvh;
+  /* &ground -> the shell paints the page before wasm exists; newsprint, not a
+     black flash, and it matches Godot's own clear colour */
+  background: #e8e0cc;
+  color: #e8e8ef;
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.app { position: relative; height: 100%; }
+
+.godot-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  transform-origin: 0 0;
+  will-change: transform;
+  transition:
+    transform 700ms cubic-bezier(0.4, 0, 0.2, 1),
+    filter 700ms ease;
+}
+
+/* the canvas becomes a printed photograph, so it stops being interactive */
+.godot-layer.is-plate {
+  filter: grayscale(0.72) contrast(1.08) sepia(0.14);
+  pointer-events: none;
+}
+
+/* &halftone -> printed dot mesh, drawn not downloaded */
+.halftone {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: multiply;
+  background-image: radial-gradient(#171512 32%, transparent 33%);
+  background-size: 3px 3px;
+  transition: opacity 500ms ease;
+}
+
+.godot-layer.is-plate .halftone { opacity: 0.28; }
+
+#godot-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Godot needs real keyboard focus; without this the outline flashes on click. */
+  outline: none;
+  /* the engine reads raw touches, so the browser must not claim drags as scroll */
+  touch-action: none;
+}
+
+.ui-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.ui-layer > * { pointer-events: auto; }
+
+/* the same newsprint the Gazette and the curtain are printed on, so the run
+   reads as one publication rather than a game with a web page around it */
+.hud {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top, 0px));
+  left: max(1rem, env(safe-area-inset-left, 0px));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.7rem;
+  background: linear-gradient(180deg, #f2ead6 0%, #e6dcc2 100%);
+  color: #171512;
+  border: 1px solid #171512;
+  box-shadow: 0 2px 10px rgba(23, 21, 18, 0.35);
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 0.82rem;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud button {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid #171512;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.68rem;
+  font-variant: normal;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.hud button:hover { background: rgba(107, 32, 24, 0.12); color: #6b2018; }
+
+/*
+ * &thumbs -> on a touch screen the bar moves off the horizon and down to where
+ *            a thumb already is, and every control grows to a 44px target.
+ */
+@media (pointer: coarse) and (max-width: 720px) {
+  .hud {
+    top: auto;
+    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .hud button { min-height: 2.75rem; padding: 0.5rem 0.75rem; }
+}
+
+.godot-curtain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-content: center;
+  gap: 0.6rem;
+  padding: 2rem;
+  text-align: center;
+  color: #171512;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  background:
+    radial-gradient(120% 90% at 50% 40%, #f2ead6 0%, #e6dcc2 60%, #dcd1b4 100%);
+  opacity: 1;
+  transition: opacity 520ms ease;
+}
+
+/* the plate is blank stock until the run is actually on screen, so nothing
+   half-drawn is ever visible through it */
+.godot-curtain.is-lifted {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.curtain-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.curtain-rule {
+  width: min(18rem, 60vw);
+  height: 3px;
+  border-top: 1px solid #171512;
+  border-bottom: 1px solid #171512;
+  padding: 1px 0;
+}
+
+.curtain-rule span {
+  display: block;
+  height: 1px;
+  background: #171512;
+  transition: width 240ms ease;
+}
+
+/* the engine cannot always report a total size, and a percentage nobody can
+   compute reads as a stall. A moving rule says working without claiming a
+   number that is not known. */
+.curtain-rule.is-indeterminate {
+  overflow: hidden;
+}
+
+.curtain-rule.is-indeterminate span {
+  width: 40%;
+  animation: curtain-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes curtain-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .curtain-rule.is-indeterminate span { animation: none; width: 100%; opacity: 0.4; }
+}
+
+.curtain-percent {
+  margin: 0;
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.godot-curtain.is-error { color: #8c1f14; }
+
+.curtain-detail {
+  margin: 0;
+  white-space: pre-wrap;
+  max-width: 40rem;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.hud-invuln { color: #6b2018; font-weight: 700; }
+

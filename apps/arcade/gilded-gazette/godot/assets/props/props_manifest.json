@@ -1,0 +1,46 @@
+{
+  "crate": {
+    "mesh": "crate",
+    "triangles": 68,
+    "size_metres": [
+      0.57,
+      0.57,
+      0.55
+    ],
+    "seats": false,
+    "cushion_height": 0.0
+  },
+  "dining_chair": {
+    "mesh": "dining_chair",
+    "triangles": 136,
+    "size_metres": [
+      0.44,
+      0.42,
+      0.92
+    ],
+    "seats": true,
+    "cushion_height": 0.48
+  },
+  "dining_table": {
+    "mesh": "dining_table",
+    "triangles": 140,
+    "size_metres": [
+      0.78,
+      0.7,
+      0.7525
+    ],
+    "seats": false,
+    "cushion_height": 0.0
+  },
+  "lockbox": {
+    "mesh": "lockbox",
+    "triangles": 112,
+    "size_metres": [
+      0.72,
+      0.49,
+      0.45
+    ],
+    "seats": false,
+    "cushion_height": 0.0
+  }
+}

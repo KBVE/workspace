@@ -1,9 +1,94 @@
 ---
 import Base from '../layouts/Base.astro';
-import { site } from '../config/site';
 ---
 
-<Base title={site.name} description={site.description}>
-  <h1>RentEarth</h1>
-  <p class="lede">Placeholder copy — replace with the real pitch.</p>
+<Base
+  title="RentEarth"
+  description="A turn-based 4X built schema first: one set of definitions the client, the servers and this site all read from."
+>
+  <section class="statement bleed">
+    <h1>A 4X built <span class="mark">backwards</span>.</h1>
+    <p class="lede">
+      Most strategy games start with a prototype and grow a data model around it
+      once the systems stop moving. RentEarth starts from the definitions — the
+      things a turn is made of — and builds outward from them.
+    </p>
+  </section>
+
+  <ul class="claims bleed">
+    <li class="claim">
+      <h2>Explore, expand, exploit, exterminate</h2>
+      <p>
+        Turn-based, in the Civilization tradition. The four verbs are settled.
+        The map, the eras and the win conditions are not, and this site will not
+        pretend otherwise until they are.
+      </p>
+    </li>
+    <li class="claim">
+      <h2>One definition, four languages</h2>
+      <p>
+        Items, spells, quests, dialogue and rarity live in Protobuf. TypeScript,
+        Rust, C# and Python are generated from it. Rename a field and every one
+        of them fails to build in the same minute.
+      </p>
+    </li>
+    <li class="claim">
+      <h2>A turn is a contract</h2>
+      <p>
+        A 4X accumulates state for hundreds of turns, so a save from an early
+        build has to keep meaning something. Defining the wire format before the
+        systems is what makes that possible rather than aspirational.
+      </p>
+    </li>
+    <li class="claim">
+      <h2>Built where you can watch</h2>
+      <p>
+        The monorepo is public. The commits, the schemas and the mistakes are
+        readable while the game is still being decided.
+      </p>
+    </li>
+  </ul>
+
+  <section class="ledger bleed">
+    <div class="ledger-inner">
+      <h2>Decided so far</h2>
+      <dl>
+        <div>
+          <dt>Genre</dt>
+          <dd>4X, turn-based</dd>
+        </div>
+        <div>
+          <dt>Systems modelled</dt>
+          <dd>items · spells · quests · dialogue · rarity</dd>
+        </div>
+        <div>
+          <dt>Schema registry</dt>
+          <dd>14 definitions across 6 domains</dd>
+        </div>
+        <div>
+          <dt>Generated targets</dt>
+          <dd>TypeScript · Rust · C# · Python</dd>
+        </div>
+        <div>
+          <dt>Map, eras, victory</dt>
+          <dd>undecided</dd>
+        </div>
+        <div>
+          <dt>Playable build</dt>
+          <dd>none</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="close bleed">
+    <p>
+      There is nothing to play yet and no date to promise. If watching a strategy
+      game get built from its data model outward is interesting to you, the work
+      is public.
+    </p>
+    <a class="button" href="https://github.com/KBVE/workspace" rel="noopener">
+      Read the repository
+    </a>
+  </section>
 </Base>

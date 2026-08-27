@@ -1,0 +1,2 @@
+extends ECSComponent
+class_name CPassenger

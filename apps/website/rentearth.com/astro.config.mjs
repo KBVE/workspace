@@ -6,6 +6,9 @@ import { locales, defaultLocale } from '@kbve/i18n';
 // Static output: every page is rendered at build time and served as a file.
 export default defineConfig({
   output: 'static',
+  // Astro's own prefetch: hover-intent rather than eager, and it stays correct
+  // as the page count grows. Costs ~1.1 kB gzipped.
+  prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   site: 'https://rentearth.com',
   // One URL per page. Without this the canonical tag, the sitemap and the
   // hreflang alternates can disagree on a trailing slash, which search engines

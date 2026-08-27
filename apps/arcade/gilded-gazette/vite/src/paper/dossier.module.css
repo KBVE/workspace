@@ -1,0 +1,209 @@
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  background: rgba(23, 21, 18, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 280ms ease;
+}
+
+.scrim.shown {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  width: min(24rem, 92vw);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  padding: 1rem 1.1rem 0.75rem;
+  background: linear-gradient(180deg, #f2ead6 0%, #e6dcc2 100%);
+  color: #171512;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 0.82rem;
+  border-left: 3px double #171512;
+  box-shadow: -12px 0 28px rgba(23, 21, 18, 0.25);
+  transform: translateX(100%);
+  transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.drawer.shown { transform: translateX(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer, .scrim { transition: none; }
+}
+
+/* head -------------------------------------------------------------------- */
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 3px double #171512;
+  padding-bottom: 0.4rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+.close {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.2rem;
+}
+
+.close:hover { color: #6b2018; }
+
+.head2 {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #171512;
+  padding-bottom: 0.2rem;
+}
+
+/* scrubber ---------------------------------------------------------------- */
+
+.scrubber { padding: 0.6rem 0 0.5rem; border-bottom: 1px solid #171512; }
+
+.scrubRow { display: flex; align-items: baseline; justify-content: space-between; }
+.scrubRow .head2 { border: 0; margin: 0; padding: 0; }
+
+.clock {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.slider {
+  width: 100%;
+  margin: 0.35rem 0 0.15rem;
+  accent-color: #6b2018;
+}
+
+.scrubEnds {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: #55503f;
+  font-variant-numeric: tabular-nums;
+}
+
+/* body -------------------------------------------------------------------- */
+
+.scroll {
+  overflow-y: auto;
+  min-height: 0;
+  padding-top: 0.6rem;
+  scrollbar-width: thin;
+  scrollbar-color: #8a8069 transparent;
+}
+
+.scroll::-webkit-scrollbar { width: 6px; }
+.scroll::-webkit-scrollbar-track { background: transparent; }
+.scroll::-webkit-scrollbar-thumb { background: #8a8069; }
+
+.block { border-bottom: 1px solid #171512; padding-bottom: 0.5rem; margin-bottom: 0.6rem; }
+.block:last-child { border-bottom: 0; }
+
+.tight { margin: 0; line-height: 1.35; }
+.list { margin: 0; padding: 0; list-style: none; line-height: 1.5; }
+.quiet { color: #55503f; font-style: italic; }
+.hint { margin: 0.35rem 0 0; font-size: 0.72rem; color: #55503f; font-style: italic; }
+.mark { color: #6b2018; }
+
+/* manifest ---------------------------------------------------------------- */
+
+.people { margin: 0; padding: 0; list-style: none; }
+
+.person {
+  display: flex;
+  width: 100%;
+  gap: 0.4rem;
+  align-items: baseline;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0.15rem 0.2rem;
+  cursor: pointer;
+}
+
+.person:hover { background: rgba(107, 32, 24, 0.08); }
+
+.picked {
+  background: rgba(107, 32, 24, 0.14);
+  box-shadow: inset 2px 0 0 #6b2018;
+}
+
+.personName { flex: 1; }
+
+/* &leaders -> dotted fill between name and room, the classifieds look */
+.personName::after {
+  content: '';
+  display: inline-block;
+  width: 100%;
+  margin-left: 0.3rem;
+  border-bottom: 1px dotted #171512;
+  transform: translateY(-0.2em);
+}
+
+.personWhere { font-variant: small-caps; letter-spacing: 0.04em; }
+
+/* rooms ------------------------------------------------------------------- */
+
+.ledger { margin: 0; }
+.ledger > div { display: flex; gap: 0.4rem; align-items: baseline; }
+.ledger dt { flex: 0 0 6.5rem; font-variant: small-caps; letter-spacing: 0.04em; }
+.ledger dd { margin: 0; flex: 1; }
+
+/* trail ------------------------------------------------------------------- */
+
+.trail { margin: 0; padding: 0; list-style: none; }
+
+.trail li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.1rem 0;
+}
+
+/* &ahead -> steps past the board's clock are still printed, greyed, so the
+             player can see there is more to come without scrubbing blind */
+.ahead { opacity: 0.35; }
+
+.when { font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
+.wherePart { flex: 1; font-variant: small-caps; letter-spacing: 0.04em; }
+.proof { color: #6b2018; font-size: 0.7rem; }
+.kind { font-variant: small-caps; letter-spacing: 0.06em; color: #6b2018; }
+.tie { color: #55503f; }
+
+.link {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.link:hover { color: #6b2018; }

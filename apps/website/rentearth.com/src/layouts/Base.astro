@@ -80,6 +80,13 @@ const schema = {
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="/fonts/bricolage-grotesque-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="sitemap" href="/sitemap-index.xml" />
 
@@ -124,7 +131,7 @@ const schema = {
     <div class="wrap">
       <a class="skip" href="#main">Skip to content</a>
       <Nav lang={lang} />
-      <main id="main">
+      <main id="main" class="bleed">
         <slot />
       </main>
       <Footer />

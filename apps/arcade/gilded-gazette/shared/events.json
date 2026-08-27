@@ -1,0 +1,162 @@
+{
+  "$comment": "Single source of truth for all (Godot, ECS, React, ect...) event contract. Please do not edit the generated files (game_events.gd, events.ts), edit events.json. @actions -> on dev/build -> CI fails if the output drifts.",
+  "outbound": {
+    "SCENE_CHANGED": {
+      "bus": "scene_changed",
+      "wire": "scene:changed",
+      "payload": {
+        "scene": "string"
+      },
+      "description": "The scene tree finished swapping scenes; `scene` is the res:// path of the new scene.\n\nDeliberately not driven by SceneLoader.scene_loaded, because it fires before the swap and also for background loads that never swap at all. Currently, our gameBridge watches the tree's current scene instead, so this reports what actually happened and catches changes made without SceneLoader."
+    },
+    "SCENE_LOADING": {
+      "bus": "scene_loading",
+      "wire": "scene:loading",
+      "payload": {
+        "scene": "string",
+        "progress": "number",
+        "status": "string"
+      },
+      "description": "A scene is streaming in on the loader pool. `progress` is 0..1 and `status` is one of `start`, `progress`, `ready`, `failed`.\n\nThe swap itself still reports through scene:changed; this reports the wait before it, which is the window React fills with the newspaper instead of a black canvas."
+    },
+    "PLAYER_STATE": {
+      "bus": "player_state",
+      "wire": "player:state",
+      "payload": {
+        "health": "number",
+        "max_health": "number"
+      },
+      "description": "Coarse HUD snapshot that emit at 5 / 10 / 15 / 20Hz, not per frame!!! Every emit crosses the JS boundary and serialises to JSON or packed ints."
+    },
+    "STATE_CHANGED": {
+      "bus": "state_changed",
+      "wire": "game:state",
+      "payload": {
+        "run": "number",
+        "flags": "number",
+        "world": "number"
+      },
+      "description": "Coarse run state; both fields are packed ints from shared/state.json : Json -> `run` is a RunState, `flags` is a PlayerFlags bitfield; decode with the generated helpers, never with constants."
+    },
+    "SCORE_CHANGED": {
+      "bus": "score_changed",
+      "wire": "game:score",
+      "payload": {
+        "score": "number"
+      },
+      "description": "Score changed, probably hook this into a clue based system later on."
+    },
+    "LEVEL_CHANGED": {
+      "bus": "level_changed",
+      "wire": "level:changed",
+      "payload": {
+        "level": "string",
+        "index": "number",
+        "total": "number",
+        "outcome": "string"
+      },
+      "description": "A train level started, was won, or was lost. `level` is the level name (Aisle, Orbit, Side), `index` its 0-based place in the running order and `total` how many levels the run holds.\n\n`outcome` is one of `start`, `won`, `lost` -> the loop never leaves the train scene, so scene:changed cannot report this; a level swap is a camera and rule swap inside one carriage."
+    },
+    "RUN_OVER": {
+      "bus": "run_over",
+      "wire": "game:run_over",
+      "payload": "unknown",
+      "description": "The run or murder train ended. Shape is currently game defined, so give it real fields once the game has them."
+    },
+    "WORLD_CLOCK": {
+      "bus": "world_clock",
+      "wire": "world:clock",
+      "payload": {
+        "hour": "number",
+        "minute": "number"
+      },
+      "description": "In-world time of day, emitted when the minute changes rather than per frame.\n\nThe train runs a day/night cycle, and the Gazette prints by the clock: an article whose frontmatter carries `after`/`before` only reaches the front page inside that window. Wall-clock time is irrelevant; this is the world's."
+    },
+    "VIEWER_STATE": {
+      "bus": "viewer_state",
+      "wire": "viewer:state",
+      "payload": {
+        "carriage": "number",
+        "location": "string"
+      },
+      "description": "Where the player is standing: the carriage they are in and the room that carriage stands in for.\n\nEmitted only when one of them changes, never per frame. This replaces the in-engine debug label, so the information lives in the React panel with everything else."
+    },
+    "DOOR_STATE": {
+      "bus": "door_state",
+      "wire": "door:state",
+      "payload": {
+        "open": "boolean",
+        "locked": "boolean",
+        "distance": "number"
+      },
+      "description": "A door was used, and what happened. Emitted on the press rather than per frame.\n\nA locked door reports too, with open unchanged: silence would be indistinguishable from the player failing to reach it, and the panel is the only place to tell the difference while the run has no dialogue."
+    },
+    "RENDER_BUDGET": {
+      "bus": "render_budget",
+      "wire": "render:budget",
+      "payload": {
+        "shrink": "number",
+        "detail": "string"
+      },
+      "description": "How far the world's render resolution is currently divided, and the antialiasing that goes with it.\n\nThe engine picks this from measured frame time, not from a device name, so it changes during a run on hardware that cannot hold the frame rate. Emitted only when it changes. Without it a soft-looking phone gives no way to tell whether the scaler decided that or something else went wrong."
+    },
+    "NOTICE_READ": {
+      "bus": "notice_read",
+      "wire": "notice:read",
+      "payload": {
+        "id": "string"
+      },
+      "description": "A posted notice on a carriage wall was read; `id` is a shared/data/notices id.\n\nThe poster in the world is a quad the player points at; the sheet React opens over it is the notice itself. Only the id crosses the boundary, because both runtimes already hold the compiled notice and sending the prose would be sending what the other side is reading from."
+    },
+    "JOURNAL_ENTRY": {
+      "bus": "journal_entry",
+      "wire": "journal:entry",
+      "payload": {
+        "id": "string",
+        "kind": "number",
+        "actor": "string",
+        "target": "string",
+        "place": "string",
+        "at": "number"
+      },
+      "description": "One fact the run has produced: a conversation, an item used, a room entered.\n\n`id` is a ULID, so entries sort by creation without comparing any other field. `kind` is a JournalKind. `actor` and `target` are content ids (`beaumont`, `telegram`) or empty. `at` is in-world minutes past midnight, which is what the player reasons about; the ULID carries the real ordering."
+    }
+  },
+  "inbound": {
+    "UI_PAUSE": {
+      "bus": "ui_pause",
+      "wire": "ui:pause",
+      "payload": {
+        "paused": "boolean"
+      },
+      "description": "React or devtools asked to pause or resume. It is ignored outside RunState.PLAYING, with the paused menu acting like a soft lock."
+    },
+    "UI_RESTART": {
+      "bus": "ui_restart",
+      "wire": "ui:restart",
+      "payload": {},
+      "description": "React , jest or playwright requested to restart the current run or murder or clue scene."
+    },
+    "UI_MAIN_MENU": {
+      "bus": "ui_main_menu",
+      "wire": "ui:main_menu",
+      "payload": {},
+      "description": "React asked to leave the game scene for the main menu, think of it as a quick escape hatch."
+    },
+    "UI_LOAD_SCENE": {
+      "bus": "ui_load_scene",
+      "wire": "ui:load_scene",
+      "payload": {
+        "scene": "string"
+      },
+      "description": "React asked for a scene to be streamed in. Loading happens on the loader pool and the swap only runs once the resource is ready, so the main thread never waits on it."
+    }
+  },
+  "engine": {
+    "GODOT_READY": {
+      "wire": "godot:ready",
+      "payload": {},
+      "description": "The bridge is live and draining anything React queued before wasm boot. Emitted directly by JsBridge itself rather than the ECS bus, so it has no bus name, (this is like a race condition type situation resolver)."
+    }
+  }
+}

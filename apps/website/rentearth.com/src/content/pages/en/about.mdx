@@ -1,15 +1,33 @@
 ---
 title: About
-description: What RentEarth is.
+description: RentEarth is a turn-based 4X, built from its data model outward.
 publishedAt: 2026-08-27
 updatedAt: 2026-08-27
 nav: true
 order: 1
 ---
 
-Placeholder prose. This file is MDX, so components can be imported and used
-inline alongside the markdown.
+RentEarth is a turn-based 4X in the Civilization tradition — explore, expand,
+exploit, exterminate — being built in the open by [KBVE](https://github.com/KBVE).
 
-## Heading
+## Why the schemas came first
 
-Body copy, a [link](https://github.com/KBVE), and `inline code`.
+A 4X is a long game. State accumulates across hundreds of turns, and a save
+written by one build has to keep meaning something to the next one. That is a
+data-model problem before it is a gameplay problem, so the wire format is being
+settled before the systems that ride on it.
+
+The definitions live in Protobuf and generate TypeScript, Rust, C# and Python
+from a single source. The website reads the same `Rarity` enum the server does.
+Renaming a field breaks every consumer in the same minute rather than silently
+in one of them.
+
+## What is decided
+
+The genre and the turn structure. The systems being modelled so far are items,
+spells, quests, dialogue and rarity.
+
+## What is not
+
+The map, the eras, the victory conditions, and the engine the client runs on.
+When those are settled they will show up here, and not before.
