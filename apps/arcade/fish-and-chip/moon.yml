@@ -54,24 +54,26 @@ tasks:
     toolchains: ['node']
     inputs: ['@group(sources)', '@group(configs)']
 
-  # Boots the built game in a real browser, served from a path prefix the way
-  # itch does. Opted out of `moon ci` because it needs a Chromium download a
-  # bare runner does not have; the itch workflow installs one and runs this
-  # before publishing, which is the point in the pipeline that matters.
   # Playwright ships no browser with the npm package. Declared as a task so the
   # e2e task can depend on it rather than every caller remembering to run it.
+  # --with-deps installs the system libraries a headless Chromium needs on a
+  # Linux runner, and is a no-op on macOS.
   e2e-browser:
-    command: 'playwright install chromium'
+    command: 'playwright install --with-deps chromium'
     toolchains: ['node']
     options:
       cache: false
-      runInCI: false
 
+  # Boots the built game in a real browser, served from a path prefix the way
+  # itch does -- the only check that proves the game starts at all.
+  #
+  # It runs in CI as well as before an itch release. `runInCI: false` would read
+  # as "release-only", but moon skips such a task in any CI environment,
+  # including when the release workflow asks for it by name, so the gate would
+  # silently never run.
   e2e:
     command: 'playwright test'
     toolchains: ['node']
-    options:
-      runInCI: false
     deps:
       - '~:build'
       - '~:e2e-browser'
