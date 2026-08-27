@@ -1,11 +1,11 @@
-name: proto-ci
+name: protobuf-ci
 
 on:
   push:
     branches: [main]
-    paths: ['packages/proto/**', '.github/workflows/proto-ci.yml']
+    paths: ['packages/protobuf/**', '.github/workflows/protobuf-ci.yml']
   pull_request:
-    paths: ['packages/proto/**', '.github/workflows/proto-ci.yml']
+    paths: ['packages/protobuf/**', '.github/workflows/protobuf-ci.yml']
   merge_group:
 
 # Least privilege. Nothing in this workflow writes to the repository, and on a
@@ -16,7 +16,7 @@ permissions:
 
 # A second push to the same branch makes the first run irrelevant.
 concurrency:
-  group: proto-ci-${{ github.ref }}
+  group: protobuf-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/proto
+        working-directory: packages/protobuf
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/proto
+        working-directory: packages/protobuf
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -128,7 +128,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/proto
+        working-directory: packages/protobuf
     strategy:
       # One language failing should not hide the state of the other three.
       fail-fast: false
@@ -146,10 +146,10 @@ jobs:
 
       - name: Rust
         if: matrix.lang == 'rust'
-        working-directory: packages/proto/verify/rust
+        working-directory: packages/protobuf/verify/rust
         run: |
           mkdir -p src
-          cp -r "$GITHUB_WORKSPACE/packages/proto/gen/rust/." src/
+          cp -r "$GITHUB_WORKSPACE/packages/protobuf/gen/rust/." src/
           # prost-crate names the module tree mod.rs; cargo wants lib.rs.
           mv src/mod.rs src/lib.rs
           cargo check --locked || cargo check
@@ -161,9 +161,9 @@ jobs:
 
       - name: TypeScript
         if: matrix.lang == 'ts'
-        working-directory: packages/proto/verify/ts
+        working-directory: packages/protobuf/verify/ts
         run: |
-          cp -r "$GITHUB_WORKSPACE/packages/proto/gen/ts" src
+          cp -r "$GITHUB_WORKSPACE/packages/protobuf/gen/ts" src
           npm install --no-audit --no-fund
           npx tsc --noEmit
 
@@ -174,9 +174,9 @@ jobs:
 
       - name: C#
         if: matrix.lang == 'csharp'
-        working-directory: packages/proto/verify/csharp
+        working-directory: packages/protobuf/verify/csharp
         run: |
-          find "$GITHUB_WORKSPACE/packages/proto/gen/csharp" -name '*.cs' -exec cp {} . \;
+          find "$GITHUB_WORKSPACE/packages/protobuf/gen/csharp" -name '*.cs' -exec cp {} . \;
           dotnet build --nologo -v quiet
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5

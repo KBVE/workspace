@@ -1,4 +1,4 @@
-name: proto-publish
+name: protobuf-publish
 
 # Publishing happens only after a change has landed on main, so the BSR module
 # always reflects a reviewed state. Never runs on pull requests: secrets are
@@ -6,7 +6,7 @@ name: proto-publish
 on:
   push:
     branches: [main]
-    paths: ['packages/proto/**']
+    paths: ['packages/protobuf/**']
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ permissions:
 
 # Pushes to the registry must not overlap.
 concurrency:
-  group: proto-publish
+  group: protobuf-publish
   cancel-in-progress: false
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/proto
+        working-directory: packages/protobuf
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -50,7 +50,7 @@ jobs:
       - name: Breaking-change check must be enabled before publishing
         if: steps.creds.outputs.present == 'true'
         run: |
-          if grep -qE '^\s*-\s*name:\s*Breaking\s*$' "$GITHUB_WORKSPACE/.github/workflows/proto-ci.yml"; then
+          if grep -qE '^\s*-\s*name:\s*Breaking\s*$' "$GITHUB_WORKSPACE/.github/workflows/protobuf-ci.yml"; then
             echo "Breaking-change check is enabled."
           else
             echo "::error::ci.yml has no active Breaking job. Re-enable it before publishing to the BSR."

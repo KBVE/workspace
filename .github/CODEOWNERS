@@ -5,8 +5,8 @@
 * @h0lybyte
 /.github/ @h0lybyte
 
-# proto
-/packages/proto/kbve/type/ @h0lybyte
-/packages/proto/kbve/common/ @h0lybyte
-/packages/proto/buf.yaml @h0lybyte
-/packages/proto/buf.gen.yaml @h0lybyte
+# protobuf
+/packages/protobuf/kbve/type/ @h0lybyte
+/packages/protobuf/kbve/common/ @h0lybyte
+/packages/protobuf/buf.yaml @h0lybyte
+/packages/protobuf/buf.gen.yaml @h0lybyte

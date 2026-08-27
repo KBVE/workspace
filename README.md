@@ -21,7 +21,7 @@ secrets.
 | `tools/`    | Internal CLIs and scripts                           |
 | `infra/`    | Deploy manifests, Docker, CI helpers                |
 | `docs/`     | Documentation                                       |
-| `packages/proto/` | Protobuf schemas — source of truth for every wire type |
+| `packages/protobuf/` | Protobuf schemas — source of truth for every wire type |
 
 ## Setup
 
