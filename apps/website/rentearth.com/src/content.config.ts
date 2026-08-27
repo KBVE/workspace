@@ -15,12 +15,31 @@ const pages = defineCollection({
   schema: z
     .object({
       title: z.string().min(1),
+      // 160 is what a search result shows before truncating.
       description: z.string().min(1).max(160).optional(),
       draft: z.boolean().default(false),
       // Ordering for any generated index; unset sorts last.
       order: z.number().int().nonnegative().optional(),
+
+      // --- SEO ---------------------------------------------------------
+      /** Social card, relative to the site root. */
+      image: z.string().startsWith('/').optional(),
+      /** Alt text for that card; required alongside an image so the schema
+       *  cannot produce an inaccessible one. */
+      imageAlt: z.string().optional(),
+      /** Keep the page out of search results while leaving it reachable. */
+      noindex: z.boolean().default(false),
+      /** Points elsewhere when this page restates content that lives at
+       *  another canonical URL. */
+      canonical: z.string().url().optional(),
+      publishedAt: z.coerce.date().optional(),
+      updatedAt: z.coerce.date().optional(),
     })
-    .strict(),
+    .strict()
+    .refine((data) => !data.image || Boolean(data.imageAlt), {
+      message: 'imageAlt is required when image is set',
+      path: ['imageAlt'],
+    }),
 });
 
 export const collections = { pages };

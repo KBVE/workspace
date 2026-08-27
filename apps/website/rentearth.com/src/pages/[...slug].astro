@@ -34,9 +34,16 @@ const { Content } = await render(entry);
 ---
 
 <Base
-  title={`${entry.data.title} — RentEarth`}
+  title={entry.data.title}
   description={entry.data.description}
   lang={locale}
+  image={entry.data.image}
+  imageAlt={entry.data.imageAlt}
+  canonical={entry.data.canonical}
+  noindex={entry.data.noindex}
+  type="article"
+  publishedAt={entry.data.publishedAt}
+  updatedAt={entry.data.updatedAt}
 >
   <h1>{entry.data.title}</h1>
   <Content />

@@ -7,6 +7,10 @@ import { locales, defaultLocale } from '@kbve/i18n';
 export default defineConfig({
   output: 'static',
   site: 'https://rentearth.com',
+  // One URL per page. Without this the canonical tag, the sitemap and the
+  // hreflang alternates can disagree on a trailing slash, which search engines
+  // read as separate URLs.
+  trailingSlash: 'never',
   integrations: [mdx(), sitemap()],
 
   // Astro owns routing; @kbve/i18n owns the list. Registering a language is one

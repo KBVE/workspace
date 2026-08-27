@@ -3,25 +3,69 @@ import '../styles/global.css';
 import { locales, defaultLocale, localizePath, stripLocale, type Locale } from '@kbve/i18n';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import { site } from '../config/site';
 
 interface Props {
   title: string;
   description?: string;
-  lang?: string;
+  lang?: Locale;
+  /** Social card, site-root relative. */
+  image?: string;
+  imageAlt?: string;
+  /** Overrides the computed canonical when this page restates content that
+   *  lives elsewhere. */
+  canonical?: string;
+  noindex?: boolean;
+  /** `article` adds published/modified times to the Open Graph tags. */
+  type?: 'website' | 'article';
+  publishedAt?: Date;
+  updatedAt?: Date;
 }
 
-const { title, description = 'RentEarth', lang = defaultLocale } = Astro.props;
+const {
+  title,
+  description = site.description,
+  lang = defaultLocale,
+  image = site.image,
+  imageAlt,
+  canonical: canonicalOverride,
+  noindex = false,
+  type = 'website',
+  publishedAt,
+  updatedAt,
+} = Astro.props;
 
-const canonical = new URL(Astro.url.pathname, Astro.site);
+// Astro.site is set in astro.config.mjs; without it every absolute URL below
+// would silently become relative and the tags would be useless.
+// Astro emits directory-style paths at build time (`/about/`), so the trailing
+// slash is stripped to match trailingSlash: 'never' and the alternates below.
+const pathname = Astro.url.pathname.replace(/(.+)\/$/, '$1');
+const canonical = canonicalOverride ?? new URL(pathname, Astro.site).toString();
+const imageUrl = image ? new URL(image, Astro.site).toString() : undefined;
 
-// The shared slug, with any locale prefix removed, so the alternates can be
-// rebuilt for every registered locale.
-const slug = stripLocale(Astro.url.pathname);
-
+// The shared slug, with any locale prefix removed, so alternates can be built
+// for every registered locale.
+const slug = stripLocale(pathname);
 const alternates = locales.map((locale) => ({
   locale,
-  href: new URL(localizePath(locale as Locale, slug), Astro.site).toString(),
+  href: new URL(localizePath(locale, slug), Astro.site).toString(),
 }));
+
+// Repeating the site name in the tab title is noise on the home page.
+const fullTitle = title === site.name ? title : `${title} — ${site.name}`;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': type === 'article' ? 'Article' : 'WebSite',
+  name: site.name,
+  headline: title,
+  description,
+  url: canonical,
+  inLanguage: lang,
+  ...(imageUrl ? { image: imageUrl } : {}),
+  ...(publishedAt ? { datePublished: publishedAt.toISOString() } : {}),
+  ...(updatedAt ? { dateModified: updatedAt.toISOString() } : {}),
+};
 ---
 
 <!doctype html>
@@ -30,22 +74,50 @@ const alternates = locales.map((locale) => ({
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
-    <title>{title}</title>
+    <meta name="theme-color" content={site.themeColor} />
+
+    <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    {noindex && <meta name="robots" content="noindex, follow" />}
+
+    {/* Alternates only mean something once a second language exists. */}
     {locales.length > 1 && alternates.map(({ locale, href }) => (
       <link rel="alternate" hreflang={locale} href={href} />
     ))}
     {locales.length > 1 && (
-      <link rel="alternate" hreflang="x-default" href={new URL(localizePath(defaultLocale, slug), Astro.site).toString()} />
+      <link
+        rel="alternate"
+        hreflang="x-default"
+        href={new URL(localizePath(defaultLocale, slug), Astro.site).toString()}
+      />
     )}
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
+    <meta property="og:site_name" content={site.name} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={type} />
     <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={lang.replace('-', '_')} />
+    {imageUrl && <meta property="og:image" content={imageUrl} />}
+    {imageUrl && imageAlt && <meta property="og:image:alt" content={imageAlt} />}
+    {type === 'article' && publishedAt && (
+      <meta property="article:published_time" content={publishedAt.toISOString()} />
+    )}
+    {type === 'article' && updatedAt && (
+      <meta property="article:modified_time" content={updatedAt.toISOString()} />
+    )}
 
+    {/* summary_large_image needs an image; without one the card renders empty. */}
+    <meta name="twitter:card" content={imageUrl ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {imageUrl && <meta name="twitter:image" content={imageUrl} />}
+
+    <script type="application/ld+json" set:html={JSON.stringify(schema)} is:inline />
   </head>
   <body>
     <div class="wrap">

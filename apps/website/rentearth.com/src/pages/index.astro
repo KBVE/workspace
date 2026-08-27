@@ -1,8 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
+import { site } from '../config/site';
 ---
 
-<Base title="RentEarth" description="RentEarth">
+<Base title={site.name} description={site.description}>
   <h1>RentEarth</h1>
   <p class="lede">Placeholder copy — replace with the real pitch.</p>
 </Base>
