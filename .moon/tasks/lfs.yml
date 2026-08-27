@@ -1,0 +1,27 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+# Inherited by every project tagged 'lfs'. A game declares the tag and its
+# build fetches its own assets on a fresh clone -- no one has to know this
+# repository uses LFS, or which of the shared store's objects belong to them.
+#
+# The scope is the project's own directory, which is what keeps this workable
+# as the store grows: gilded-gazette alone accounts for 221 objects, and
+# rentearth-bevy needs four of them.
+inheritedBy:
+  tag: 'lfs'
+
+tasks:
+  assets:
+    command: 'bash $workspaceRoot/tools/lfs/ensure.sh $projectSource/**'
+    # Reads the working tree and may reach the network, so there is nothing
+    # meaningful to hash. It exits immediately when the blobs are already
+    # present, which is every run after the first.
+    options:
+      cache: false
+      runInCI: true
+
+  # Adds a dependency to whatever build task the project already has, whether
+  # that is defined locally or inherited from a toolchain file. Declaring the
+  # deps alone here avoids restating a command that differs per project.
+  build:
+    deps: ['~:assets']
