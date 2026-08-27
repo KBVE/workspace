@@ -23,6 +23,17 @@ target/
 .vite/
 .output/
 
+# --- test output --------------------------------------------------------
+# Playwright writes traces, screenshots, and videos on failure. Projects point
+# `outputDir` at their own e2e/.artifacts, but the defaults are listed too: a
+# project added without that setting drops test-results/ at its root, and the
+# first failing run is the one that notices.
+test-results/
+playwright-report/
+blob-report/
+.artifacts/
+.last-run.json
+
 # --- moon ---------------------------------------------------------------
 .moon/cache
 .moon/docker

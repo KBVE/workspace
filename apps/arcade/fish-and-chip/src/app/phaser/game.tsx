@@ -9,6 +9,15 @@ import { GameOver } from './scenes/GameOver';
 import { Preloader } from './scenes/Preloader';
 import { TownScene } from './scenes/TownScene';
 
+declare global {
+	interface Window {
+		// Handle for the e2e suite. Phaser draws to a canvas, so there is no DOM
+		// for a test to assert against; this is the seam it reads scene state and
+		// asset caches through. TownScene exposes the grid engine the same way.
+		__FISHCHIP_GAME__?: Phaser.Game;
+	}
+}
+
 export function Game() {
 	const gameRef = useRef<HTMLDivElement>(null);
 
@@ -45,9 +54,14 @@ export function Game() {
 			},
 		});
 
+		window.__FISHCHIP_GAME__ = game;
+
 		// StrictMode mounts effects twice in development; without this the
 		// second mount leaves an orphaned canvas and a running game loop.
-		return () => game.destroy(true);
+		return () => {
+			delete window.__FISHCHIP_GAME__;
+			game.destroy(true);
+		};
 	}, []);
 
 	return <div ref={gameRef} />;

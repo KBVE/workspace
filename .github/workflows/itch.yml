@@ -51,10 +51,17 @@ jobs:
             dist: apps/arcade/fish-and-chip/dist
             itch: kbve/fishchip
             channel: html
-          # rentearth-bevy lands here once it has a web build task. It is a
-          # Bevy game, so its `dist` is a wasm-bindgen bundle rather than a
-          # Vite one, and its channel will still be `html` -- itch treats any
-          # browser build the same way.
+            # Optional. When set, the task boots the built game in a browser
+            # before anything is uploaded. Leave it off a game that has no such
+            # task and the gate simply skips.
+            e2e: fish-and-chip:e2e
+          # A wasm-bindgen bundle rather than a Vite one, but the channel is
+          # still `html`: itch treats any browser build the same way.
+          - project: rentearth-bevy
+            build: rentearth-bevy:build-web
+            dist: apps/arcade/rentearth-bevy/dist
+            itch: kbve/rentearth
+            channel: html
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
     # A tag names exactly one project, so every other matrix entry no-ops. The
@@ -73,6 +80,43 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: steps.mine.outputs.mine == 'true'
+        with:
+          # The water textures are LFS objects. Without this they check out as
+          # pointer files and the game ships with placeholder water.
+          lfs: true
+
+      # rentearth-bevy's water shader lives in git-crypt encrypted source. A
+      # release has the key, so it ships the real shader rather than the
+      # keyless fallback the build would otherwise select.
+      - uses: ./.github/actions/git-crypt-unlock
+        if: steps.mine.outputs.mine == 'true'
+        with:
+          key: ${{ secrets.GIT_CRYPT_KEY }}
+
+      # Same workaround as ci.yml: proto's rust plugin can leave an empty
+      # toolchain directory and still report success, so the toolchain is
+      # installed for real before proto looks for it. See the comment there.
+      - name: Install the pinned Rust toolchain
+        if: steps.mine.outputs.mine == 'true' && matrix.project == 'rentearth-bevy'
+        run: |
+          version="$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)"
+          test -n "$version" || { echo "::error::no channel in rust-toolchain.toml"; exit 1; }
+          rustup toolchain install "$version" \
+            --profile minimal --component clippy --component rustfmt --force
+          rustup target add wasm32-unknown-unknown --toolchain "$version"
+
+      # Pinned to the wasm-bindgen crate in Cargo.lock. A CLI newer or older
+      # than the crate emits a bundle that fails at import with no useful
+      # message; build-web.sh checks the pair and refuses to run on a mismatch.
+      - name: Install wasm-bindgen
+        if: steps.mine.outputs.mine == 'true' && matrix.project == 'rentearth-bevy'
+        run: |
+          version="$(sed -n '/^name = "wasm-bindgen"$/{n;s/^version = "\(.*\)"$/\1/p;q;}' Cargo.lock)"
+          name="wasm-bindgen-${version}-x86_64-unknown-linux-musl"
+          curl -fsSL -o wasm-bindgen.tar.gz \
+            "https://github.com/rustwasm/wasm-bindgen/releases/download/${version}/${name}.tar.gz"
+          tar xzf wasm-bindgen.tar.gz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/${name}" >> "$GITHUB_PATH"
 
       - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
         if: steps.mine.outputs.mine == 'true'
@@ -93,6 +137,14 @@ jobs:
       - name: Build has an entry point
         if: steps.mine.outputs.mine == 'true'
         run: test -f "${{ matrix.dist }}/index.html"
+
+      # The last gate before a build reaches the public. Unit tests mock the
+      # engine away, so this is the only thing that proves the game starts,
+      # loads its assets, and reaches a playable scene -- served from a path
+      # prefix, the way itch serves it. Games without an `e2e` task skip it.
+      - name: Boot the built game
+        if: steps.mine.outputs.mine == 'true' && matrix.e2e != ''
+        run: moon run ${{ matrix.e2e }}
 
       # butler is fetched from itch's own broth channel rather than a
       # third-party action, so nothing outside itch and GitHub is trusted with

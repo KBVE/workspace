@@ -46,3 +46,30 @@ tasks:
     command: 'vitest run'
     toolchains: ['node']
     inputs: ['@group(sources)', '@group(configs)']
+
+  # Boots the built game in a real browser, served from a path prefix the way
+  # itch does. Opted out of `moon ci` because it needs a Chromium download a
+  # bare runner does not have; the itch workflow installs one and runs this
+  # before publishing, which is the point in the pipeline that matters.
+  # Playwright ships no browser with the npm package. Declared as a task so the
+  # e2e task can depend on it rather than every caller remembering to run it.
+  e2e-browser:
+    command: 'playwright install chromium'
+    toolchains: ['node']
+    options:
+      cache: false
+      runInCI: false
+
+  e2e:
+    command: 'playwright test'
+    toolchains: ['node']
+    options:
+      runInCI: false
+    deps:
+      - '~:build'
+      - '~:e2e-browser'
+    inputs:
+      - '@group(sources)'
+      - '@group(configs)'
+      - 'e2e/**/*'
+      - 'playwright.config.ts'
