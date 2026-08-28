@@ -23,8 +23,12 @@ const CAMERA_DISTANCE: f32 = 1400.0;
 /// World units per second at zoom 1.0, panning by keyboard.
 const PAN_SPEED: f32 = 900.0;
 
-/// Multiplier per unit of scroll.
-const ZOOM_STEP: f32 = 0.12;
+/// Scroll accumulated before the zoom moves a level.
+///
+/// The levels are discrete now, so a notch cannot be a fraction of one. A
+/// trackpad emits a stream of small deltas where a wheel emits ones, and
+/// without a threshold the former crosses the whole range in a flick.
+const ZOOM_THRESHOLD: f32 = 1.0;
 
 pub struct CameraPlugin;
 
@@ -138,17 +142,23 @@ fn pan_drag(
     }
 }
 
-fn zoom_scroll(mut wheel: MessageReader<MouseWheel>, mut rigs: Query<&mut CameraRig>) {
-    let scroll: f32 = wheel.read().map(|w| w.y).sum();
-    if scroll == 0.0 {
+fn zoom_scroll(
+    mut wheel: MessageReader<MouseWheel>,
+    mut pending: Local<f32>,
+    mut rigs: Query<&mut CameraRig>,
+) {
+    *pending += wheel.read().map(|w| w.y).sum::<f32>();
+
+    let steps = (*pending / ZOOM_THRESHOLD).trunc();
+    if steps == 0.0 {
         return;
     }
+    // Keep the remainder, or a slow scroll never accumulates enough to move.
+    *pending -= steps * ZOOM_THRESHOLD;
 
     for mut rig in &mut rigs {
-        // Multiplicative, so each notch changes the view by the same
-        // proportion. Additive zoom crawls when far out and lurches when close.
-        rig.zoom =
-            (rig.zoom * (1.0 - scroll * ZOOM_STEP)).clamp(CameraRig::MIN_ZOOM, CameraRig::MAX_ZOOM);
+        // Scrolling up zooms in, which is toward a smaller scale.
+        rig.zoom = rig.stepped(-steps as i32);
     }
 }
 

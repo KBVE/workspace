@@ -79,8 +79,25 @@ pub struct TreePlugin;
 impl Plugin for TreePlugin {
     fn build(&self, app: &mut App) {
         // After the map, which is what says where the forests are.
-        app.add_systems(Startup, spawn_trees.after(spawn_map));
+        app.add_systems(Startup, spawn_trees.after(spawn_map))
+            .add_systems(Update, add_mipmaps);
     }
+}
+
+/// Levels in the tree atlas's mip chain, the full-size image included.
+///
+/// Not the whole chain down to a pixel. The atlas packs its trees side by side
+/// with only a few pixels of gutter, and every halving spends some of that: by
+/// the fourth level a gutter is under a pixel and neighbouring trees start
+/// averaging into each other. Four levels covers minification down to an eighth
+/// of full size, which is past the furthest the camera zooms.
+const MIP_LEVELS: u32 = 4;
+
+/// The atlas, and whether its mip chain has been built yet.
+#[derive(Resource)]
+struct TreeAtlas {
+    handle: Handle<Image>,
+    done: bool,
 }
 
 fn spawn_trees(
@@ -91,19 +108,33 @@ fn spawn_trees(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    // Nearest, not linear. These are pixel art: filtering them averages
-    // neighbouring pixels into the mush that the art is drawn to avoid, and
-    // the hard edge is the whole point of the style.
+    // Nearest when magnified, filtered when minified -- which is not a
+    // compromise between two tastes but a response to two different situations.
+    // Magnified, nearest is the whole point of pixel art. Minified, it is a
+    // bug: a tree is 144 pixels of atlas drawn into some 40 pixels of screen,
+    // so nearest keeps one texel in four and throws the rest away, and which
+    // one it keeps changes as the camera slides by a fraction of a pixel. That
+    // is the swimming. Filtering plus the mip chain below averages what nearest
+    // was picking between, and the pixels sit still.
     let atlas = assets
         .load_builder()
         .with_settings(|settings: &mut ImageLoaderSettings| {
+            // The mip chain is built on the CPU from this data, so it has to
+            // survive being uploaded rather than being dropped at once.
+            settings.asset_usage = RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD;
             settings.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
                 mag_filter: ImageFilterMode::Nearest,
-                min_filter: ImageFilterMode::Nearest,
+                min_filter: ImageFilterMode::Linear,
+                mipmap_filter: ImageFilterMode::Linear,
                 ..ImageSamplerDescriptor::default()
             });
         })
         .load("trees/trees.png");
+
+    commands.insert_resource(TreeAtlas {
+        handle: atlas.clone(),
+        done: false,
+    });
 
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(atlas),
@@ -267,4 +298,130 @@ fn hash(a: u32, b: u32, salt: u32) -> f32 {
     z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
     z ^= z >> 31;
     ((z >> 40) as f32) / ((1u32 << 24) as f32)
+}
+
+/// Build the atlas's mip chain, once, as soon as it has loaded.
+///
+/// Bevy does not generate mipmaps for a PNG, and without them a minified
+/// texture aliases however it is sampled -- the filter chooses between four
+/// texels when sixteen are covered. This does the averaging properly, ahead of
+/// time.
+fn add_mipmaps(atlas: Option<ResMut<TreeAtlas>>, mut images: ResMut<Assets<Image>>) {
+    let Some(mut atlas) = atlas else {
+        return;
+    };
+    if atlas.done {
+        return;
+    }
+    let Some(mut image) = images.get_mut(&atlas.handle) else {
+        return;
+    };
+    let Some(data) = image.data.as_ref() else {
+        return;
+    };
+
+    let width = image.texture_descriptor.size.width;
+    let height = image.texture_descriptor.size.height;
+
+    let mut chain = data.clone();
+    let mut level = data.clone();
+    let (mut w, mut h) = (width, height);
+
+    // Coverage under the alpha mask at full size. Every smaller level is scaled
+    // to match it: averaging alpha shrinks it toward the middle, so a tree that
+    // covered a little over half a texel drops under the cutoff and disappears.
+    // Left alone, forests thin out as the camera pulls back -- which reads as a
+    // level-of-detail system rather than as the bug it is.
+    let target = coverage(&level);
+
+    for _ in 1..MIP_LEVELS {
+        let (nw, nh) = ((w / 2).max(1), (h / 2).max(1));
+        let mut next = halve(&level, w, h);
+        rescale_alpha(&mut next, target);
+        chain.extend_from_slice(&next);
+        level = next;
+        w = nw;
+        h = nh;
+    }
+
+    image.texture_descriptor.mip_level_count = MIP_LEVELS;
+    image.data = Some(chain);
+    atlas.done = true;
+}
+
+/// Fraction of texels that pass the alpha cutoff.
+fn coverage(rgba: &[u8]) -> f32 {
+    let passing = rgba.chunks_exact(4).filter(|p| p[3] >= 128).count();
+    passing as f32 / (rgba.len() / 4).max(1) as f32
+}
+
+/// Halve an RGBA image, averaging colour weighted by alpha.
+///
+/// Weighted, because a transparent texel's colour is arbitrary -- here it is
+/// black -- and averaging it in unweighted draws a dark rim around everything
+/// as the tree shrinks.
+fn halve(rgba: &[u8], w: u32, h: u32) -> Vec<u8> {
+    let (nw, nh) = ((w / 2).max(1), (h / 2).max(1));
+    let mut out = vec![0u8; (nw * nh * 4) as usize];
+
+    for y in 0..nh {
+        for x in 0..nw {
+            let mut rgb = [0.0f32; 3];
+            let mut alpha = 0.0f32;
+            let mut weight = 0.0f32;
+
+            for dy in 0..2 {
+                for dx in 0..2 {
+                    let sx = (x * 2 + dx).min(w - 1);
+                    let sy = (y * 2 + dy).min(h - 1);
+                    let i = ((sy * w + sx) * 4) as usize;
+                    let a = rgba[i + 3] as f32 / 255.0;
+                    for c in 0..3 {
+                        rgb[c] += rgba[i + c] as f32 * a;
+                    }
+                    alpha += a;
+                    weight += a;
+                }
+            }
+
+            let o = ((y * nw + x) * 4) as usize;
+            if weight > 0.0 {
+                for c in 0..3 {
+                    out[o + c] = (rgb[c] / weight).round().clamp(0.0, 255.0) as u8;
+                }
+            }
+            out[o + 3] = (alpha / 4.0 * 255.0).round().clamp(0.0, 255.0) as u8;
+        }
+    }
+
+    out
+}
+
+/// Scale a level's alpha until it covers the same fraction as the original.
+///
+/// Found by bisection rather than solved: coverage is a step function of the
+/// scale, so there is nothing to invert.
+fn rescale_alpha(rgba: &mut [u8], target: f32) {
+    let (mut low, mut high) = (0.0f32, 4.0f32);
+    let mut best = 1.0f32;
+
+    for _ in 0..12 {
+        let mid = (low + high) / 2.0;
+        let covered = rgba
+            .chunks_exact(4)
+            .filter(|p| (p[3] as f32 * mid) >= 128.0)
+            .count() as f32
+            / (rgba.len() / 4).max(1) as f32;
+
+        best = mid;
+        if covered < target {
+            low = mid;
+        } else {
+            high = mid;
+        }
+    }
+
+    for p in rgba.chunks_exact_mut(4) {
+        p[3] = (p[3] as f32 * best).round().clamp(0.0, 255.0) as u8;
+    }
 }
