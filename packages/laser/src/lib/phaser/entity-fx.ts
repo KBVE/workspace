@@ -6,9 +6,18 @@ export function flashEntity(
 	sprite: Phaser.GameObjects.Sprite,
 	hitColor = 0xff6b6b,
 ): void {
+	// The flash runs for 180ms after a hit, and a hit is the likeliest thing to
+	// destroy the sprite before it ends. A destroyed GameObject has had its
+	// internals torn down, so tinting one throws from inside a timer callback,
+	// where the stack says nothing about what caused it.
+	const alive = () => sprite.active && sprite.scene;
+
 	sprite.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
-	scene.time.delayedCall(60, () => sprite.setTint(hitColor));
+	scene.time.delayedCall(60, () => {
+		if (alive()) sprite.setTint(hitColor);
+	});
 	scene.time.delayedCall(180, () => {
+		if (!alive()) return;
 		sprite.clearTint();
 		sprite.setTintMode(Phaser.TintModes.MULTIPLY);
 	});
@@ -53,7 +62,11 @@ export function drawHealthBar(
 	maxHp: number,
 	width = 26,
 ): void {
-	const pct = Math.max(0, Math.min(1, hp / maxHp));
+	// maxHp of 0 makes hp/maxHp NaN, and NaN passes through both clamps
+	// untouched -- Math.min and Math.max return it as-is -- so the fill width
+	// would reach fillRect as NaN and the bar would render as garbage. An
+	// entity with no max health is not exotic; it is one not yet given stats.
+	const pct = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
 	g.clear();
 	g.fillStyle(0x000000, 0.6);
 	g.fillRect(centerX - width / 2, topY, width, 4);
@@ -91,20 +104,34 @@ export interface CameraZoomOptions {
 	step?: number;
 }
 
-/** Wire +/- keys and the mouse wheel to clamped main-camera zoom. */
+/**
+ * Wire +/- keys and the mouse wheel to clamped main-camera zoom.
+ *
+ * Returns a disposer. A scene that restarts calls this again, and the input
+ * plugin outlives the scene's create(), so without one every restart leaves
+ * another set of handlers attached and one keypress zooms by the number of
+ * restarts so far.
+ */
 export function attachCameraZoom(
 	scene: Phaser.Scene,
 	{ min = 0.6, max = 2.2, step = 0.2 }: CameraZoomOptions = {},
-): void {
+): () => void {
 	const zoom = (delta: number) => {
 		const cam = scene.cameras.main;
 		cam.setZoom(Phaser.Math.Clamp(cam.zoom + delta, min, max));
 	};
-	scene.input.keyboard?.on('keydown-PLUS', () => zoom(step));
-	scene.input.keyboard?.on('keydown-MINUS', () => zoom(-step));
-	scene.input.on(
-		'wheel',
-		(_p: unknown, _o: unknown, _dx: number, dy: number) =>
-			zoom(dy > 0 ? -step * 0.75 : step * 0.75),
-	);
+	const zoomIn = () => zoom(step);
+	const zoomOut = () => zoom(-step);
+	const wheel = (_p: unknown, _o: unknown, _dx: number, dy: number) =>
+		zoom(dy > 0 ? -step * 0.75 : step * 0.75);
+
+	scene.input.keyboard?.on('keydown-PLUS', zoomIn);
+	scene.input.keyboard?.on('keydown-MINUS', zoomOut);
+	scene.input.on('wheel', wheel);
+
+	return () => {
+		scene.input.keyboard?.off('keydown-PLUS', zoomIn);
+		scene.input.keyboard?.off('keydown-MINUS', zoomOut);
+		scene.input.off('wheel', wheel);
+	};
 }
