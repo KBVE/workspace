@@ -4,73 +4,7 @@ import {
 	defaultCloseReason,
 	type ConnectionState,
 } from './connection';
-
-/**
- * A WebSocket that never touches the network. Every instance registers itself
- * so a test can drive the open/close callbacks by hand, which is the only way
- * to exercise reconnect behaviour without waiting on real timers.
- */
-class FakeSocket {
-	static instances: FakeSocket[] = [];
-	/** Set to make the constructor throw, the way a malformed URL does. */
-	static throwOnConstruct: string | null = null;
-
-	static OPEN = 1;
-	static CLOSED = 3;
-
-	readyState = 0;
-	binaryType = '';
-	sent: unknown[] = [];
-	private listeners = new Map<string, Set<(ev: unknown) => void>>();
-
-	constructor(public url: string) {
-		if (FakeSocket.throwOnConstruct) {
-			throw new SyntaxError(FakeSocket.throwOnConstruct);
-		}
-		FakeSocket.instances.push(this);
-	}
-
-	addEventListener(
-		type: string,
-		fn: (ev: unknown) => void,
-		opts?: { signal?: AbortSignal },
-	) {
-		if (opts?.signal?.aborted) return;
-		let set = this.listeners.get(type);
-		if (!set) this.listeners.set(type, (set = new Set()));
-		set.add(fn);
-		opts?.signal?.addEventListener('abort', () => set!.delete(fn));
-	}
-
-	removeEventListener(type: string, fn: (ev: unknown) => void) {
-		this.listeners.get(type)?.delete(fn);
-	}
-
-	send(data: unknown) {
-		this.sent.push(data);
-	}
-
-	close() {
-		this.readyState = FakeSocket.CLOSED;
-	}
-
-	/** Drives the events a real socket would fire. */
-	fireOpen() {
-		this.readyState = FakeSocket.OPEN;
-		for (const fn of this.listeners.get('open') ?? []) fn({});
-	}
-
-	fireClose(code = 1006, reason = '') {
-		this.readyState = FakeSocket.CLOSED;
-		for (const fn of this.listeners.get('close') ?? []) fn({ code, reason });
-	}
-
-	get listenerCount() {
-		let total = 0;
-		for (const set of this.listeners.values()) total += set.size;
-		return total;
-	}
-}
+import { FakeSocket } from './fake-socket.testing';
 
 describe('defaultCloseReason', () => {
 	it('separates a server drop from a handshake that never opened', () => {
@@ -94,8 +28,7 @@ describe('ReconnectingSocket', () => {
 
 	beforeEach(() => {
 		vi.useFakeTimers();
-		FakeSocket.instances = [];
-		FakeSocket.throwOnConstruct = null;
+		FakeSocket.reset();
 		vi.stubGlobal('WebSocket', FakeSocket);
 		states = [];
 	});
