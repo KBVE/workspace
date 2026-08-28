@@ -40,20 +40,6 @@ const ZOOM_PER_NOTCH: f32 = 1.12;
 /// this number twice.
 const PIXELS_PER_NOTCH: f32 = 12.0;
 
-/// Quiet time before the zoom settles onto a level.
-///
-/// Long enough to span the gap between notches of a turning wheel, so settling
-/// happens when you stop rather than between clicks.
-const ZOOM_SETTLE_DELAY: f32 = 0.10;
-
-/// How long the settle takes.
-///
-/// It has real distance to cover: the levels double, so the furthest the zoom
-/// can sit from one is a factor of root two, and a 41% change of scale is not
-/// something to rush. Slower than this and the camera feels like it is
-/// correcting you; faster and the arrival is the jump it is meant to avoid.
-const ZOOM_SETTLE_TIME: f32 = 0.28;
-
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
@@ -63,14 +49,7 @@ impl Plugin for CameraPlugin {
             // Order matters: move, then wrap the result, then derive the
             // transform from it. Deriving before wrapping would show one frame
             // of the camera outside the world every time it crosses the seam.
-            (
-                pan_keyboard,
-                pan_drag,
-                zoom_control,
-                wrap_focus,
-                apply_rig,
-            )
-                .chain(),
+            (pan_keyboard, pan_drag, zoom_control, wrap_focus, apply_rig).chain(),
         );
     }
 }
@@ -83,13 +62,22 @@ pub fn spawn_camera(mut commands: Commands, spec: Res<MapSpec>) {
         Camera3d::default(),
         Projection::from(OrthographicProjection {
             // Against the window rather than a fixed world height, which is
-            // what makes `zoom` mean "world units per logical pixel" and lets
-            // the zoom levels be chosen to land on mip levels. See
-            // `CameraRig::ZOOM_LEVELS`.
+            // what makes `zoom` mean "world units per logical pixel", which is
+            // the unit `MouseMotion` reports drags in and the unit the tree
+            // atlas's texel density is measured against.
             scaling_mode: ScalingMode::WindowSize,
             // The camera sits far back to clear the terrain, so the far plane
             // has to reach past it or the map is clipped away entirely.
             far: CAMERA_DISTANCE * 4.0,
+            // Behind the camera, which an orthographic projection allows and
+            // this one needs. The default is zero, and the ground nearest the
+            // viewer has negative view depth once the view is wide enough --
+            // the camera is a fixed distance back but the visible ground grows
+            // with the zoom, so past a point the bottom of the map is in front
+            // of the camera's own position and was being clipped away. It read
+            // as the water plane ending in a line, which is a much more
+            // plausible bug than the one it was.
+            near: -CAMERA_DISTANCE * 4.0,
             ..OrthographicProjection::default_3d()
         }),
         Transform::default(),
@@ -175,25 +163,8 @@ fn pan_drag(
     }
 }
 
-/// Zoom on the wheel, then settle onto a level once the wheel stops.
-///
-/// Continuous while you are scrolling and discrete when you are not, which is
-/// the only way to have both. The zoom levels exist because the tree atlas is
-/// pixel art and only samples a mip level exactly at a power of two -- but
-/// stepping between them directly is a hard doubling of everything on screen,
-/// and no amount of easing makes a ladder feel like a wheel. So the wheel drives
-/// the zoom smoothly wherever it likes, and a moment after it stops the zoom
-/// glides to the nearest level and locks there.
-///
-/// The cost is that the trees are slightly soft while the view is moving, which
-/// is when nobody is looking closely at them, and sharp again by the time
-/// anyone is.
-fn zoom_control(
-    time: Res<Time>,
-    mut wheel: MessageReader<MouseWheel>,
-    mut idle: Local<f32>,
-    mut rigs: Query<&mut CameraRig>,
-) {
+/// Zoom on the wheel.
+fn zoom_control(mut wheel: MessageReader<MouseWheel>, mut rigs: Query<&mut CameraRig>) {
     let mut notches = 0.0;
     for event in wheel.read() {
         debug!("scroll {:?} y {}", event.unit, event.y);
@@ -203,59 +174,14 @@ fn zoom_control(
         };
     }
 
-    if notches != 0.0 {
-        *idle = 0.0;
-
-        for mut rig in &mut rigs {
-            // Scrolling up zooms in, which is toward a smaller scale.
-            let zoom = rig.zoom * ZOOM_PER_NOTCH.powf(-notches);
-            rig.zoom = zoom.clamp(CameraRig::MIN_ZOOM, CameraRig::MAX_ZOOM);
-            // Nothing to settle toward while the wheel is still turning.
-            rig.zoom_target = rig.zoom;
-        }
-
-        return;
-    }
-
-    *idle += time.delta_secs();
-    if *idle < ZOOM_SETTLE_DELAY {
+    if notches == 0.0 {
         return;
     }
 
     for mut rig in &mut rigs {
-        if rig.zoom_target == rig.zoom {
-            let target = rig.nearest_level();
-            if target == rig.zoom {
-                // Already on a level. Left untouched, so the camera stays out
-                // of change detection and the tile wrap has nothing to do.
-                continue;
-            }
-            rig.zoom_target = target;
-            rig.zoom_from = rig.zoom;
-            rig.zoom_elapsed = 0.0;
-        }
-
-        rig.zoom_elapsed += time.delta_secs();
-        let t = (rig.zoom_elapsed / ZOOM_SETTLE_TIME).clamp(0.0, 1.0);
-
-        if t >= 1.0 {
-            // Landed exactly, not merely near: the levels are chosen so the
-            // tree atlas samples a mip exactly, and a value that stopped a
-            // fraction short would miss it every time.
-            rig.zoom = rig.zoom_target;
-            continue;
-        }
-
-        // Smoothstep, which is flat at both ends -- the move begins at the
-        // standstill the wheel left behind and arrives at another one, so
-        // neither end is a visible edge.
-        let eased = t * t * (3.0 - 2.0 * t);
-
-        // Interpolated in log space, because zoom is a scale: halfway between
-        // 1 and 4 should look like 2, and arithmetically it is 2.5.
-        let from = rig.zoom_from.ln();
-        let to = rig.zoom_target.ln();
-        rig.zoom = (from + (to - from) * eased).exp();
+        // Scrolling up zooms in, which is toward a smaller scale.
+        let zoom = rig.zoom * ZOOM_PER_NOTCH.powf(-notches);
+        rig.zoom = zoom.clamp(CameraRig::MIN_ZOOM, CameraRig::MAX_ZOOM);
     }
 }
 
