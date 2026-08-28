@@ -1,14 +1,5 @@
-import {
-	BUILDING,
-	DECOR,
-	PAVING,
-	PAVING_PRIMARY,
-	SAND,
-	SCATTER,
-	TILESET_COLUMNS,
-	WALL,
-	collidableGids,
-} from './palette';
+import { DECOR, FLOOR, FLOOR_PRIMARY, RIM, SCATTER, TILESET_COLUMNS, collidableGids } from './palette';
+import { PREFABS, type Prefab } from './prefabs';
 
 // Generates the town TownScene walks around in.
 //
@@ -48,10 +39,11 @@ export type TownOptions = {
 	npcs?: number;
 };
 
-/** Rows between one street and the next. A block is this tall, minus the street. */
-const BLOCK_HEIGHT = 7;
-/** Columns between cross streets. */
-const BLOCK_WIDTH = 11;
+// Block sizes follow the building prefab rather than the other way round: a
+// house out of the authored map is nine tiles wide and seven tall, so a block
+// that fits one is those plus room to walk past it.
+const BLOCK_HEIGHT = PREFABS.building.height + 2;
+const BLOCK_WIDTH = PREFABS.building.width + 3;
 
 /**
  * mulberry32. Small, seedable, and good enough to choose which lots get built
@@ -70,18 +62,27 @@ function rng(seed: number): () => number {
 
 const index = (x: number, y: number, width: number) => y * width + x;
 
-/**
- * Wall gid for a position on the enclosure. The top course carries the trim, so
- * the wall reads as facing out of the town rather than into it.
- */
-function wallAt(y: number): number {
-	return y === 0 ? WALL.cap : WALL.body;
+/** Rim gid for a position on the town's edge, picked by which edge it is on. */
+function rimAt(x: number, y: number, width: number, height: number): number {
+	const left = x === 0;
+	const right = x === width - 1;
+	const top = y === 0;
+	const bottom = y === height - 1;
+
+	if (top && left) return RIM.topLeft;
+	if (top && right) return RIM.topRight;
+	if (bottom && left) return RIM.bottomLeft;
+	if (bottom && right) return RIM.bottomRight;
+	if (top) return RIM.top;
+	if (bottom) return RIM.bottom;
+	if (left) return RIM.left;
+	return RIM.right;
 }
 
 export function generateTown(options: TownOptions): TownMap {
 	const width = options.width ?? 40;
 	const height = options.height ?? 30;
-	const scatterCount = options.scatter ?? 18;
+	const scatterCount = options.scatter ?? 12;
 	const npcCount = options.npcs ?? 2;
 
 	if (width < 16 || height < 16) {
@@ -115,13 +116,11 @@ export function generateTown(options: TownOptions): TownMap {
 	for (let y = 0; y < height; y++) {
 		for (let x = 0; x < width; x++) {
 			const onEdge = x === 0 || y === 0 || x === width - 1 || y === height - 1;
-			if (onEdge) {
-				ground[index(x, y, width)] = wallAt(y);
-			} else if (onStreet(x, y)) {
-				ground[index(x, y, width)] = random() < 0.12 ? pick(PAVING) : PAVING_PRIMARY;
-			} else {
-				ground[index(x, y, width)] = SAND[y % 2][x % 2];
-			}
+			ground[index(x, y, width)] = onEdge
+				? rimAt(x, y, width, height)
+				: random() < 0.12
+					? pick(FLOOR)
+					: FLOOR_PRIMARY;
 		}
 	}
 
@@ -138,23 +137,39 @@ export function generateTown(options: TownOptions): TownMap {
 	const free = (x: number, y: number) =>
 		x > 0 && y > 0 && x < width - 1 && y < height - 1 && !occupied(x, y);
 
+	const buildingPrefab = PREFABS.building;
+	const door = buildingPrefab.anchors.door;
+	if (!door) throw new Error('The building prefab has no door anchor to face a street with.');
+
 	/**
-	 * Every lot a building could stand in: footprint sitting on a block, with
-	 * its doorway one tile above a street, so the door opens onto the street
-	 * rather than into whatever the random number generator left there.
+	 * Every lot a building could stand in: footprint on a block, with its
+	 * doorway one tile above a street, so the door opens onto the street rather
+	 * than into whatever the random number generator left there.
 	 */
 	const lots: Position[] = [];
+	// Lots are laid out per segment between cross streets, not by stepping
+	// across the whole width. Stepping ignored the cross streets, so every lot
+	// that straddled one was discarded and a town of three lots a row built
+	// one -- which is what left the map looking mostly empty.
+	const segments: [number, number][] = [];
+	let from = 1;
+	for (const column of streetColumns) {
+		segments.push([from, column]);
+		from = column + 1;
+	}
+	segments.push([from, width - 1]);
+
 	for (const street of streetRows) {
-		const top = street - BUILDING.height;
-		if (top < 2) continue;
-		for (let x = 2; x + BUILDING.width < width - 2; x += BUILDING.width + 1) {
-			// Skip a lot that would sit across a cross street, or the junction
-			// stops being a junction.
-			let clearOfCrossStreets = true;
-			for (let dx = 0; dx < BUILDING.width; dx++) {
-				if (streetColumns.includes(x + dx)) clearOfCrossStreets = false;
+		const top = street - 1 - door.y;
+		if (top < 1) continue;
+		for (const [segmentStart, segmentEnd] of segments) {
+			for (
+				let x = segmentStart + 1;
+				x + buildingPrefab.width <= segmentEnd;
+				x += buildingPrefab.width + 1
+			) {
+				lots.push({ x, y: top });
 			}
-			if (clearOfCrossStreets) lots.push({ x, y: top });
 		}
 	}
 
@@ -164,22 +179,43 @@ export function generateTown(options: TownOptions): TownMap {
 
 	// Build on a deterministic subset, so a town has gaps between its buildings
 	// rather than a solid terrace along every street.
-	const wanted = Math.min(options.buildings ?? Math.ceil(lots.length * 0.55), lots.length);
 	const shuffled = [...lots];
 	for (let i = shuffled.length - 1; i > 0; i--) {
 		const j = Math.floor(random() * (i + 1));
 		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
 	}
 
-	const doors: Position[] = [];
-	for (const lot of shuffled.slice(0, wanted)) {
-		for (let row = 0; row < BUILDING.height; row++) {
-			for (let column = 0; column < BUILDING.width; column++) {
-				buildings[index(lot.x + column, lot.y + row, width)] =
-					BUILDING.origin + row * TILESET_COLUMNS + column;
-			}
+	// Three lots are held back for the landmarks. Building on every lot filled
+	// the town nicely and left the sand pit nowhere to go, which the generator
+	// reported as "nowhere to put its landmarks" rather than shipping a town
+	// with no fishing in it.
+	const LANDMARK_LOTS = 3;
+	if (shuffled.length <= LANDMARK_LOTS) {
+		throw new Error(
+			`Seed ${options.seed} has ${shuffled.length} lots, too few to hold both houses and landmarks.`,
+		);
+	}
+	const landmarkLots = shuffled.slice(0, LANDMARK_LOTS);
+	const buildable = shuffled.slice(LANDMARK_LOTS);
+	const wanted = Math.min(options.buildings ?? buildable.length, buildable.length);
+
+	/** Stamps a prefab, every layer of it, at a position on the map. */
+	const place = (prefab: Prefab, x: number, y: number) => {
+		for (const [name, rows] of Object.entries(prefab.layers)) {
+			const target =
+				name === 'ground' ? ground : name === 'buildings' ? buildings : objects;
+			rows.forEach((row, dy) => {
+				row.forEach((gid, dx) => {
+					if (gid !== 0) target[index(x + dx, y + dy, width)] = gid;
+				});
+			});
 		}
-		doors.push({ x: lot.x + BUILDING.door.x, y: lot.y + BUILDING.door.y });
+	};
+
+	const doors: Position[] = [];
+	for (const lot of buildable.slice(0, wanted)) {
+		place(buildingPrefab, lot.x, lot.y);
+		doors.push({ x: lot.x + door.x, y: lot.y + door.y });
 	}
 
 	/** Stamps a decor block on the object layer, top row first. */
@@ -207,25 +243,40 @@ export function generateTown(options: TownOptions): TownMap {
 		return true;
 	};
 
-	/** Places a landmark against a street, returning the tile to stand on. */
-	const placeLandmark = (art: readonly (readonly number[])[]): Position | null => {
-		for (let attempt = 0; attempt < 800; attempt++) {
-			const street = streetRows[Math.floor(random() * streetRows.length)];
-			const y = street - art.length;
-			const x = 2 + Math.floor(random() * (width - 4));
-			if (y < 2) continue;
-			if (!fits(art, x, y)) continue;
-			stamp(art, x, y);
-			return { x, y: street };
-		}
-		return null;
-	};
-
 	const landmarks = {} as Record<PointOfInterest, Position>;
 
-	const pit = placeLandmark(DECOR.sandPit);
-	const board = placeLandmark(DECOR.noticeBoard);
-	const grave = placeLandmark(DECOR.headstone);
+	/**
+	 * Puts a piece in a reserved lot, resting on the street the lot faces, and
+	 * returns the tile in front of it to stand on.
+	 */
+	const placeInLot = (
+		art: readonly (readonly number[])[],
+		lot: Position,
+		prefab?: Prefab,
+	): Position | null => {
+		const street = lot.y + 1 + door.y;
+		const y = street - art.length;
+		const x = lot.x + 1;
+		if (y < 1 || !fits(art, x, y)) return null;
+		if (prefab) place(prefab, x, y);
+		else stamp(art, x, y);
+		return { x: x + Math.floor(art[0].length / 2), y: street };
+	};
+
+	const footprintOf = (prefab: Prefab) =>
+		Array.from({ length: prefab.height }, (_, y) =>
+			Array.from({ length: prefab.width }, (_, x) => {
+				for (const rows of Object.values(prefab.layers)) {
+					const gid = rows[y]?.[x] ?? 0;
+					if (gid !== 0) return gid;
+				}
+				return 0;
+			}),
+		);
+
+	const pit = placeInLot(footprintOf(PREFABS.sandPit), landmarkLots[0], PREFABS.sandPit);
+	const board = placeInLot(footprintOf(PREFABS.noticeBoard), landmarkLots[1], PREFABS.noticeBoard);
+	const grave = placeInLot(DECOR.headstone, landmarkLots[2]);
 	if (!pit || !board || !grave) {
 		throw new Error(`Seed ${options.seed} left nowhere to put its landmarks.`);
 	}
@@ -234,13 +285,21 @@ export function generateTown(options: TownOptions): TownMap {
 	landmarks.tombstone = grave;
 	landmarks.building = doors[0];
 
-	// A fountain where two streets cross, purely so the middle of town looks
-	// like the middle of town.
+	// The fountain and its benches, lifted whole out of the authored map, put
+	// where two streets cross so the middle of town looks like the middle of a
+	// town.
 	const junctionX = streetColumns[Math.floor(streetColumns.length / 2)];
 	const junctionY = streetRows[Math.floor(streetRows.length / 2)];
-	if (free(junctionX + 1, junctionY + 1) && free(junctionX + 2, junctionY + 2)) {
-		stamp(DECOR.fountain, junctionX + 1, junctionY + 1);
+	const plaza = PREFABS.plaza;
+	const plazaX = junctionX + 1;
+	const plazaY = junctionY + 1;
+	let plazaClear = true;
+	for (let dy = 0; dy < plaza.height; dy++) {
+		for (let dx = 0; dx < plaza.width; dx++) {
+			if (!free(plazaX + dx, plazaY + dy)) plazaClear = false;
+		}
 	}
+	if (plazaClear) place(plaza, plazaX, plazaY);
 
 	// Lamps on the kerb: the tile above a street, in the gaps between buildings.
 	for (const street of streetRows) {

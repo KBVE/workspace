@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { BUILDING, collidableGids } from './palette';
+import { collidableGids } from './palette';
+import { PREFABS } from './prefabs';
 import { generateTown, toTiledJSON, unreachableLandmarks, type TownMap } from './generate';
 
 const SEEDS = [1, 2, 7, 42, 99, 1234, 8675309];
@@ -54,7 +55,7 @@ describe('generateTown', () => {
 		const solid = collidableGids();
 		const door = map.landmarks.building;
 
-		// The door tile itself is the one part of the stamp that is not solid.
+		// The doorway is the one part of the building that is not solid.
 		expect(solid.has(tileAt(map, 'buildings', door.x, door.y))).toBe(false);
 		// And the tile the player walks in from stays clear.
 		expect(solid.has(tileAt(map, 'buildings', door.x, door.y + 1))).toBe(false);
@@ -67,7 +68,8 @@ describe('generateTown', () => {
 		const map = generateTown({ seed });
 		const streets = new Set(map.streets.map((spot) => `${spot.x},${spot.y}`));
 		const buildingLayer = map.layers.find((layer) => layer.name === 'buildings')!.data;
-		const doorGid = BUILDING.origin + BUILDING.door.y * 45 + BUILDING.door.x;
+		const door = PREFABS.building.anchors.door!;
+		const doorGid = PREFABS.building.layers.buildings[door.y][door.x];
 
 		let doors = 0;
 		for (let y = 0; y < map.height; y++) {

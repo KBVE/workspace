@@ -65,6 +65,15 @@ tasks:
       cache: false
       runInCI: false
 
+  # Renders a generated town to a png without a browser. The loop was: change
+  # the generator, build, launch a browser, screenshot, squint.
+  map:
+    command: 'node tools/render-town.mjs'
+    toolchains: ['node']
+    options:
+      cache: false
+      runInCI: false
+
   # Playwright ships no browser with the npm package. Declared as a task so the
   # e2e task can depend on it rather than every caller remembering to run it.
   # --with-deps installs the system libraries a headless Chromium needs on a

@@ -1,0 +1,27 @@
+{
+	"name": "notice-board",
+	"tags": [
+		"landmark"
+	],
+	"width": 2,
+	"height": 2,
+	"source": "public/game/cloud_city.json at 3,1",
+	"anchors": {
+		"stand": {
+			"x": 0,
+			"y": 2
+		}
+	},
+	"layers": {
+		"objects": [
+			[
+				962,
+				963
+			],
+			[
+				0,
+				0
+			]
+		]
+	}
+}
