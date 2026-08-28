@@ -430,8 +430,20 @@ func _begin() -> void:
 	_frame_the_shot()
 	GameBridge.set_player_flags(StateBits.PLAYER_ALIVE)
 	_leave_the_weapon()
+	_open_the_enquiry()
 	Journal.record(StateBits.JournalKind.ENTERED, "player", "", LEVEL_NAME.to_lower())
 	_notify_level("start")
+
+
+## Says who it happened to. Sent on every begin, because the night is drawn per run
+## and React cannot read the victim out of the compiled content any more -- it is not
+## in there. Everything on that side follows from this: the suspects are everybody
+## else, and a notebook listing the body as somebody who might have done it would be
+## the sheet lying about the one fact the run hands the player for free.
+func _open_the_enquiry() -> void:
+	if Session.night == null:
+		return
+	Ecs.notify(GameEvents.ENQUIRY_OPENED, {"victim": String(Session.night.victim_id)})
 
 
 ## Puts the drawn weapon in the drawn room, which is the only evidence in the train

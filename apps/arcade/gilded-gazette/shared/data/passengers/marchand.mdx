@@ -21,8 +21,29 @@ relationships:
     tie: Boarded at the same platform, and each has been at pains to say they did not.
 
 
-claims:
-  - where: guard_van
+alibis:
+  - says:
+      - Says she did not leave the guard's van at all, before eleven or after it
+      - Says the crate was sealed at Calais and has not been opened since
+      - Says she has never met Lady Beaumont
+    claims:
+      - where: guard_van
+  - says:
+      - Says she walked the length of the train once, slowly, and once only
+      - Says she was looking at doors rather than at people
+      - Says she has never entered a sleeping compartment on this service
+    claims:
+      - where: corridor
+        from: "22:00"
+      - where: cabin
+        never: true
+  - says:
+      - Says she was relieved at the van at eleven and took her rest
+      - Says the oath permits it and the rota requires it
+      - Says the key did not leave her while she slept
+    claims:
+      - where: cabin
+        from: "23:00"
 
 sightings:
   guard_van:
@@ -63,3 +84,11 @@ hundred years ago, and honoured at Calais without a word.
 
 The only passenger armed, the only passenger with a reason to be, and the only
 one whose story cannot be broken because nothing about it can be checked.
+
+## The Body
+
+Under the travelling cloak the mail is intact, unpierced, and did not fail. She
+was not killed through her armour, which narrows it to somebody she let close
+enough not to need to be.
+
+The guard's van key is not on her, and it was never off her.

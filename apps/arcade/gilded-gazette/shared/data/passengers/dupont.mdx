@@ -19,9 +19,30 @@ relationships:
     tie: Shared a table by chance, and talked business neither seems to conduct.
 
 
-claims:
-  - where: dining
-    from: "20:00"
+alibis:
+  - says:
+      - Says he dined at eight, as always
+      - Says he waited for a colleague who did not come, and waited past any hour a colleague would have come
+      - Says he was still at his table when the lamps went down
+    claims:
+      - where: dining
+        from: "20:00"
+  - says:
+      - Says he took no dinner at all tonight, which is not like him
+      - Says he was in the corridor from ten, on his feet
+      - Says a man with an appointment does not sit down
+    claims:
+      - where: corridor
+        from: "22:00"
+      - where: dining
+        never: true
+  - says:
+      - Says he went to his berth early with the book
+      - Says the entry in it is not his hand and he cannot account for it
+      - Says he did not leave the compartment after nine
+    claims:
+      - where: cabin
+        from: "21:00"
 
 sightings:
   dining:
@@ -65,3 +86,12 @@ his, and the page before it has been removed.
 ## Under Enquiry
 
 He is the only passenger with no reason to be nervous, and he is nervous.
+
+## The Body
+
+Comfortable, the way a man is who has made the run forty times, and the calm has
+not entirely left him. The appointment book was under him rather than on him,
+which takes putting there.
+
+Tonight's page is still the page it was open at. The page before it is still
+missing.

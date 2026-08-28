@@ -584,7 +584,6 @@
         "where": "Calais"
       },
       "location": "cabin",
-      "victim": false,
       "traits": [
         "imperious",
         "travels without a maid",
@@ -600,15 +599,56 @@
           "tie": "Interviewed her for a position in the spring, and did not offer it."
         }
       ],
-      "claims": [
+      "alibis": [
         {
-          "where": "cabin",
-          "never": false,
-          "from": "21:00"
+          "says": [
+            "Says she went up at nine and did not come down",
+            "Says she has never had cause to go near the guard's van",
+            "Says the corridor was quiet, and she would have heard it"
+          ],
+          "claims": [
+            {
+              "where": "cabin",
+              "never": false,
+              "from": "21:00"
+            },
+            {
+              "where": "guard_van",
+              "never": true
+            }
+          ]
         },
         {
-          "where": "guard_van",
-          "never": true
+          "says": [
+            "Says she sat on in the dining car long after the service",
+            "Says she wanted the company and did not get it",
+            "Says the steward will remember her, and he does"
+          ],
+          "claims": [
+            {
+              "where": "dining",
+              "never": false,
+              "from": "21:30"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says she walked the corridor because she could not settle",
+            "Says she passed nobody, which she offers as though it helps",
+            "Says she was never once in her own compartment before midnight"
+          ],
+          "claims": [
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "22:00"
+            },
+            {
+              "where": "cabin",
+              "never": true
+            }
+          ]
         }
       ],
       "sightings": {
@@ -665,10 +705,17 @@
             "The brooch is jet, which is mourning wear. The ring beneath the left glove is not, and she has worn it since Calais."
           ],
           "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "Still gloved, which she was not at dinner, and wearing the rings she is said never to take off. Sir Rupert's case was found closed and latched with the second recess in it empty, and nobody has said what the second recess was cut for.",
+            "Whoever it was, she had turned to face them. Lady Beaumont did not die with her back to anybody."
+          ],
+          "bullets": []
         }
       },
-      "source": "shared/data/passengers/beaumont.mdx",
-      "suspect": true
+      "source": "shared/data/passengers/beaumont.mdx"
     },
     {
       "id": "carrow",
@@ -681,7 +728,6 @@
         "where": "Calais"
       },
       "location": "cabin",
-      "victim": false,
       "traits": [
         "a light sleeper by trade",
         "will not name her employer",
@@ -693,11 +739,48 @@
           "tie": "Was interviewed by her in the spring, and not engaged."
         }
       ],
-      "claims": [
+      "alibis": [
         {
-          "where": "cabin",
-          "never": false,
-          "from": "22:00"
+          "says": [
+            "Says she heard a door in the small hours",
+            "Says it was not her own",
+            "Says she did not look"
+          ],
+          "claims": [
+            {
+              "where": "cabin",
+              "never": false,
+              "from": "22:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says she was in the corridor most of the evening",
+            "Says a companion between positions has nowhere else to be",
+            "Says she saw who passed, and will not say who"
+          ],
+          "claims": [
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "21:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says she took her dinner late and alone",
+            "Says nobody joined her, which she did not expect",
+            "Says she stayed until the lamps went down"
+          ],
+          "claims": [
+            {
+              "where": "dining",
+              "never": false,
+              "from": "20:30"
+            }
+          ]
         }
       ],
       "sightings": {
@@ -751,10 +834,17 @@
             "She will not name her employer, and the position she is returning to was filled in June."
           ],
           "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "Dressed as she was at eight, because she has worn the same grey since Calais and nobody could have said otherwise. No jewellery, no bag, and the position she was last between is still between.",
+            "She had been overlooked all evening by everybody aboard, and was overlooked once more for some hours after it stopped mattering."
+          ],
+          "bullets": []
         }
       },
-      "source": "shared/data/passengers/carrow.mdx",
-      "suspect": true
+      "source": "shared/data/passengers/carrow.mdx"
     },
     {
       "id": "dupont",
@@ -767,7 +857,6 @@
         "where": "Paris"
       },
       "location": "dining",
-      "victim": false,
       "traits": [
         "known to the guard by name",
         "keeps an appointment book",
@@ -779,11 +868,52 @@
           "tie": "Shared a table by chance, and talked business neither seems to conduct."
         }
       ],
-      "claims": [
+      "alibis": [
         {
-          "where": "dining",
-          "never": false,
-          "from": "20:00"
+          "says": [
+            "Says he dined at eight, as always",
+            "Says he waited for a colleague who did not come, and waited past any hour a colleague would have come",
+            "Says he was still at his table when the lamps went down"
+          ],
+          "claims": [
+            {
+              "where": "dining",
+              "never": false,
+              "from": "20:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he took no dinner at all tonight, which is not like him",
+            "Says he was in the corridor from ten, on his feet",
+            "Says a man with an appointment does not sit down"
+          ],
+          "claims": [
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "22:00"
+            },
+            {
+              "where": "dining",
+              "never": true
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he went to his berth early with the book",
+            "Says the entry in it is not his hand and he cannot account for it",
+            "Says he did not leave the compartment after nine"
+          ],
+          "claims": [
+            {
+              "where": "cabin",
+              "never": false,
+              "from": "21:00"
+            }
+          ]
         }
       ],
       "sightings": {
@@ -841,10 +971,17 @@
             "He is the only passenger with no reason to be nervous, and he is nervous."
           ],
           "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "Comfortable, the way a man is who has made the run forty times, and the calm has not entirely left him. The appointment book was under him rather than on him, which takes putting there.",
+            "Tonight's page is still the page it was open at. The page before it is still missing."
+          ],
+          "bullets": []
         }
       },
-      "source": "shared/data/passengers/dupont.mdx",
-      "suspect": true
+      "source": "shared/data/passengers/dupont.mdx"
     },
     {
       "id": "marchand",
@@ -857,7 +994,6 @@
         "where": "Calais"
       },
       "location": "guard_van",
-      "victim": false,
       "traits": [
         "travels armoured under a travelling cloak",
         "will not be parted from the guard's van key",
@@ -873,10 +1009,51 @@
           "tie": "Boarded at the same platform, and each has been at pains to say they did not."
         }
       ],
-      "claims": [
+      "alibis": [
         {
-          "where": "guard_van",
-          "never": false
+          "says": [
+            "Says she did not leave the guard's van at all, before eleven or after it",
+            "Says the crate was sealed at Calais and has not been opened since",
+            "Says she has never met Lady Beaumont"
+          ],
+          "claims": [
+            {
+              "where": "guard_van",
+              "never": false
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says she walked the length of the train once, slowly, and once only",
+            "Says she was looking at doors rather than at people",
+            "Says she has never entered a sleeping compartment on this service"
+          ],
+          "claims": [
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "22:00"
+            },
+            {
+              "where": "cabin",
+              "never": true
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says she was relieved at the van at eleven and took her rest",
+            "Says the oath permits it and the rota requires it",
+            "Says the key did not leave her while she slept"
+          ],
+          "claims": [
+            {
+              "where": "cabin",
+              "never": false,
+              "from": "23:00"
+            }
+          ]
         }
       ],
       "sightings": {
@@ -929,10 +1106,17 @@
             "The only passenger armed, the only passenger with a reason to be, and the only one whose story cannot be broken because nothing about it can be checked."
           ],
           "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "Under the travelling cloak the mail is intact, unpierced, and did not fail. She was not killed through her armour, which narrows it to somebody she let close enough not to need to be.",
+            "The guard's van key is not on her, and it was never off her."
+          ],
+          "bullets": []
         }
       },
-      "source": "shared/data/passengers/marchand.mdx",
-      "suspect": true
+      "source": "shared/data/passengers/marchand.mdx"
     },
     {
       "id": "moreau",
@@ -945,7 +1129,6 @@
         "where": "Paris"
       },
       "location": "corridor",
-      "victim": false,
       "traits": [
         "holds a key to every door on the train",
         "marks the register at every stop",
@@ -961,11 +1144,52 @@
           "tie": "Signed her cargo aboard at Calais without reading what the warrant said."
         }
       ],
-      "claims": [
+      "alibis": [
         {
-          "where": "guard_van",
-          "never": false,
-          "from": "22:00"
+          "says": [
+            "Says he turned the lamps down at ten, as the book requires",
+            "Says he was in the van from that hour, with the door locked",
+            "Says he saw no one in the corridor who had no business in it"
+          ],
+          "claims": [
+            {
+              "where": "guard_van",
+              "never": false,
+              "from": "22:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he walked the train all night and never sat down once",
+            "Says thirty years on the line is thirty years of not sitting down",
+            "Says the van was locked the whole while and he did not go in"
+          ],
+          "claims": [
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "21:00"
+            },
+            {
+              "where": "guard_van",
+              "never": true
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he was marking the register at the service end of the dining car",
+            "Says he counted the tables twice because the count was wrong once",
+            "Says he was there from half past ten until he was fetched"
+          ],
+          "claims": [
+            {
+              "where": "dining",
+              "never": false,
+              "from": "22:30"
+            }
+          ]
         }
       ],
       "sightings": {
@@ -1023,10 +1247,17 @@
             "He is not a suspect and he knows it, which is why what he chooses not to say is worth more than anything the passengers volunteer."
           ],
           "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "In the company's dark blue, worn to the shine at the elbows, and the chain of keys that announces him a carriage before he arrives is silent and still on it. Every key is there. He has said for thirty years that he holds the only one.",
+            "The register is open and the copperplate does not waver, including on the last line he wrote."
+          ],
+          "bullets": []
         }
       },
-      "source": "shared/data/passengers/moreau.mdx",
-      "suspect": true
+      "source": "shared/data/passengers/moreau.mdx"
     },
     {
       "id": "thompson",
@@ -1039,7 +1270,6 @@
         "where": "Calais"
       },
       "location": "dining",
-      "victim": false,
       "traits": [
         "describes his business twice and differently",
         "dines early and alone",
@@ -1051,15 +1281,56 @@
           "tie": "Shared a table by chance, or says it was chance."
         }
       ],
-      "claims": [
+      "alibis": [
         {
-          "where": "cabin",
-          "never": false,
-          "from": "22:00"
+          "says": [
+            "Says he was asleep by ten",
+            "Says he heard the guard and nothing before it",
+            "Says he has never travelled this line before"
+          ],
+          "claims": [
+            {
+              "where": "cabin",
+              "never": false,
+              "from": "22:00"
+            },
+            {
+              "where": "vestibule",
+              "never": true
+            }
+          ]
         },
         {
-          "where": "vestibule",
-          "never": true
+          "says": [
+            "Says he stood in the vestibule most of the evening for the air",
+            "Says a man from Norwich is not troubled by a draught",
+            "Says nobody could have heard a word said out there, including his"
+          ],
+          "claims": [
+            {
+              "where": "vestibule",
+              "never": false,
+              "from": "21:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he dined late and stayed later",
+            "Says he was putting a question to anybody who would sit down",
+            "Says he never went near his berth until well past midnight"
+          ],
+          "claims": [
+            {
+              "where": "dining",
+              "never": false,
+              "from": "21:30"
+            },
+            {
+              "where": "cabin",
+              "never": true
+            }
+          ]
         }
       ],
       "sightings": {
@@ -1115,10 +1386,17 @@
             "The lock on his case was forced from the inside."
           ],
           "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "Heavier than a grain factor of Norwich has any business being, and he went down where he stood rather than where he was moving. Whatever he was asked, he had stopped to answer it.",
+            "The question he had been putting to people all evening he did not get to put again."
+          ],
+          "bullets": []
         }
       },
-      "source": "shared/data/passengers/thompson.mdx",
-      "suspect": true
+      "source": "shared/data/passengers/thompson.mdx"
     },
     {
       "id": "vasek",
@@ -1131,7 +1409,6 @@
         "where": "Paris"
       },
       "location": "cabin",
-      "victim": true,
       "traits": [
         "boarded at Paris and was written down at Calais",
         "carried no trunk and gave no occupation",
@@ -1151,7 +1428,54 @@
           "tie": "Never spoke to her. She has asked twice who else holds a key."
         }
       ],
-      "claims": [],
+      "alibis": [
+        {
+          "says": [
+            "Says he went to his berth at half past nine and did not come out",
+            "Says he took no dinner and wanted none",
+            "Says he did not hear the corridor, which is a yard from his door"
+          ],
+          "claims": [
+            {
+              "where": "cabin",
+              "never": false,
+              "from": "21:30"
+            },
+            {
+              "where": "dining",
+              "never": true
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he was in the corridor from ten, standing",
+            "Says he was waiting for somebody who knew he was waiting",
+            "Says he did not knock, because he was not sure of the door"
+          ],
+          "claims": [
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "22:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he stood between the cars where the noise is",
+            "Says he was not spoken to and did not speak",
+            "Says it is the only place aboard where a man is left alone"
+          ],
+          "claims": [
+            {
+              "where": "vestibule",
+              "never": false,
+              "from": "21:00"
+            }
+          ]
+        }
+      ],
       "sightings": {
         "platform": [
           "Boarding at Paris among the through passengers, and noticed by nobody."
@@ -1181,10 +1505,21 @@
           ],
           "bullets": []
         },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "He says he went to his berth at half past nine and did not come out, and there is nobody at all to say whether that is true."
+          ],
+          "bullets": [
+            "Says he took no dinner and wanted none",
+            "Says he has never been in the dining car on this service",
+            "Says he did not hear the corridor, which is a yard from his door"
+          ]
+        },
         "the_berth": {
           "heading": "The Berth",
           "paragraphs": [
-            "Berth 7 was made up for one and slept in by nobody. The lamp was out, which the guard did not do, and the window latch is turned to a position the guard says he has never found it in."
+            "Berth 7 is made up for one. The lamp is out, which the guard says he did not do, and the window latch is turned to a position the guard says he has never found it in on any run in thirty years."
           ],
           "bullets": []
         },
@@ -1201,10 +1536,17 @@
             "The Order's record says what he was, and the record is not open to reading. If it says goblin, then by the fourth clause no crime has been committed aboard this train, and every question after that one is a formality."
           ],
           "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "The coat bought for a colder country is still buttoned to the throat. The hands the doctor would call a labourer's are unmarked, which is the difficulty: a man who worked with his hands did not raise them.",
+            "The Order's record says what he was and the record is not open to reading. If it says goblin then by the fourth clause there is no body here at all, only an object, and the enquiry is a formality being conducted over furniture."
+          ],
+          "bullets": []
         }
       },
-      "source": "shared/data/passengers/vasek.mdx",
-      "suspect": false
+      "source": "shared/data/passengers/vasek.mdx"
     },
     {
       "id": "weiss",
@@ -1217,7 +1559,6 @@
         "where": "Calais"
       },
       "location": "corridor",
-      "victim": false,
       "traits": [
         "offers help before it is asked for",
         "watches the corridor, not the window",
@@ -1233,16 +1574,57 @@
           "tie": "Dined at the next table and left when Thompson did."
         }
       ],
-      "claims": [
+      "alibis": [
         {
-          "where": "cabin",
-          "never": false,
-          "until": "00:00"
+          "says": [
+            "Says he was in his compartment until midnight with the bag",
+            "Says he walked the corridor after it because he could not sleep",
+            "Says a physician sleeps badly on trains and always has"
+          ],
+          "claims": [
+            {
+              "where": "cabin",
+              "never": false,
+              "until": "00:00"
+            },
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "00:00"
+            }
+          ]
         },
         {
-          "where": "corridor",
-          "never": false,
-          "from": "00:00"
+          "says": [
+            "Says he sat in the dining car from nine with the book open",
+            "Says he was writing up the day, which the book does not show",
+            "Says he did not go forward past the corridor at any point"
+          ],
+          "claims": [
+            {
+              "where": "dining",
+              "never": false,
+              "from": "21:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he stood in the vestibule from ten for the air",
+            "Says he was not well and did not want to be seen not being well",
+            "Says he was never in his compartment before the small hours"
+          ],
+          "claims": [
+            {
+              "where": "vestibule",
+              "never": false,
+              "from": "22:00"
+            },
+            {
+              "where": "cabin",
+              "never": true
+            }
+          ]
         }
       ],
       "sightings": {
@@ -1299,10 +1681,17 @@
             "He asked whether help was wanted before anyone aboard had said that anything was wrong."
           ],
           "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "The bag is beside him, open, and the book in it records what was poured and when in his own hand up to an entry he did not finish. The pen is capped.",
+            "A physician of Vienna knows what is fatal and in what quantity, which is worth nothing at all to him now and a great deal to whoever is asked about it."
+          ],
+          "bullets": []
         }
       },
-      "source": "shared/data/passengers/weiss.mdx",
-      "suspect": true
+      "source": "shared/data/passengers/weiss.mdx"
     }
   ],
   "items": [

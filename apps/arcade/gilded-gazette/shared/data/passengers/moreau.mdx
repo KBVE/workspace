@@ -21,9 +21,30 @@ relationships:
     tie: Signed her cargo aboard at Calais without reading what the warrant said.
 
 
-claims:
-  - where: guard_van
-    from: "22:00"
+alibis:
+  - says:
+      - Says he turned the lamps down at ten, as the book requires
+      - Says he was in the van from that hour, with the door locked
+      - Says he saw no one in the corridor who had no business in it
+    claims:
+      - where: guard_van
+        from: "22:00"
+  - says:
+      - Says he walked the train all night and never sat down once
+      - Says thirty years on the line is thirty years of not sitting down
+      - Says the van was locked the whole while and he did not go in
+    claims:
+      - where: corridor
+        from: "21:00"
+      - where: guard_van
+        never: true
+  - says:
+      - Says he was marking the register at the service end of the dining car
+      - Says he counted the tables twice because the count was wrong once
+      - Says he was there from half past ten until he was fetched
+    claims:
+      - where: dining
+        from: "22:30"
 
 sightings:
   corridor:
@@ -69,3 +90,12 @@ thirty years. Tonight's page has one boarding entered out of order.
 
 He is not a suspect and he knows it, which is why what he chooses not to say is
 worth more than anything the passengers volunteer.
+
+## The Body
+
+In the company's dark blue, worn to the shine at the elbows, and the chain of
+keys that announces him a carriage before he arrives is silent and still on it.
+Every key is there. He has said for thirty years that he holds the only one.
+
+The register is open and the copperplate does not waver, including on the last
+line he wrote.

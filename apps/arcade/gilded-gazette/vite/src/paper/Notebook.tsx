@@ -6,6 +6,7 @@ import {
   type Item,
   type LocationId,
 } from '../content/content';
+import { useVictim } from '../state/researchStore';
 import {
   clearMarks,
   cycleMark,
@@ -31,12 +32,16 @@ interface Column {
 }
 
 /**
- * The suspects are everybody aboard who is not the body, which is exactly the set
- * TheNight draws its culprit from -- gen-content stamps the flag from that same
- * fact, so this cannot list somebody the answer can never be.
+ * Everybody aboard who is not the body, which is exactly the set TheNight draws its
+ * culprit from. Who the body is is drawn per run and arrives on the wire, so this
+ * takes it as an argument rather than reading a flag that no longer exists -- and
+ * before the enquiry opens it lists everybody, which is the honest answer for the
+ * half second before the engine has said.
  */
-const suspects = () =>
-  passengers.filter((p) => p.suspect).map((p) => ({ id: p.id, label: listedAs(p) }));
+const suspects = (victim: string) =>
+  passengers
+    .filter((p) => p.id !== victim)
+    .map((p) => ({ id: p.id, label: listedAs(p) }));
 
 /**
  * The weapons the run can name, which are the ones it can also put in a room: the
@@ -82,8 +87,9 @@ const MARK_CLASS: Record<Mark, string> = {
 
 export function Notebook() {
   const marked = useMarkedCount();
+  const victim = useVictim();
   const columns: Column[] = [
-    { key: 'suspect', title: 'Who', rows: suspects() },
+    { key: 'suspect', title: 'Who', rows: suspects(victim) },
     {
       key: 'weapon',
       title: 'With What',

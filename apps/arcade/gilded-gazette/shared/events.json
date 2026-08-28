@@ -120,6 +120,14 @@
         "at": "number"
       },
       "description": "One fact the run has produced: a conversation, an item used, a room entered.\n\n`id` is a ULID, so entries sort by creation without comparing any other field. `kind` is a JournalKind. `actor` and `target` are content ids (`beaumont`, `telegram`) or empty. `at` is in-world minutes past midnight, which is what the player reasons about; the ULID carries the real ordering."
+    },
+    "ENQUIRY_OPENED": {
+      "bus": "enquiry_opened",
+      "wire": "enquiry:opened",
+      "payload": {
+        "victim": "string"
+      },
+      "description": "Who it happened to this run, sent as the enquiry opens.\n\nDrawn per run rather than authored, so React cannot read it out of the compiled content the way it used to read a `victim` flag: it has to be told. Everything downstream follows from it -- the suspects are everybody else, and the notebook must not list the body as somebody who could have done it.\n\nThe culprit is deliberately not here and never will be. A body is found, so the victim is public knowledge the moment the run starts; the answer is not, and anything that crosses this boundary is a copy the browser will hand to whoever asks for it."
     }
   },
   "inbound": {

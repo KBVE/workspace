@@ -19,13 +19,32 @@ relationships:
     tie: Shared a table by chance, or says it was chance.
 
 
-claims:
-  - where: cabin
-    from: "22:00"
-  # He asked the steward whether the train stops between halts, and did not look
-  # surprised at the answer. He would rather not have been at a door between cars.
-  - where: vestibule
-    never: true
+alibis:
+  - says:
+      - Says he was asleep by ten
+      - Says he heard the guard and nothing before it
+      - Says he has never travelled this line before
+    claims:
+      - where: cabin
+        from: "22:00"
+      - where: vestibule
+        never: true
+  - says:
+      - Says he stood in the vestibule most of the evening for the air
+      - Says a man from Norwich is not troubled by a draught
+      - Says nobody could have heard a word said out there, including his
+    claims:
+      - where: vestibule
+        from: "21:00"
+  - says:
+      - Says he dined late and stayed later
+      - Says he was putting a question to anybody who would sit down
+      - Says he never went near his berth until well past midnight
+    claims:
+      - where: dining
+        from: "21:30"
+      - where: cabin
+        never: true
 
 sightings:
   cabin:
@@ -67,3 +86,12 @@ not, he said nothing further, and did not look surprised.
 ## Under Enquiry
 
 The lock on his case was forced from the inside.
+
+## The Body
+
+Heavier than a grain factor of Norwich has any business being, and he went down
+where he stood rather than where he was moving. Whatever he was asked, he had
+stopped to answer it.
+
+The question he had been putting to people all evening he did not get to put
+again.

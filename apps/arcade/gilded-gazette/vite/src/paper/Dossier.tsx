@@ -10,11 +10,13 @@ import {
   useFrom,
   useResearchOpen,
   useTo,
+  useVictim,
 } from '../state/researchStore';
 import { useMoment, useRecord } from '../research/useResearch';
 import {
   clockOf,
   effectsOf,
+  eidOf,
   factsAbout,
   ids,
   isSuspect,
@@ -123,16 +125,22 @@ function Scrubber() {
 
 function Manifest({ focus }: { focus: number }) {
   const send = useSend();
+  const victimEid = eidOf(useVictim());
   const order = useRunningOrder();
   // One name, once. The run is over the moment it is given, and a second would talk a
   // wrong answer into a right one with nothing recording that the reader had been wrong.
   const settled = order ? order.outcome !== 'start' : false;
-  const manifest = useRecord(() =>
-    roster().map((passengerEid) => ({
-      passengerEid,
-      name: labels[passengerEid],
-      suspect: isSuspect(passengerEid),
-    })),
+  // &victim -> in the deps because the body is drawn per run and arrives after the
+  //          first render; without it the manifest keeps the answer it computed when
+  //          nobody had been named yet, which is everybody a suspect forever.
+  const manifest = useRecord(
+    () =>
+      roster().map((passengerEid) => ({
+        passengerEid,
+        name: labels[passengerEid],
+        suspect: isSuspect(passengerEid, victimEid),
+      })),
+    [victimEid],
   );
   const currentRooms = useMoment(
     () => manifest.map((passenger) => roomOf(passenger.passengerEid)),

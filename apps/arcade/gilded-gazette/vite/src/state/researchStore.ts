@@ -5,6 +5,16 @@ import { ingest, recordFact, scrubTo, span } from '../research/world';
 interface ResearchStore {
   open: boolean;
 
+  /**
+   * Who it happened to this run, as a content id, or '' before the enquiry opens.
+   *
+   * Off the wire rather than out of the content: the victim is drawn per run, so
+   * there is nothing static to read. It is public the moment the run starts -- a body
+   * is found -- which is exactly what makes it safe to send, and exactly what the
+   * culprit is not.
+   */
+  victim: string;
+
   focus: number;
 
   at: number;
@@ -20,6 +30,7 @@ ingest();
 
 export const useResearchStore = create<ResearchStore>()(() => ({
   open: false,
+  victim: '',
   focus: 0,
   at: span.to,
   from: span.from,
@@ -53,6 +64,8 @@ export const toggleResearch = (): void =>
 
 const bridge = installGodotBridge();
 
+bridge.on('enquiry:opened', ({ victim }) => set({ victim }));
+
 bridge.on('journal:entry', (entry) => {
   const wasLive = useResearchStore.getState().at >= useResearchStore.getState().to;
   recordFact(entry);
@@ -67,6 +80,7 @@ bridge.on('journal:entry', (entry) => {
 
 export const useResearchOpen = () => useResearchStore((s) => s.open);
 export const useFocus = () => useResearchStore((s) => s.focus);
+export const useVictim = () => useResearchStore((s) => s.victim);
 export const useAt = () => useResearchStore((s) => s.at);
 export const useFrom = () => useResearchStore((s) => s.from);
 export const useTo = () => useResearchStore((s) => s.to);

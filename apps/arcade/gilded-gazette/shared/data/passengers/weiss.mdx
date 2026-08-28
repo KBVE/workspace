@@ -21,11 +21,32 @@ relationships:
     tie: Dined at the next table and left when Thompson did.
 
 
-claims:
-  - where: cabin
-    until: "00:00"
-  - where: corridor
-    from: "00:00"
+alibis:
+  - says:
+      - Says he was in his compartment until midnight with the bag
+      - Says he walked the corridor after it because he could not sleep
+      - Says a physician sleeps badly on trains and always has
+    claims:
+      - where: cabin
+        until: "00:00"
+      - where: corridor
+        from: "00:00"
+  - says:
+      - Says he sat in the dining car from nine with the book open
+      - Says he was writing up the day, which the book does not show
+      - Says he did not go forward past the corridor at any point
+    claims:
+      - where: dining
+        from: "21:00"
+  - says:
+      - Says he stood in the vestibule from ten for the air
+      - Says he was not well and did not want to be seen not being well
+      - Says he was never in his compartment before the small hours
+    claims:
+      - where: vestibule
+        from: "22:00"
+      - where: cabin
+        never: true
 
 sightings:
   corridor:
@@ -69,3 +90,11 @@ surgery and too sharp for anything else. He does not let a porter carry it.
 
 He asked whether help was wanted before anyone aboard had said that anything was
 wrong.
+
+## The Body
+
+The bag is beside him, open, and the book in it records what was poured and when
+in his own hand up to an entry he did not finish. The pen is capped.
+
+A physician of Vienna knows what is fatal and in what quantity, which is worth
+nothing at all to him now and a great deal to whoever is asked about it.

@@ -8,7 +8,6 @@ boarded:
   at: "16:05"
   where: Paris
 location: cabin
-victim: true
 
 traits:
   - boarded at Paris and was written down at Calais
@@ -24,10 +23,30 @@ relationships:
     tie: Never spoke to her. She has asked twice who else holds a key.
 
 
-# He makes no claims. A victim gives no account of himself, which is the difficulty:
-# every other passenger's evening can be checked against their own words, and his can
-# only be checked against theirs.
-claims: []
+alibis:
+  - says:
+      - Says he went to his berth at half past nine and did not come out
+      - Says he took no dinner and wanted none
+      - Says he did not hear the corridor, which is a yard from his door
+    claims:
+      - where: cabin
+        from: "21:30"
+      - where: dining
+        never: true
+  - says:
+      - Says he was in the corridor from ten, standing
+      - Says he was waiting for somebody who knew he was waiting
+      - Says he did not knock, because he was not sure of the door
+    claims:
+      - where: corridor
+        from: "22:00"
+  - says:
+      - Says he stood between the cars where the noise is
+      - Says he was not spoken to and did not speak
+      - Says it is the only place aboard where a man is left alone
+    claims:
+      - where: vestibule
+        from: "21:00"
 
 sightings:
   platform:
@@ -53,11 +72,20 @@ A coat bought for a colder country, boots that have walked further than this
 journey, and hands the doctor would call a labourer's if he were asked, which he
 has not been.
 
+## Alibi
+
+He says he went to his berth at half past nine and did not come out, and there is
+nobody at all to say whether that is true.
+
+- Says he took no dinner and wanted none
+- Says he has never been in the dining car on this service
+- Says he did not hear the corridor, which is a yard from his door
+
 ## The Berth
 
-Berth 7 was made up for one and slept in by nobody. The lamp was out, which the
-guard did not do, and the window latch is turned to a position the guard says he
-has never found it in.
+Berth 7 is made up for one. The lamp is out, which the guard says he did not do,
+and the window latch is turned to a position the guard says he has never found it
+in on any run in thirty years.
 
 ## What the Register Says
 
@@ -70,3 +98,13 @@ the place where it lies.
 The Order's record says what he was, and the record is not open to reading. If
 it says goblin, then by the fourth clause no crime has been committed aboard
 this train, and every question after that one is a formality.
+
+## The Body
+
+The coat bought for a colder country is still buttoned to the throat. The hands
+the doctor would call a labourer's are unmarked, which is the difficulty: a man
+who worked with his hands did not raise them.
+
+The Order's record says what he was and the record is not open to reading. If it
+says goblin then by the fourth clause there is no body here at all, only an
+object, and the enquiry is a formality being conducted over furniture.

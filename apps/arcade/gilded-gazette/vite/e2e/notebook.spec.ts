@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
  * is not the place to carry a second module convention.
  */
 interface Compiled {
-  passengers: { id: string; suspect?: boolean; victim?: boolean }[];
+  passengers: { id: string }[];
   items: { id: string; kind: string; model?: string }[];
   locations: { id: string; carriage?: number }[];
 }
@@ -25,7 +25,12 @@ const content = JSON.parse(
  * The expected rows are read out of the compiled content rather than written down,
  * so adding a passenger to shared/data fails here until the sheet lists them.
  */
-const SUSPECTS = content.passengers.filter((p) => p.suspect).map((p) => p.id);
+/**
+ * Everybody aboard. Which of them is the body is drawn per run and arrives on the
+ * wire, so a spec cannot know it in advance -- what it can assert is the shape: all
+ * but one of these are listed, and the one missing is the one the engine named.
+ */
+const ABOARD = content.passengers.map((p) => p.id);
 /**
  * The model is what makes a weapon nameable: it is what lets the run put the thing in
  * a room to be found. TheNight draws from the same rule, so these are the weapons the
@@ -48,12 +53,25 @@ function row(page: Page, key: string) {
   return page.getByTestId(`notebook-${key}`);
 }
 
+/**
+ * Somebody the sheet is actually listing. The body is drawn per run, so a spec that
+ * picked a name out of the content would pick the corpse one run in eight and fail
+ * for a reason that has nothing to do with what it is testing.
+ */
+async function aLivingName(page: Page): Promise<string> {
+  for (const id of ABOARD) {
+    if ((await row(page, `suspect:${id}`).count()) > 0) return id;
+  }
+  throw new Error('the sheet lists nobody at all');
+}
+
 test('the sheet lists every answer the run could give', async ({ page }) => {
   await booted(page);
   await openNotebook(page);
 
-  expect(SUSPECTS.length).toBeGreaterThan(1);
-  for (const id of SUSPECTS) await expect(row(page, `suspect:${id}`)).toBeVisible();
+  expect(ABOARD.length).toBeGreaterThan(2);
+  const listed = await page.getByTestId(/^notebook-suspect:/).count();
+  expect(listed).toBe(ABOARD.length - 1);
   for (const id of WEAPONS) await expect(row(page, `weapon:${id}`)).toBeVisible();
   for (const id of ROOMS) await expect(row(page, `room:${id}`)).toBeVisible();
 });
@@ -67,8 +85,15 @@ test('the sheet leaves off what the answer can never be', async ({ page }) => {
   await booted(page);
   await openNotebook(page);
 
-  const victim = content.passengers.find((p) => p.victim)!;
-  await expect(row(page, `suspect:${victim.id}`)).toHaveCount(0);
+  // The body is drawn, so which name is missing changes per run -- exactly one is,
+  // and it is the one the engine named as the enquiry opened.
+  const missing = [];
+  for (const id of ABOARD) {
+    if ((await row(page, `suspect:${id}`).count()) === 0) missing.push(id);
+  }
+  expect(missing).toHaveLength(1);
+  await expect(page.getByTitle('The body')).toHaveCount(2);
+
   await expect(row(page, 'room:platform')).toHaveCount(0);
 
   // A weapon with no model cannot be put in a room, so nothing the player does could
@@ -80,7 +105,7 @@ test('a pencil mark goes on, changes, and comes off', async ({ page }) => {
   await booted(page);
   await openNotebook(page);
 
-  const first = row(page, `suspect:${SUSPECTS[0]}`);
+  const first = row(page, `suspect:${await aLivingName(page)}`);
   await expect(first).toHaveAttribute('data-mark', 'clear');
   await first.click();
   await expect(first).toHaveAttribute('data-mark', 'out');
@@ -99,12 +124,13 @@ test('rubbing out clears the sheet, and is offered only when there is something 
   const rub = page.getByTestId('notebook-clear');
   await expect(rub).toBeDisabled();
 
-  await row(page, `suspect:${SUSPECTS[0]}`).click();
+  const alive = await aLivingName(page);
+  await row(page, `suspect:${alive}`).click();
   await row(page, `room:${ROOMS[0]}`).click();
   await expect(rub).toBeEnabled();
 
   await rub.click();
-  await expect(row(page, `suspect:${SUSPECTS[0]}`)).toHaveAttribute('data-mark', 'clear');
+  await expect(row(page, `suspect:${alive}`)).toHaveAttribute('data-mark', 'clear');
   await expect(row(page, `room:${ROOMS[0]}`)).toHaveAttribute('data-mark', 'clear');
   await expect(rub).toBeDisabled();
 });
@@ -117,11 +143,11 @@ test('marks survive the board being closed', async ({ page }) => {
   await booted(page);
   await openNotebook(page);
 
-  const marked = row(page, `suspect:${SUSPECTS[1]}`);
+  const marked = row(page, `suspect:${await aLivingName(page)}`);
   await marked.click();
   await expect(marked).toHaveAttribute('data-mark', 'out');
 
   await page.getByLabel('Close the case board').click();
   await page.getByTestId('open-dossier').click();
-  await expect(row(page, `suspect:${SUSPECTS[1]}`)).toHaveAttribute('data-mark', 'out');
+  await expect(marked).toHaveAttribute('data-mark', 'out');
 });

@@ -28,7 +28,7 @@ const DAY = 24 * 60;
 export const Source = { TIMELINE: 0, JOURNAL: 1 } as const;
 export type Source = (typeof Source)[keyof typeof Source];
 
-export const CPassenger = { suspect: [] as number[] };
+export const CPassenger = { aboard: [] as number[] };
 export const CItem = { carried: [] as number[] };
 export const CLocation = { index: [] as number[] };
 
@@ -99,7 +99,7 @@ function ingestPassengers(people: Passenger[]): void {
   for (const p of people) {
     const eid = spawn(p.id, p.listed ?? p.name);
     addComponent(world, eid, CPassenger);
-    CPassenger.suspect[eid] = p.suspect ? 1 : 0;
+    CPassenger.aboard[eid] = 1;
   }
 
   for (const p of people) {
@@ -297,8 +297,15 @@ export const isCorroborated = (passenger: number): boolean =>
     (s) => CSighting.source[s] === Source.JOURNAL,
   );
 
-export const isSuspect = (passenger: number): boolean =>
-  hasComponent(world, passenger, CPassenger) && CPassenger.suspect[passenger] === 1;
+/**
+ * Anybody aboard who is not the body. Which one that is comes off the wire rather than
+ * out of the content: it is drawn per run, so there is nothing static to read.
+ *
+ * Everyone is a suspect until the enquiry opens, which is the honest answer for the
+ * half second before the engine has said who it happened to.
+ */
+export const isSuspect = (passenger: number, victim: number): boolean =>
+  hasComponent(world, passenger, CPassenger) && passenger !== victim;
 
 export const roster = (): number[] => passengers.map((p) => eidOf(p.id)).filter(Boolean);
 

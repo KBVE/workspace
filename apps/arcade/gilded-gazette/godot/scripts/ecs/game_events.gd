@@ -131,6 +131,20 @@ const NOTICE_READ := &"notice_read"
 ## string, "at": number}. Reaches JS as "journal:entry".
 const JOURNAL_ENTRY := &"journal_entry"
 
+## Who it happened to this run, sent as the enquiry opens.
+##
+## Drawn per run rather than authored, so React cannot read it out of the compiled
+## content the way it used to read a `victim` flag: it has to be told. Everything
+## downstream follows from it -- the suspects are everybody else, and the notebook must
+## not list the body as somebody who could have done it.
+##
+## The culprit is deliberately not here and never will be. A body is found, so the
+## victim is public knowledge the moment the run starts; the answer is not, and anything
+## that crosses this boundary is a copy the browser will hand to whoever asks for it.
+##
+## Payload: {"victim": string}. Reaches JS as "enquiry:opened".
+const ENQUIRY_OPENED := &"enquiry_opened"
+
 # ==============================================================================
 # Inbound - React to Godot
 # ==============================================================================
@@ -186,6 +200,7 @@ const OUTBOUND_WIRE: Dictionary[StringName, String] = {
 	RENDER_BUDGET: "render:budget",
 	NOTICE_READ: "notice:read",
 	JOURNAL_ENTRY: "journal:entry",
+	ENQUIRY_OPENED: "enquiry:opened",
 }
 
 ## Ordered payload fields, passed to JS as positional primitives.
@@ -204,6 +219,7 @@ const WIRE_FIELDS: Dictionary[String, Array] = {
 	"render:budget": ["shrink", "detail"],
 	"notice:read": ["id"],
 	"journal:entry": ["id", "kind", "actor", "target", "place", "at"],
+	"enquiry:opened": ["victim"],
 }
 
 ## JS wire name to bus name. [GameBridge] republishes every entry, so a command

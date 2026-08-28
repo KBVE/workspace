@@ -40,14 +40,23 @@ func test_everybody_but_the_culprit_keeps_their_own_word() -> void:
 	var cast := _content()
 	for s in SEEDS:
 		var night := _night(s)
+		var murder_step := night._step_of(night.murder_elapsed)
 		for id: StringName in cast:
 			if id == night.culprit_id:
 				continue
 			for step in night.steps():
+				# The body keeps no appointments. The victim stays at the scene from
+				# the murder on, and an alibi that moves them somewhere else later in
+				# the evening -- "the cabin until midnight, the corridor after" -- is
+				# not a contradiction once they are dead in the cabin at eleven. Up to
+				# that hour their word binds them like anybody's.
+				if id == night.victim_id and step >= murder_step:
+					continue
 				var where := night.where_is(id, step * TheNight.STEP_MINUTES)
 				if where.is_empty():
 					continue
-				assert_bool(night._allows(cast[id], where, step, Session.DEPARTURE_MINUTES)) \
+				assert_bool(night._allows_claims(night.claims_of(id), where, step,
+						Session.DEPARTURE_MINUTES)) \
 					.override_failure_message(
 						"seed %d: %s was put in %s at step %d, which their own claims deny"
 						% [s, id, where, step]
@@ -62,7 +71,7 @@ func test_the_culprit_was_somewhere_their_own_word_denies() -> void:
 		assert_str(night.where_is(night.culprit_id, night.murder_elapsed)) \
 			.override_failure_message("seed %d: the culprit was not at the scene" % s) \
 			.is_equal(String(night.scene))
-		assert_bool(night._allows(cast[night.culprit_id], night.scene, step,
+		assert_bool(night._allows_claims(night.claims_of(night.culprit_id), night.scene, step,
 			Session.DEPARTURE_MINUTES)).override_failure_message(
 				"seed %d: being at the scene costs %s nothing, so nothing can catch them"
 				% [s, night.culprit_id]
@@ -153,6 +162,33 @@ func test_every_weapon_can_be_the_answer() -> void:
 		).is_greater(0)
 
 
+## Who it happened to is drawn too. It used to be a flag in the content, which made
+## every run the same murder with a different murderer -- the same berth, the same gap
+## in the register, the same evening reframed around one man. Anybody aboard has to be
+## able to be the one it happened to, or the file that says so is decoration in the
+## same way the suspect flag was.
+func test_anybody_aboard_can_be_the_body() -> void:
+	var seen := {}
+	for s in FAIRNESS_SEEDS:
+		var who := _night(s).victim_id
+		seen[who] = int(seen.get(who, 0)) + 1
+	var even := float(FAIRNESS_SEEDS) / float(_content().size())
+	for id: StringName in _content():
+		assert_float(float(int(seen.get(id, 0)))).override_failure_message(
+			"%s was the body %d times in %d nights against an even share of %.0f"
+			% [id, int(seen.get(id, 0)), FAIRNESS_SEEDS, even]
+		).is_greater(even * 0.4)
+
+
+## And never their own murderer. Drawn separately, so nothing but this stops the two
+## draws landing on the same person and the run answering a question it also asked.
+func test_nobody_is_their_own_murderer() -> void:
+	for s in SEEDS:
+		assert_str(String(_night(s).culprit_id)).override_failure_message(
+			"seed %d had %s kill themselves" % [s, _night(s).victim_id]
+		).is_not_equal(String(_night(s).victim_id))
+
+
 func test_the_answer_is_not_the_same_every_run() -> void:
 	var drawn := {}
 	for s in SEEDS:
@@ -175,8 +211,6 @@ func test_every_suspect_can_be_the_answer() -> void:
 	for s in FAIRNESS_SEEDS:
 		seen[_night(s).culprit_id] = int(seen.get(_night(s).culprit_id, 0)) + 1
 	for id: StringName in _content():
-		if _content()[id].get("victim", false):
-			continue
 		assert_int(int(seen.get(id, 0))).override_failure_message(
 			"%s was never the culprit in %d draws, so the dossier lists them as a "
 			% [id, FAIRNESS_SEEDS] + "suspect the run can never make good on"
@@ -191,10 +225,7 @@ func test_every_suspect_can_be_the_answer() -> void:
 ## to catch a suspect falling off it rather than to police the shape.
 func test_no_suspect_is_a_long_shot() -> void:
 	var seen := {}
-	var suspects := 0
-	for id: StringName in _content():
-		if not _content()[id].get("victim", false):
-			suspects += 1
+	var suspects: int = _content().size() - 1
 	for s in FAIRNESS_SEEDS:
 		var who := _night(s).culprit_id
 		seen[who] = int(seen.get(who, 0)) + 1

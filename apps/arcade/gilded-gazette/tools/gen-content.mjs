@@ -183,21 +183,20 @@ for (const p of content.passengers) {
   }
 }
 
-// &body -> the mystery needs exactly one, and it is the kind of mistake that
-//          reads as a plot hole rather than a bug: a second victim quietly
-//          becomes whoever the UI happens to list first, and none at all leaves
-//          seven people with alibis for nothing.
-const victims = content.passengers.filter((p) => p.victim);
-if (victims.length !== 1) {
-  throw new Error(
-    `expected exactly one passenger with victim: true, found ${victims.length}`
-    + (victims.length ? ` (${victims.map((p) => p.id).join(', ')})` : ''),
-  );
+/**
+ * &body -> any of them can be the one it happened to, so any of them has to read as
+ *          somebody it happened to. A passenger with no `## The Body` is a run where
+ *          the enquiry opens over a corpse the content has nothing to say about, and
+ *          that is a hole a player finds on the first run that draws them.
+ */
+for (const p of content.passengers) {
+  if (!p.sections?.the_body) {
+    throw new Error(
+      `${p.source}: every passenger needs a "## The Body" section, because the victim`
+      + ' is drawn per run and it could be them',
+    );
+  }
 }
-// &suspect -> everybody aboard who is not the body. TheNight draws its culprit from
-//          exactly this set, so deriving it here is what keeps the dossier's list and
-//          the list the answer can come from the same list.
-for (const p of content.passengers) p.suspect = !p.victim;
 
 /**
  * &vocab -> the locations collection IS the location vocabulary, so every place
@@ -217,7 +216,9 @@ const requireLocation = (where, field, id) => {
 for (const p of content.passengers) {
   requireLocation(p.source, 'location', p.location);
   for (const step of p.timeline ?? []) requireLocation(p.source, 'timeline.where', step.where);
-  for (const claim of p.claims ?? []) requireLocation(p.source, 'claims.where', claim.where);
+  for (const alibi of p.alibis ?? []) {
+    for (const claim of alibi.claims) requireLocation(p.source, 'alibis.claims.where', claim.where);
+  }
   for (const where of Object.keys(p.sightings ?? {})) {
     requireLocation(p.source, 'sightings', where);
   }
@@ -229,7 +230,11 @@ for (const p of content.passengers) {
 for (const p of content.passengers) {
   const rooms = Object.keys(p.sightings ?? {});
   if (rooms.length === 0) continue;
-  const claimed = new Set((p.claims ?? []).filter((c) => !c.never).map((c) => c.where));
+  // Every account they might give, not one of them: the run draws which alibi a
+  // passenger tells, so any of them can be the one that has to be placeable.
+  const claimed = new Set(
+    (p.alibis ?? []).flatMap((a) => a.claims).filter((c) => !c.never).map((c) => c.where),
+  );
   for (const where of claimed) {
     if (!rooms.includes(where)) {
       throw new Error(

@@ -1,7 +1,7 @@
 class_name TheNight
 
 ## One run's arrangement of the evening: where every passenger actually was, half hour
-## by half hour, who it happened to, who did it, and in which room.
+## by half hour, who it happened to, who did it, with what, and in which room.
 ##
 ## Drawn rather than authored, and the reason that is possible without generated prose
 ## is that an alibi was already only a claim. Everybody is placed consistently with
@@ -53,6 +53,11 @@ var murder_elapsed: int = -1
 var _rooms: Dictionary = {}
 var _notes: Dictionary = {}
 
+## content_id -> the alibi this run drew for them, as it appears in their `alibis`.
+## What they say changes per run, so nothing may read `claims` off the content: the
+## content holds every account they might have given and this holds the one they did.
+var _alibis: Dictionary = {}
+
 
 ## Every weapon the run could name, which is every weapon it could also put in a room.
 ##
@@ -68,6 +73,18 @@ static func weapons() -> Array[StringName]:
 			out.append(StringName(item.get("id", "")))
 	out.sort()
 	return out
+
+
+## What this passenger told the enquiry this run, as the `says` lines they gave.
+func says_of(id: StringName) -> Array:
+	return _alibis.get(id, {}).get("says", [])
+
+
+## What that account would mean if it were true, which is what the night is placed
+## against. Never read `claims` off [GameContent]: that is every account they might
+## have given, and this is the one they did.
+func claims_of(id: StringName) -> Array:
+	return _alibis.get(id, {}).get("claims", [])
 
 
 ## Draws a night, or returns null if the content cannot support one -- no victim, or
@@ -115,35 +132,71 @@ func _draw(rng: RandomNumberGenerator, departure_minutes: int) -> bool:
 	if cast.is_empty():
 		return false
 
+	# Who it happened to is drawn like everything else. It used to be a flag in the
+	# content, which made every run the same murder with a different murderer: the
+	# same berth, the same gap in the register, the same evening reframed around one
+	# man. Drawing it means the question the enquiry opens with changes too.
+	var aboard: Array[StringName] = []
 	for id: StringName in cast:
-		if cast[id].get("victim", false):
-			victim_id = id
-	if victim_id.is_empty():
+		aboard.append(id)
+	aboard.sort()
+	if aboard.size() < 2:
 		return false
+	victim_id = aboard[rng.randi_range(0, aboard.size() - 1)]
+
+	# What each of them says, drawn before anything is worked out from it. A fixed
+	# alibi makes every night the same deduction with a different answer -- the same
+	# people are catchable and the same people are not, whoever did it -- so the
+	# reasoning was identical across runs even when the culprit was not.
+	for id: StringName in aboard:
+		var bank: Array = cast[id].get("alibis", [])
+		if bank.is_empty():
+			return false
+		_alibis[id] = bank[rng.randi_range(0, bank.size() - 1)]
 
 	var arsenal := weapons()
 	if arsenal.is_empty():
 		return false
 	weapon_id = arsenal[rng.randi_range(0, arsenal.size() - 1)]
 
-	murder_elapsed = rng.randi_range(EARLIEST, LATEST)
-	var murder_step := _step_of(murder_elapsed)
+	# The culprit is drawn before the hour is, and this order is the whole of the
+	# fairness. Drawing the hour first and then taking whoever it left catchable
+	# hands the choosing to candidacy: a passenger claiming one room all evening is
+	# catchable in every hour of it, one claiming a narrow window is catchable in
+	# few, and the second is then hardly ever the answer. Measured over two thousand
+	# nights that ran 565 to 54 between the widest and the narrowest alibi, which is
+	# a cast the experienced player stops considering.
+	#
+	# Picking the person first and fitting the hour to them costs a search over
+	# twenty-odd half hours and makes every suspect equally likely, which is what
+	# the notebook promises by listing them.
+	var suspects: Array[StringName] = []
+	for id: StringName in aboard:
+		if id != victim_id:
+			suspects.append(id)
+	suspects.shuffle()
 
-	# The culprit has to be placeable somewhere their own claims deny, or nothing they
-	# said can ever be caught out and the run has no answer a player could reach.
-	var candidates: Array[StringName] = []
-	for id: StringName in cast:
-		if id == victim_id:
+	for who: StringName in suspects:
+		# Every hour and room that would catch this one in a lie, gathered before any
+		# of it is chosen so the pick is uniform over the openings rather than over
+		# the hours that happen to have one.
+		var openings: Array[Dictionary] = []
+		for elapsed in range(EARLIEST, LATEST + 1):
+			var step := _step_of(elapsed)
+			for room: StringName in _rooms_that_would_be_a_lie(cast[who], cast[victim_id],
+					step, departure_minutes, who, victim_id):
+				openings.append({"elapsed": elapsed, "room": room})
+		if openings.is_empty():
 			continue
-		if not _rooms_that_would_be_a_lie(cast[id], cast[victim_id], murder_step,
-				departure_minutes).is_empty():
-			candidates.append(id)
-	if candidates.is_empty():
+		var chosen: Dictionary = openings[rng.randi_range(0, openings.size() - 1)]
+		culprit_id = who
+		murder_elapsed = int(chosen["elapsed"])
+		scene = chosen["room"]
+		break
+
+	if culprit_id.is_empty():
 		return false
-	culprit_id = candidates[rng.randi_range(0, candidates.size() - 1)]
-	var lies := _rooms_that_would_be_a_lie(cast[culprit_id], cast[victim_id], murder_step,
-		departure_minutes)
-	scene = lies[rng.randi_range(0, lies.size() - 1)]
+	var murder_step := _step_of(murder_elapsed)
 
 	for id: StringName in cast:
 		_walk(rng, id, cast[id], departure_minutes, murder_step)
@@ -154,14 +207,25 @@ func _draw(rng: RandomNumberGenerator, departure_minutes: int) -> bool:
 ## what the first of them says. The victim's own sightings matter because the scene is
 ## a room he could have been found in, not merely one the culprit could have reached.
 func _rooms_that_would_be_a_lie(who: Dictionary, victim: Dictionary, step: int,
-		departure_minutes: int) -> Array[StringName]:
+		departure_minutes: int, who_id: StringName, victim_who: StringName) -> Array[StringName]:
 	var found: Array[StringName] = []
 	var theirs: Dictionary = victim.get("sightings", {})
 	for room: String in who.get("sightings", {}):
 		var where := StringName(room)
 		if where == BOARDING_ONLY or not theirs.has(room):
 			continue
-		if not _allows(who, where, step, departure_minutes):
+		# The victim has to be able to be there honestly. Exactly one person's word
+		# fails in a night, and it is the culprit's -- if the scene were a room the
+		# victim's own claims denied, the body would be found somewhere it had sworn
+		# it was not, and a second contradiction is a second answer to the question
+		# the whole deduction asks.
+		#
+		# It cost nothing while the victim was authored, because that one passenger
+		# was written with no claims to break. Drawing the body is what made every
+		# passenger's alibi somebody's alibi.
+		if not _allows_claims(claims_of(victim_who), where, step, departure_minutes):
+			continue
+		if not _allows_claims(claims_of(who_id), where, step, departure_minutes):
 			found.append(where)
 	return found
 
@@ -169,13 +233,14 @@ func _rooms_that_would_be_a_lie(who: Dictionary, victim: Dictionary, step: int,
 ## Whether this passenger's own claims leave them free to be in [param where] at
 ## [param step]. A never claim closes a room for the whole journey; a window claim
 ## closes every other room for its length.
-func _allows(who: Dictionary, where: StringName, step: int, departure_minutes: int) -> bool:
+func _allows_claims(claims: Array, where: StringName, step: int,
+		departure_minutes: int) -> bool:
 	# Nobody's alibi is about the platform. Everybody was demonstrably on it, in front of
 	# a guard with a register, and a claim to have been elsewhere at boarding would be
 	# a claim about the one moment of the evening nobody disputes.
 	if where == BOARDING_ONLY:
 		return true
-	for claim: Dictionary in who.get("claims", []):
+	for claim: Dictionary in claims:
 		var claimed := StringName(claim.get("where", ""))
 		if claim.get("never", false):
 			if claimed == where:
@@ -219,7 +284,7 @@ func _walk(rng: RandomNumberGenerator, id: StringName, who: Dictionary,
 		elif id == culprit_id and step == murder_step:
 			here = scene
 		else:
-			var open := _open_rooms(who, sightings, step, departure_minutes)
+			var open := _open_rooms(id, sightings, step, departure_minutes)
 			if open.is_empty():
 				here = here
 			elif not open.has(here) or rng.randf() < 0.35:
@@ -230,14 +295,14 @@ func _walk(rng: RandomNumberGenerator, id: StringName, who: Dictionary,
 	_notes[id] = notes
 
 
-func _open_rooms(who: Dictionary, sightings: Dictionary, step: int,
+func _open_rooms(who_id: StringName, sightings: Dictionary, step: int,
 		departure_minutes: int) -> Array[StringName]:
 	var open: Array[StringName] = []
 	for room: String in sightings:
 		var where := StringName(room)
 		if where == BOARDING_ONLY:
 			continue
-		if _allows(who, where, step, departure_minutes):
+		if _allows_claims(claims_of(who_id), where, step, departure_minutes):
 			open.append(where)
 	return open
 

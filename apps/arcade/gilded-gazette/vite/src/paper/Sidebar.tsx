@@ -2,7 +2,7 @@ import { describePlayerFlags } from '../godot/state';
 import { useFlags, usePlayer } from '../state/gameStore';
 import { useDispatches, useRunningOrder } from '../state/paperStore';
 import { carriedItems, listedAs, passengers, plateCopy, standing } from '../content/content';
-import { openResearch } from '../state/researchStore';
+import { openResearch, useVictim } from '../state/researchStore';
 import { eidOf } from '../research/world';
 import styles from './paper.module.css';
 
@@ -18,6 +18,7 @@ function runningOrderMark(
 }
 
 export function Sidebar() {
+  const victim = useVictim();
   const player = usePlayer();
   const flags = useFlags();
   const runningOrder = useRunningOrder();
@@ -62,8 +63,8 @@ export function Sidebar() {
               >
                 {listedAs(passenger)}
               </button>
-              {passenger.suspect && (
-                <span className={styles.mark} title="Under enquiry"> †</span>
+              {passenger.id === victim && (
+                <span className={styles.mark} title="The body"> †</span>
               )}
             </li>
           ))}
@@ -100,6 +101,7 @@ export function Sidebar() {
 }
 
 export function PlateRail() {
+  const victim = useVictim();
   const player = usePlayer();
   const flags = useFlags();
   const runningOrder = useRunningOrder();
@@ -136,7 +138,9 @@ export function PlateRail() {
             >
               {listedAs(passenger)}
             </button>
-            {passenger.suspect && <span className={styles.mark}> †</span>}
+            {passenger.id === victim && (
+              <span className={styles.mark} title="The body"> †</span>
+            )}
           </li>
         ))}
       </ul>

@@ -53,6 +53,8 @@ export interface GodotToJs {
   'notice:read': { id: string };
   // One fact the run has produced: a conversation, an item used, a room entered.
   'journal:entry': { id: string; kind: number; actor: string; target: string; place: string; at: number };
+  // Who it happened to this run, sent as the enquiry opens.
+  'enquiry:opened': { victim: string };
 }
 
 /** React -> Godot. */
@@ -91,6 +93,7 @@ export const WIRE_FIELDS: Record<string, readonly string[]> = {
   'render:budget': ['shrink', 'detail'],
   'notice:read': ['id'],
   'journal:entry': ['id', 'kind', 'actor', 'target', 'place', 'at'],
+  'enquiry:opened': ['victim'],
 };
 
 export type GodotEvent = keyof GodotToJs;

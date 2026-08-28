@@ -82,62 +82,72 @@ export const passenger = z.object({
   /** Where they are found when nothing else has moved them. */
   location: locationId,
   /**
-   * &derived -> stamped on by gen-content, not authored. The night draws its culprit
-   *          from everybody aboard who is not the body, so a suspect is exactly that
-   *          and authoring it separately only creates a second answer that can drift
-   *          from the first -- which it had: three passengers were marked while the
-   *          draw was picking from seven.
+   * &nobody -> who the body is is drawn per run, so neither being the victim nor
+   *         being a suspect is a fact about a passenger any more. Both were authored
+   *         once and both drifted from the draw; there is now one answer and TheNight
+   *         holds it. What the content owes instead is a `## The Body` passage, so
+   *         that whoever it turns out to be reads as somebody rather than as a slot.
    */
-  suspect: z.boolean().optional(),
-  /**
-   * The one this is all about. A victim is a passenger and not a collection of
-   * their own: they bought a ticket, they have a berth, and their evening runs
-   * like anyone's until it stops. What makes them the victim is that it stops.
-   *
-   * &exclusive -> gen-content enforces exactly one, and that they are not also a
-   *           suspect. Two bodies is a different game and nobody murders
-   *           themselves in this one.
-   */
-  victim: z.boolean().default(false),
   /** Short, playable descriptors an NPC system can branch on. */
   traits: z.array(z.string()).default([]),
   relationships: z
     .array(z.object({ who: z.string().min(1), tie: z.string().min(1) }))
     .default([]),
   /**
-   * The same statements the `## Alibi` bullets make, in the form a generator can
-   * respect. Constraints, not prose: the words are already written next door, and
-   * the pair is the point -- one is what he says, this is what it would mean.
+   * What they say they were doing, and every other account they might have given.
    *
-   * &honest -> a run places everybody consistently with their OWN claims and then
-   *           breaks exactly one, for the culprit. Without that the generator makes
-   *           liars of people at random, several passengers contradict themselves
-   *           for no reason, and contradiction stops identifying anybody.
+   * Drawn per run rather than authored once. A fixed alibi makes every night the same
+   * deduction with a different answer: the contradictions available are the same shape
+   * whoever did it, and a reader who has played twice knows which people can be caught
+   * and which cannot. Drawing which account each passenger gives changes the reasoning
+   * rather than only the conclusion.
+   *
+   * &pair -> the words and the constraint travel together, because they are the same
+   *       statement written twice. `says` is what the passenger tells an enquiry and
+   *       `claims` is what it would mean if it were true. Separating them is how a
+   *       dossier ends up printing an alibi the run is not using.
+   *
+   * &honest -> a run places everybody consistently with their OWN drawn claims and
+   *       then breaks exactly one, for the culprit. Without that the generator makes
+   *       liars of people at random, several contradict themselves for no reason, and
+   *       contradiction stops identifying anybody.
+   *
    * &positional -> only claims about where somebody was. "Says she has never met
-   *           Dr. Weiss" is a claim about a person and stays prose; nothing can
-   *           place a passenger to satisfy it.
+   *       Dr. Weiss" is a claim about a person and stays prose; nothing can place a
+   *       passenger to satisfy it.
+   *
+   * &two -> at least two, or there is nothing to draw and this is a longer way of
+   *       writing what was here before.
    */
-  claims: z
+  alibis: z
     .array(
-      z
-        .object({
-          where: locationId,
-          /** Denies ever having been there, for the whole journey. */
-          never: z.boolean().default(false),
-          /**
-           * The window they place themselves in that room for, and they mean the
-           * whole of it. `from` alone runs to the end of the journey, `until` alone
-           * from the moment they boarded. One reading, because two would make a
-           * claim mean something different depending on which half was written.
-           */
-          from: clock.optional(),
-          until: clock.optional(),
-        })
-        .refine((c) => !(c.never && (c.from || c.until)), {
-          message: 'a never claim covers the whole journey, so it takes no from/until',
-        }),
+      z.object({
+        says: z.array(z.string().min(1)).min(1),
+        claims: z
+          .array(
+            z
+              .object({
+                where: locationId,
+                /** Denies ever having been there, for the whole journey. */
+                never: z.boolean().default(false),
+                /**
+                 * The window they place themselves in that room for, and they mean
+                 * the whole of it. `from` alone runs to the end of the journey,
+                 * `until` alone from the moment they boarded. One reading, because
+                 * two would make a claim mean something different depending on which
+                 * half was written.
+                 */
+                from: clock.optional(),
+                until: clock.optional(),
+              })
+              .refine((c) => !(c.never && (c.from || c.until)), {
+                message: 'a never claim covers the whole journey, so it takes no from/until',
+              }),
+          )
+          .min(1),
+      }),
     )
-    .default([]),
+    .min(2),
   /**
    * What it looks like to find this passenger in a given room, and -- because a
    * passenger can only be put somewhere there is a line for them -- which rooms
