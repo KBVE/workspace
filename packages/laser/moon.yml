@@ -45,6 +45,14 @@ tasks:
     toolchains: ['node']
     inputs: ['@group(sources)', '@group(configs)', 'e2e/**/*', 'playwright.config.ts']
 
+  # Line coverage over the files the package ships. Kept separate from `test`
+  # because v8 instrumentation roughly doubles the run, and `test` is the one
+  # that runs on every change.
+  coverage:
+    command: 'vitest run --coverage'
+    toolchains: ['node']
+    inputs: ['@group(sources)', '@group(configs)']
+
   # Playwright ships no browser with the npm package. Declared as a task so e2e
   # can depend on it rather than every caller remembering to run it.
   # --with-deps installs the system libraries a headless Chromium needs on a

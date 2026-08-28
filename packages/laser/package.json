@@ -101,6 +101,7 @@
     "@types/react-dom": "catalog:",
     "@types/three": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "bitecs": "catalog:",
     "fastnoise-lite": "catalog:",
     "jsdom": "catalog:",

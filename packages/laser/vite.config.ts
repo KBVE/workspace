@@ -74,6 +74,20 @@ export default defineConfig({
     coverage: {
       reportsDirectory: 'coverage',
       provider: 'v8',
+      reporter: ['text-summary', 'json-summary'],
+      // Measured against the files the package ships, not only the ones a test
+      // happened to import -- otherwise deleting a spec raises the percentage.
+      all: true,
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.{spec,test}.{ts,tsx}',
+        'src/**/*.testing.ts',
+        'src/types/**',
+        // Type-only re-exports compile to nothing, so they have no statement
+        // for v8 to instrument and would sit at 0% forever.
+        'src/lib/phaser/types.ts',
+        'src/lib/r3f/types.ts',
+      ],
     },
   },
 });
