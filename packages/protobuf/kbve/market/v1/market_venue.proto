@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package kbve.asset.v1;
+package kbve.market.v1;
 
 import "google/protobuf/timestamp.proto";
 import "kbve/common/v1/decimal.proto";

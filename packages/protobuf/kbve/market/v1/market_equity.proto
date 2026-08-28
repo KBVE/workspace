@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package kbve.asset.v1;
+package kbve.market.v1;
 
 import "google/protobuf/timestamp.proto";
 import "kbve/asset/v1/asset.proto";
@@ -8,10 +8,9 @@ import "kbve/common/v1/decimal.proto";
 
 // What a company earns, and what it pays out.
 //
-// The screening inputs. A price alone ranks nothing: the whole point of a
-// stock screen is the relationship between the price and something underneath
-// it, and every one of those ratios is a division whose denominator has a
-// reporting date, a currency, and a revision history.
+// Facts about a company, filed under market rather than asset because every
+// figure that a screen actually sorts on is a ratio with a price on one side.
+// They go stale as a set, on a date, which is market-data behaviour.
 
 // The period a set of figures covers.
 enum FiscalPeriod {
@@ -41,7 +40,7 @@ enum FigureBasis {
 
 // One reporting period.
 message EarningsReport {
-  AssetRef ref = 1;
+  kbve.asset.v1.AssetRef ref = 1;
   FiscalPeriod period = 2;
   // The fiscal year the period belongs to, which is not always the calendar
   // year it ends in.
@@ -104,7 +103,7 @@ message DividendPolicy {
 // reason: they go stale as a set, at the same moment, and a consumer holding
 // half of one snapshot and half of another is comparing two different days.
 message Fundamentals {
-  AssetRef ref = 1;
+  kbve.asset.v1.AssetRef ref = 1;
   google.protobuf.Timestamp as_of = 2;
   string currency = 3;
 

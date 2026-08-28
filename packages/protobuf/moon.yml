@@ -18,8 +18,13 @@ owners:
 
 tasks:
   # Named build so '^:build' from a consumer pulls generation in.
+  #
+  # --clean, because generation only ever writes. Deleting a .proto leaves its
+  # generated code behind, and stale output does not announce itself: it
+  # compiles, it imports, and it offers a type the schema no longer defines
+  # until something downstream fails on a name nobody can find in the module.
   build:
-    command: 'buf generate'
+    command: 'buf generate --clean'
     toolchains: ['node']
     inputs:
       - 'kbve/**/*.proto'

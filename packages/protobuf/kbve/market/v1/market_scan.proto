@@ -1,18 +1,19 @@
 syntax = "proto3";
 
-package kbve.asset.v1;
+package kbve.market.v1;
 
 import "google/protobuf/timestamp.proto";
 import "kbve/asset/v1/asset.proto";
 import "kbve/common/v1/decimal.proto";
+import "kbve/market/v1/market.proto";
 import "kbve/type/v1/id.proto";
 
 // What an asset is worth trading right now.
 //
-// A quote says what something costs. This file says whether acting on it makes
+// A quote says what something costs. This says whether acting on it makes
 // money, which is a different question and the one anybody actually asks. The
 // three things that turn a price into a decision are the fee, the volume, and
-// the age of the quote - and a spread computed without all three is a number
+// the age of the quote -- and a spread computed without all three is a number
 // that looks like profit and is not.
 
 // The economics of buying and reselling one unit.
@@ -22,7 +23,7 @@ import "kbve/type/v1/id.proto";
 // against a fee schedule that may since have changed produces a different
 // answer than the one that was shown when the user acted.
 message Margin {
-  AssetRef ref = 1;
+  kbve.asset.v1.AssetRef ref = 1;
   google.protobuf.Timestamp as_of = 2;
 
   // What acquiring a unit costs.
@@ -64,7 +65,7 @@ message Margin {
 // times a day is not an opportunity; it is a wide spread on an illiquid thing,
 // and the reason the spread is wide is that nobody is trading it.
 message Liquidity {
-  AssetRef ref = 1;
+  kbve.asset.v1.AssetRef ref = 1;
   google.protobuf.Timestamp as_of = 2;
 
   // The period the counts below cover.
@@ -93,47 +94,13 @@ message Liquidity {
   optional int64 ask_age_seconds = 10;
 }
 
-// One price level in a book, and the size resting there.
-message BookLevel {
-  kbve.common.v1.Decimal price = 1;
-  // Units offered at this price.
-  int64 size = 2;
-  // How many separate orders make up that size, where the venue says. One
-  // order of a thousand and ten of a hundred behave differently when hit.
-  optional int32 order_count = 3;
-}
-
-// Resting orders on both sides, deepest information a venue gives.
-//
-// Top of book is what Quote carries and it is enough to say what something
-// costs. It is not enough to say what it costs to buy a lot of it: an order
-// larger than the best level walks up the book, and the average fill is worse
-// than the quoted price by an amount only the depth can tell you. On a thin
-// crypto pair that difference is most of the trade.
-message OrderBook {
-  AssetRef ref = 1;
-  google.protobuf.Timestamp as_of = 2;
-
-  // Best first: bids descending, asks ascending.
-  repeated BookLevel bids = 3;
-  repeated BookLevel asks = 4;
-
-  // Whether these are all the levels the venue has, or the top of a longer
-  // book. Depth truncated at twenty levels and depth that ends at twenty
-  // levels are different markets, and they look identical here without it.
-  optional bool truncated = 5;
-  // The venue's own sequence number for this snapshot, where it has one, so
-  // out-of-order delivery can be detected rather than silently applied.
-  optional int64 sequence = 6;
-}
-
 // Everything known about one asset at one moment, assembled for display.
 //
 // A row in a table. Kept as one message so that what was shown to a user can
 // be stored and replayed exactly, rather than reassembled later from parts
 // that have each moved on.
 message MarketSnapshot {
-  AssetRef ref = 1;
+  kbve.asset.v1.AssetRef ref = 1;
   google.protobuf.Timestamp as_of = 2;
 
   // Denormalised so a row renders without a second lookup.
@@ -177,7 +144,7 @@ message ScanFilter {
   optional int64 min_buy_limit = 8;
   repeated string tags = 9;
   repeated string venues = 10;
-  optional AssetClass asset_class = 11;
+  optional kbve.asset.v1.AssetClass asset_class = 11;
 }
 
 // How a scan is ordered.

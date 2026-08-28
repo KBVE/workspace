@@ -84,7 +84,7 @@ jobs:
           setup_only: true
 
       - name: Generate
-        run: buf generate
+        run: buf generate --clean
 
       - name: Rust
         if: matrix.lang == 'rust'

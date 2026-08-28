@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-package kbve.asset.v1;
+package kbve.portfolio.v1;
 
 import "google/protobuf/timestamp.proto";
 import "kbve/asset/v1/asset.proto";
-import "kbve/asset/v1/asset_market.proto";
 import "kbve/common/v1/decimal.proto";
+import "kbve/market/v1/market_scan.proto";
 import "kbve/type/v1/id.proto";
 
 // Telling somebody a price moved.
@@ -54,7 +54,7 @@ enum AlertChannel {
 
 // The test itself.
 message AlertCondition {
-  AssetRef ref = 1;
+  kbve.asset.v1.AssetRef ref = 1;
   AlertMetric metric = 2;
   AlertComparator comparator = 3;
   kbve.common.v1.Decimal threshold = 4;
@@ -132,7 +132,7 @@ message AlertDelivery {
 message AlertEvent {
   kbve.type.v1.Ulid id = 1;
   kbve.type.v1.Ulid alert_id = 2;
-  AssetRef ref = 3;
+  kbve.asset.v1.AssetRef ref = 3;
 
   google.protobuf.Timestamp triggered_at = 4;
   AlertMetric metric = 5;
@@ -144,7 +144,7 @@ message AlertEvent {
 
   // The state of the market when it fired, so the notification can say
   // something useful and the firing can be judged afterwards.
-  optional MarketSnapshot snapshot = 9;
+  optional kbve.market.v1.MarketSnapshot snapshot = 9;
 
   repeated AlertDelivery deliveries = 10;
 }
@@ -156,11 +156,11 @@ message Watchlist {
   string name = 3;
   optional string description = 4;
 
-  repeated AssetRef refs = 5;
+  repeated kbve.asset.v1.AssetRef refs = 5;
 
   // A saved scan attached to the list, so a watchlist can be a live query
   // rather than a fixed roster.
-  optional ScanFilter filter = 6;
+  optional kbve.market.v1.ScanFilter filter = 6;
 
   optional bool public = 7;
   google.protobuf.Timestamp created_at = 8;

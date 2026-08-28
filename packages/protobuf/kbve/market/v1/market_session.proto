@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package kbve.asset.v1;
+package kbve.market.v1;
 
 import "google/protobuf/timestamp.proto";
 
@@ -8,10 +8,7 @@ import "google/protobuf/timestamp.proto";
 //
 // The Grand Exchange and a crypto exchange never close, and an equity market
 // is shut more hours of the week than it is open. A staleness rule written for
-// one is wrong for the other: a quote that has not moved in fourteen hours is
-// a dead item on the GE and a perfectly normal Tuesday morning for a NASDAQ
-// listing. Without a session model, a scan filtered on quote age rejects every
-// equity before the opening bell and treats every weekend as an outage.
+// one is wrong for the other.
 
 // Which part of the trading day a session covers.
 enum SessionKind {

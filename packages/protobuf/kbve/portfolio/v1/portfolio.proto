@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package kbve.asset.v1;
+package kbve.portfolio.v1;
 
 import "google/protobuf/timestamp.proto";
 import "kbve/asset/v1/asset.proto";
@@ -10,10 +10,15 @@ import "kbve/type/v1/id.proto";
 // What somebody actually did, and what it made them.
 //
 // A scan says what was possible. This says what happened, and the two disagree
-// constantly - the price moved between spotting it and filling, the order
+// constantly -- the price moved between spotting it and filling, the order
 // filled partially, the fee was larger than the estimate. Realised profit is
 // the only number here that is not a guess, and it is built from fills rather
 // than from prices.
+//
+// Split from kbve.market.v1 because these are rows one person owns. Market
+// data is public and shared; a flip journal is neither, and a service that
+// serves charts should not have to link the messages that describe who traded
+// what.
 
 // Which way a fill went.
 enum TradeSide {
@@ -30,7 +35,7 @@ enum TradeSide {
 // average silently stops matching it.
 message Fill {
   kbve.type.v1.Ulid id = 1;
-  AssetRef ref = 2;
+  kbve.asset.v1.AssetRef ref = 2;
   TradeSide side = 3;
 
   int64 quantity = 4;
@@ -62,7 +67,7 @@ enum FlipState {
 message Flip {
   kbve.type.v1.Ulid id = 1;
   kbve.type.v1.Ulid owner_id = 2;
-  AssetRef ref = 3;
+  kbve.asset.v1.AssetRef ref = 3;
 
   FlipState state = 4;
 
@@ -94,7 +99,7 @@ message Flip {
 
 // A holding in one asset at one moment.
 message Position {
-  AssetRef ref = 1;
+  kbve.asset.v1.AssetRef ref = 1;
   int64 quantity = 2;
 
   // What the held units cost, per unit, including the fees paid to get them.
@@ -160,9 +165,9 @@ message PerformanceSummary {
   optional int32 return_bps = 10;
 
   optional kbve.common.v1.Decimal best_flip_profit = 11;
-  optional AssetRef best_flip_ref = 12;
+  optional kbve.asset.v1.AssetRef best_flip_ref = 12;
   optional kbve.common.v1.Decimal worst_flip_profit = 13;
-  optional AssetRef worst_flip_ref = 14;
+  optional kbve.asset.v1.AssetRef worst_flip_ref = 14;
 
   optional kbve.common.v1.Decimal avg_profit_per_flip = 15;
   // Typical time from first buy to final sell.
