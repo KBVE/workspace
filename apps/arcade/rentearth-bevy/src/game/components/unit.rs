@@ -1,6 +1,15 @@
-//! Unit entity data.
+//! Unit data.
+//!
+//! Not a `Component`. At the scale this is built for -- a hundred thousand and
+//! upward -- a unit must not be an entity that carries a mesh, a transform and
+//! a visibility computation, because every one of those costs is paid per unit
+//! per frame whether or not anyone can see it. Units live in one array and are
+//! drawn by `systems::units`, which builds geometry only for the ones on
+//! screen. See that module for the argument in full.
 
 use bevy::prelude::*;
+
+use crate::game::core::map::Offset;
 
 /// Which way a unit is bearing.
 ///
@@ -22,25 +31,82 @@ pub enum Action {
     Walk = 1,
 }
 
+/// What a unit is carrying. One bit each, so kit combines freely -- which is
+/// the point of hanging equipment off joints rather than drawing it into a
+/// sprite: a helm and a shield together cost no more art than either alone.
+pub mod equipment {
+    pub const HELM: u32 = 1;
+    pub const SPEAR: u32 = 2;
+    pub const SHIELD: u32 = 4;
+}
+
+/// What a quad in the unit mesh is a picture of.
+pub mod quad_kind {
+    /// A jointed figure.
+    pub const FIGURE: u32 = 0;
+    /// One banner standing for every unit on a tile.
+    pub const BANNER: u32 = 1;
+}
+
 /// A unit on the map.
-#[derive(Component, Clone, Copy, Debug)]
+///
+/// Position is a tile plus an offset inside it, rather than a world point,
+/// because the world wraps. A world point has to be moved into whichever copy
+/// of the world the camera is looking at before it can be drawn, and doing that
+/// to a raw coordinate loses which tile the unit is actually on. Holding the
+/// tile keeps the wrap exact and makes "who is on this hex" a lookup rather
+/// than a search.
+#[derive(Clone, Copy, Debug)]
 pub struct Unit {
+    pub tile: Offset,
+    /// Where it stands within its hex, in world units on the ground plane.
+    pub local: Vec2,
     pub facing: Facing,
     pub action: Action,
-    /// Everything that varies between two units of the same kind: which side
-    /// they are on, and the offset into their own animation so that a stack of
-    /// them does not march in step.
+    pub equipment: u32,
+    /// Which side it belongs to. Its own field rather than something read off
+    /// the seed: the seed sets the animation phase, and taking both from it
+    /// tied a unit's faction to where it happened to be in its walk cycle.
+    pub team: u32,
+    /// This unit's identity -- where it starts in its own animation, so a
+    /// stack of them does not march in step.
     pub seed: f32,
 }
 
+/// Everything but the seed, packed into the one float a vertex carries.
+///
+/// ```text
+/// bits 0-1   facing
+/// bits 2-3   action
+/// bits 4-7   equipment
+/// bits 8-9   team
+/// bit  10    quad kind: figure or banner
+/// ```
+///
+/// Packed rather than spread across more vertex attributes because it is only
+/// ever read together, and because these are small integers: an f32 carries
+/// whole numbers up to 2^24 exactly, so there is a great deal of room left
+/// before this has to become something else.
+pub fn pack(facing: Facing, action: Action, equipment: u32, team: u32, kind: u32) -> f32 {
+    let code = (facing as u32 & 3)
+        | (action as u32 & 3) << 2
+        | (equipment & 15) << 4
+        | (team & 3) << 8
+        | (kind & 1) << 10;
+    code as f32
+}
+
 impl Unit {
-    /// The two floats the shader reads: the seed, and the facing and action
-    /// packed together.
-    ///
-    /// Packed rather than passed as two more attributes because they are only
-    /// ever read together, and because a vertex channel is the cheapest place
-    /// to put per-unit data that changes rarely.
     pub fn packed(self) -> [f32; 2] {
-        [self.seed, self.facing as i32 as f32 + 4.0 * (self.action as i32 as f32)]
+        [
+            self.seed,
+            pack(
+                self.facing,
+                self.action,
+                self.equipment,
+                self.team,
+                quad_kind::FIGURE,
+            ),
+        ]
     }
 }
