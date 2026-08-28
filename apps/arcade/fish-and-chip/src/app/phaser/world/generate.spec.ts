@@ -82,6 +82,22 @@ describe('generateTown', () => {
 		expect(doors).toBeGreaterThan(0);
 	});
 
+	// Standing between two landmarks made "press F" ambiguous, and the scene
+	// picked whichever was first rather than nearest -- so the sign opened the
+	// fishing minigame.
+	it.each(SEEDS)('keeps landmarks apart on seed %i', (seed) => {
+		const map = generateTown({ seed });
+		const spots = Object.entries(map.landmarks);
+
+		for (const [nameA, a] of spots) {
+			for (const [nameB, b] of spots) {
+				if (nameA >= nameB) continue;
+				const apart = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+				expect(apart, `${nameA} and ${nameB}`).toBeGreaterThan(2);
+			}
+		}
+	});
+
 	it.each(SEEDS)('keeps the streets walkable on seed %i', (seed) => {
 		const map = generateTown({ seed });
 		const solid = collidableGids();

@@ -161,16 +161,27 @@ export class TownScene extends Scene {
     }
   }
 
-  /** Whichever landmark the player is standing on or beside, if any. */
+  /**
+   * The nearest landmark the player is standing on or beside, if any.
+   *
+   * Nearest, not first: two landmarks can end up within a tile of each other,
+   * and returning whichever came first in the object meant standing at the sign
+   * opened the fishing minigame.
+   */
   private landmarkUnderPlayer(): keyof TownMap['landmarks'] | null {
     const player = this.gridEngine.getPosition(PLAYER_ID);
-    const near = (spot: Position) =>
-      Math.abs(spot.x - player.x) + Math.abs(spot.y - player.y) <= INTERACT_RANGE;
+    const distance = (spot: Position) =>
+      Math.abs(spot.x - player.x) + Math.abs(spot.y - player.y);
 
+    let closest: { name: keyof TownMap['landmarks']; away: number } | null = null;
     for (const [name, spot] of Object.entries(this.town.landmarks)) {
-      if (near(spot)) return name as keyof TownMap['landmarks'];
+      const away = distance(spot);
+      if (away > INTERACT_RANGE) continue;
+      if (!closest || away < closest.away) {
+        closest = { name: name as keyof TownMap['landmarks'], away };
+      }
     }
-    return null;
+    return closest?.name ?? null;
   }
 
   /**

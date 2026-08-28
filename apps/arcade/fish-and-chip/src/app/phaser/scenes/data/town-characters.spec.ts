@@ -2,7 +2,7 @@ import { ArrayTilemap, Direction, GridEngineHeadless } from 'grid-engine';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { generateTown } from '../../world/generate';
-import { PLAYER_ID, townCharacters } from './town-characters';
+import { PLAYER_ID, PLAYER_SPEED, townCharacters } from './town-characters';
 
 // grid-engine's headless engine takes the same character config the Phaser
 // plugin does, so this checks the config against the real 2.x runtime without a
@@ -34,9 +34,10 @@ describe('town characters', () => {
 		const start = engine.getPosition(PLAYER_ID);
 
 		engine.move(PLAYER_ID, Direction.LEFT);
-		// One tile at the default speed takes 250ms; a single update of that
-		// length is enough to land on the next tile rather than between two.
-		engine.update(0, 250);
+		// A tile takes 1000/speed ms, so the step is derived rather than
+		// hardcoded: this used to assume 250ms, and doubling the walk speed to
+		// make the bigger town crossable moved the player two tiles instead.
+		engine.update(0, 1000 / PLAYER_SPEED);
 
 		expect(engine.getPosition(PLAYER_ID)).toEqual({ x: start.x - 1, y: start.y });
 	});

@@ -238,4 +238,28 @@ test.describe('fish and chip', () => {
 			});
 		}
 	});
+
+	// Crossing the town is the thing that made it feel slow: grid-engine walks
+	// at 4 tiles a second by default, which was fine on the 20x20 map this
+	// replaced. This measures the real thing -- a held key, through Phaser
+	// input, through grid-engine -- rather than asserting on a config value.
+	test('walks fast enough to cross the town', async ({ page }) => {
+		await booted(page);
+		await page.evaluate(() => window.__FISHCHIP_GAME__?.scene.start('TownScene'));
+		await expect.poll(() => activeScenes(page), { timeout: 60_000 }).toContain('TownScene');
+
+		const position = () =>
+			page.evaluate(() => window.__GRID_ENGINE__?.getPosition('player') ?? null);
+		await expect.poll(position).not.toBeNull();
+
+		await page.evaluate(() => window.__GRID_ENGINE__?.setPosition('player', { x: 1, y: 1 }));
+		await page.locator('canvas').click({ position: { x: 10, y: 10 } });
+
+		await page.keyboard.down('d');
+		await page.waitForTimeout(1_000);
+		await page.keyboard.up('d');
+
+		const travelled = (await position())!.x - 1;
+		expect(travelled).toBeGreaterThanOrEqual(5);
+	});
 });

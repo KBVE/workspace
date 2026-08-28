@@ -43,7 +43,7 @@ export type TownOptions = {
 // house out of the authored map is nine tiles wide and seven tall, so a block
 // that fits one is those plus room to walk past it.
 const BLOCK_HEIGHT = PREFABS.building.height + 2;
-const BLOCK_WIDTH = PREFABS.building.width + 3;
+const BLOCK_WIDTH = PREFABS.building.width + 2;
 
 /**
  * mulberry32. Small, seedable, and good enough to choose which lots get built
@@ -80,8 +80,10 @@ function rimAt(x: number, y: number, width: number, height: number): number {
 }
 
 export function generateTown(options: TownOptions): TownMap {
-	const width = options.width ?? 40;
-	const height = options.height ?? 30;
+	// 34x24 rather than 40x30: big enough to hold three rows of houses and still
+	// be crossable on foot without the walk becoming the game.
+	const width = options.width ?? 34;
+	const height = options.height ?? 24;
 	const scatterCount = options.scatter ?? 12;
 	const npcCount = options.npcs ?? 2;
 
@@ -185,18 +187,10 @@ export function generateTown(options: TownOptions): TownMap {
 		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
 	}
 
-	// Three lots are held back for the landmarks. Building on every lot filled
-	// the town nicely and left the sand pit nowhere to go, which the generator
-	// reported as "nowhere to put its landmarks" rather than shipping a town
-	// with no fishing in it.
-	const LANDMARK_LOTS = 3;
-	if (shuffled.length <= LANDMARK_LOTS) {
-		throw new Error(
-			`Seed ${options.seed} has ${shuffled.length} lots, too few to hold both houses and landmarks.`,
-		);
-	}
-	const landmarkLots = shuffled.slice(0, LANDMARK_LOTS);
-	const buildable = shuffled.slice(LANDMARK_LOTS);
+	// Every lot is a house. Landmarks used to take three of them, which on a
+	// smaller town meant three of the four lots went to a sand pit, a sign and
+	// a grave, and one house was left standing in an empty field.
+	const buildable = shuffled;
 	const wanted = Math.min(options.buildings ?? buildable.length, buildable.length);
 
 	/** Stamps a prefab, every layer of it, at a position on the map. */
@@ -246,21 +240,52 @@ export function generateTown(options: TownOptions): TownMap {
 	const landmarks = {} as Record<PointOfInterest, Position>;
 
 	/**
-	 * Puts a piece in a reserved lot, resting on the street the lot faces, and
-	 * returns the tile in front of it to stand on.
+	 * Puts a piece on the south side of a street, and returns the street tile in
+	 * front of it to stand on.
+	 *
+	 * The north side is where the houses face, so this is the strip that would
+	 * otherwise stay empty -- and it means a landmark never costs the town a
+	 * building.
 	 */
-	const placeInLot = (
+	// The building's doorway is a landmark too, so it seeds the spacing list:
+	// without it a grave could end up next to the door and "press F" at either
+	// one became a coin toss.
+	const placed: Position[] = [{ x: doors[0].x, y: doors[0].y + 1 }];
+	/** Landmarks stay this far apart, so standing at one is unambiguous. */
+	const LANDMARK_GAP = 4;
+
+	const placeBelowStreet = (
 		art: readonly (readonly number[])[],
-		lot: Position,
 		prefab?: Prefab,
 	): Position | null => {
-		const street = lot.y + 1 + door.y;
-		const y = street - art.length;
-		const x = lot.x + 1;
-		if (y < 1 || !fits(art, x, y)) return null;
-		if (prefab) place(prefab, x, y);
-		else stamp(art, x, y);
-		return { x: x + Math.floor(art[0].length / 2), y: street };
+		for (let attempt = 0; attempt < 600; attempt++) {
+			const street = streetRows[Math.floor(random() * streetRows.length)];
+			const y = street + 1;
+			const x = 2 + Math.floor(random() * (width - art[0].length - 3));
+			if (y + art.length >= height - 1) continue;
+
+			let clear = true;
+			for (let dy = 0; dy < art.length && clear; dy++) {
+				for (let dx = 0; dx < art[dy].length && clear; dx++) {
+					if (!free(x + dx, y + dy) || onStreet(x + dx, y + dy)) clear = false;
+				}
+			}
+			if (!clear) continue;
+
+			const stand = { x: x + Math.floor(art[0].length / 2), y: street };
+			// Two landmarks within a tile of each other are ambiguous to stand
+			// at, whichever one the scene decides to pick.
+			const crowded = placed.some(
+				(other) => Math.abs(other.x - stand.x) + Math.abs(other.y - stand.y) < LANDMARK_GAP,
+			);
+			if (crowded) continue;
+
+			if (prefab) place(prefab, x, y);
+			else stamp(art, x, y);
+			placed.push(stand);
+			return stand;
+		}
+		return null;
 	};
 
 	const footprintOf = (prefab: Prefab) =>
@@ -274,9 +299,9 @@ export function generateTown(options: TownOptions): TownMap {
 			}),
 		);
 
-	const pit = placeInLot(footprintOf(PREFABS.sandPit), landmarkLots[0], PREFABS.sandPit);
-	const board = placeInLot(footprintOf(PREFABS.noticeBoard), landmarkLots[1], PREFABS.noticeBoard);
-	const grave = placeInLot(DECOR.headstone, landmarkLots[2]);
+	const pit = placeBelowStreet(footprintOf(PREFABS.sandPit), PREFABS.sandPit);
+	const board = placeBelowStreet(footprintOf(PREFABS.noticeBoard), PREFABS.noticeBoard);
+	const grave = placeBelowStreet(DECOR.headstone);
 	if (!pit || !board || !grave) {
 		throw new Error(`Seed ${options.seed} left nowhere to put its landmarks.`);
 	}
