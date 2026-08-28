@@ -106,3 +106,20 @@ describe('cobs framing', () => {
 		}
 	});
 });
+
+describe('PostcardReader.remaining', () => {
+	// Callers use this to tell a truncated frame from a complete one before
+	// reading past the end of it.
+	it('counts down as the reader consumes bytes', () => {
+		const w = new PostcardWriter();
+		w.u8(1);
+		w.u8(2);
+
+		const r = new PostcardReader(w.bytes());
+		expect(r.remaining()).toBe(2);
+		r.u8();
+		expect(r.remaining()).toBe(1);
+		r.u8();
+		expect(r.remaining()).toBe(0);
+	});
+});

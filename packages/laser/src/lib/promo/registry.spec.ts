@@ -45,3 +45,16 @@ describe('AdRegistry', () => {
 		expect(reg.pick()).toBeNull();
 	});
 });
+
+describe('pickAd rounding', () => {
+	// Floating-point accumulation can leave the roll a hair short of the total,
+	// so the loop can finish without having returned. The last ad is the answer
+	// rather than undefined -- a boot screen with a hole in it.
+	it('falls back to the last ad when the roll does not land', () => {
+		const ads = [
+			{ id: 'a', title: 'A', url: 'https://a', weight: 1 },
+			{ id: 'b', title: 'B', url: 'https://b', weight: 1 },
+		];
+		expect(pickAd(ads, () => 1)).toEqual(ads[1]);
+	});
+});

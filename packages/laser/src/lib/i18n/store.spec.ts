@@ -70,3 +70,36 @@ describe('I18nStore', () => {
 		expect(sub).not.toHaveBeenCalled();
 	});
 });
+
+describe('I18nStore introspection', () => {
+	it('lists the locales it holds', () => {
+		const store = new I18nStore({ messages: { en: {}, fr: {} } });
+		expect(store.getLocales()).toEqual(['en', 'fr']);
+	});
+
+	describe('has', () => {
+		const store = new I18nStore({
+			locale: 'fr',
+			fallbackLocale: 'en',
+			messages: { en: { only_en: 'x' }, fr: { only_fr: 'y' } },
+		});
+
+		it('finds a key in the active locale', () => {
+			expect(store.has('only_fr')).toBe(true);
+		});
+
+		// A key present only in the fallback still resolves through t(), so has()
+		// has to agree or a caller guards on it and then renders the fallback.
+		it('finds a key that exists only in the fallback', () => {
+			expect(store.has('only_en')).toBe(true);
+		});
+
+		it('is false for a key in neither', () => {
+			expect(store.has('missing')).toBe(false);
+		});
+
+		it('can be asked about a specific locale', () => {
+			expect(store.has('only_fr', 'en')).toBe(false);
+		});
+	});
+});

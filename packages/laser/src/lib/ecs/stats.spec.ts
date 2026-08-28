@@ -164,3 +164,28 @@ describe('applyStats', () => {
 		expect(hasComponent(world, eid, Health)).toBe(false);
 	});
 });
+
+describe('regenPools skip conditions', () => {
+	// The skip is guarded on `r > 0` so a draining pool is not skipped at full
+	// health -- full is exactly where a poison starts.
+	it('drains a pool that is already at max', () => {
+		const world = createWorld();
+		const eid = addEntity(world);
+		applyStats(world, eid, { hp: 100, maxHp: 100, hpRegen: -10 });
+
+		regenPools(world, 1);
+		expect(HealthPool.value[eid]).toBe(90);
+	});
+
+	// The opposite case, and the one the guard is there to allow: a full,
+	// regenerating pool is skipped rather than re-clamped every tick.
+	it('skips a regenerating pool that has reached max', () => {
+		const world = createWorld();
+		const eid = addEntity(world);
+		applyStats(world, eid, { hp: 100, maxHp: 100, hpRegen: 10 });
+
+		regenPools(world, 1);
+		regenPools(world, 1);
+		expect(HealthPool.value[eid]).toBe(100);
+	});
+});

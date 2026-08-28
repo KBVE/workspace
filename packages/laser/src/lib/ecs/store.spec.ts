@@ -249,3 +249,34 @@ describe('EntityStore lookups', () => {
 		});
 	});
 });
+
+describe('EntityStore tile index edges', () => {
+	it('carries spawn-time effects through to the reader', () => {
+		const store = new EntityStore<Ref>();
+		store.spawn(1, { ...spawnData(0, 0), effects: [{ kind: 'Poison', remaining: 2 } as never] }, { id: 1 });
+		expect(store.effects(1)).toHaveLength(1);
+	});
+
+	// Two entities on one tile share a bucket; despawning the second must not
+	// assume a bucket is still there after the first one emptied it.
+	it('despawns entities sharing a tile in either order', () => {
+		const store = new EntityStore<Ref>();
+		store.spawn(1, spawnData(2, 2), { id: 1 });
+		store.spawn(2, spawnData(2, 2), { id: 2 });
+
+		store.despawn(1);
+		expect(() => store.despawn(2)).not.toThrow();
+		expect(store.at(2, 2, 0)).toBeNull();
+	});
+
+	// Moving an entity clears the old tile's bucket, so the despawn that
+	// follows asks the index to remove it from a tile that no longer has one.
+	it('despawns cleanly after the entity moved off its spawn tile', () => {
+		const store = new EntityStore<Ref>();
+		store.spawn(1, spawnData(2, 2), { id: 1 });
+		store.update(1, { tile: { x: 9, y: 9 } });
+
+		expect(() => store.despawn(1)).not.toThrow();
+		expect(store.at(9, 9, 0)).toBeNull();
+	});
+});

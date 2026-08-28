@@ -215,3 +215,28 @@ describe('RealmChatClient', () => {
 		expect(onClose).toHaveBeenCalledOnce();
 	});
 });
+
+describe('RealmChatClient reconnection', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		FakeSocket.reset();
+		vi.stubGlobal('WebSocket', FakeSocket);
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	// shouldReconnect is re-read on every drop, so it is what decides whether a
+	// session that has lost its token keeps hammering the gateway.
+	it('reconnects after a drop while it still holds a token', () => {
+		const client = new RealmChatClient({ ...options });
+		client.connect();
+		FakeSocket.last.fireOpen();
+		FakeSocket.last.fireClose();
+
+		vi.advanceTimersByTime(5000);
+		expect(FakeSocket.instances.length).toBeGreaterThan(1);
+	});
+});

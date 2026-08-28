@@ -44,3 +44,41 @@ describe('findTilePath', () => {
 		);
 	});
 });
+
+describe('findTilePath limits', () => {
+	const open = () => false;
+
+	// The target is reachable in principle but walled off, so BFS drains its
+	// queue without arriving. That is a different exit from hitting the
+	// exploration cap, and it has to return an empty path rather than walk back
+	// from a node it never reached.
+	it('returns nothing when the start is enclosed', () => {
+		const blocked = (x: number, y: number) =>
+			(Math.abs(x) === 1 && Math.abs(y) <= 1) ||
+			(Math.abs(y) === 1 && Math.abs(x) <= 1);
+
+		expect(findTilePath({ x: 0, y: 0 }, { x: 5, y: 0 }, blocked, 32)).toEqual(
+			[],
+		);
+	});
+
+	// maxLen bounds the walk back as well as the search: a route longer than the
+	// caller allowed is not a shorter answer, it is no answer. The server caps
+	// the same way, so returning a too-long path here would desync prediction.
+	it('returns nothing when the route is longer than maxLen allows', () => {
+		expect(findTilePath({ x: 0, y: 0 }, { x: 7, y: 0 }, open, 6)).toEqual([]);
+	});
+
+	it('returns the route when it fits within maxLen', () => {
+		const path = findTilePath({ x: 0, y: 0 }, { x: 3, y: 0 }, open, 6);
+		expect(path).toHaveLength(3);
+		expect(path.at(-1)).toEqual({ x: 3, y: 0 });
+	});
+
+	it('returns nothing when the target itself is blocked', () => {
+		const blocked = (x: number) => x === 3;
+		expect(findTilePath({ x: 0, y: 0 }, { x: 3, y: 0 }, blocked, 32)).toEqual(
+			[],
+		);
+	});
+});

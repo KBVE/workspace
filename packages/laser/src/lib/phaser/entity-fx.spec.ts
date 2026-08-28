@@ -187,6 +187,28 @@ describe('attachCameraZoom', () => {
 		expect(scene.cameras.main.setZoom).toHaveBeenCalledWith(2);
 	});
 
+	it('zooms out on the minus key and both ways on the wheel', () => {
+		const scene = makeScene();
+		scene.cameras.main.zoom = 1.5;
+		attachCameraZoom(scene as never, { min: 0.5, max: 3, step: 0.5 });
+
+		const key = (name: string) =>
+			scene.input.keyboard.on.mock.calls.find(([e]) => e === name)![1] as () => void;
+		key('keydown-MINUS')();
+		expect(scene.cameras.main.setZoom).toHaveBeenLastCalledWith(1);
+
+		const wheel = scene.input.on.mock.calls.find(
+			([e]) => e === 'wheel',
+		)![1] as (p: unknown, o: unknown, dx: number, dy: number) => void;
+
+		// Scrolling down zooms out, scrolling up zooms in, and the wheel moves
+		// in smaller increments than the keys.
+		wheel(null, null, 0, 1);
+		expect(scene.cameras.main.setZoom).toHaveBeenLastCalledWith(1.125);
+		wheel(null, null, 0, -1);
+		expect(scene.cameras.main.setZoom).toHaveBeenLastCalledWith(1.875);
+	});
+
 	// A scene that restarts calls this again. Without a way to undo it, every
 	// restart adds another set of handlers to the same input plugin and the
 	// zoom step multiplies by the number of restarts.

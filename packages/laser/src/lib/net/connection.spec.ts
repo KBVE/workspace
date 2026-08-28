@@ -140,3 +140,22 @@ describe('ReconnectingSocket', () => {
 		expect(FakeSocket.instances[0].sent).toEqual(['delivered']);
 	});
 });
+
+describe('ReconnectingSocket.connect', () => {
+	// connect() is called by the retry timer as well as by a caller, so it has
+	// to be idempotent while a socket is already up -- otherwise a manual
+	// connect() during a live session opens a second one and orphans the first.
+	it('does nothing when a socket already exists', () => {
+		vi.useFakeTimers();
+		FakeSocket.reset();
+		vi.stubGlobal('WebSocket', FakeSocket);
+
+		const socket = new ReconnectingSocket({ url: 'ws://test' }, {});
+		socket.connect();
+		socket.connect();
+
+		expect(FakeSocket.instances).toHaveLength(1);
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+});

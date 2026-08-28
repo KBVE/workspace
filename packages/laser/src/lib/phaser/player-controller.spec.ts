@@ -361,3 +361,25 @@ describe('PlayerController joystick', () => {
 		expect(gridEngine.move).toHaveBeenCalledExactlyOnceWith('player', 'right');
 	});
 });
+
+describe('PlayerController without a keyboard', () => {
+	// scene.input.keyboard is optional in Phaser -- a game booted with keyboard
+	// input disabled, or a touch-only build, has none. The controller still has
+	// to run its interaction check each frame rather than throwing on a cursor
+	// it never got.
+	it('still checks for nearby objects each frame', () => {
+		const rig = createDrivableScene();
+		(rig.scene.input as { keyboard?: unknown }).keyboard = undefined;
+		const gridEngine = createMockGridEngine();
+
+		const controller = new PlayerController(
+			rig.scene as never,
+			gridEngine,
+			createMockQuadtree(),
+		);
+
+		expect(() => controller.handleMovement()).not.toThrow();
+		expect(gridEngine.move).not.toHaveBeenCalled();
+		expect(gridEngine.getPosition).toHaveBeenCalled();
+	});
+});
