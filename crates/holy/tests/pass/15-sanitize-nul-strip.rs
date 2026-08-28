@@ -13,7 +13,7 @@ fn main() {
         body: "hello\0world\0\0!".into(),
         title: "  embed\0ded  ".into(),
     };
-    p.sanitize();
+    p.sanitize().unwrap();
     assert_eq!(p.body, "helloworld!");
     assert_eq!(p.title, "embedded");
 }

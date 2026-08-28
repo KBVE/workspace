@@ -27,7 +27,7 @@ fn main() {
         // truncate(8) lands inside second emoji → walk back to 4.
         multi_byte_run: "🦀🦀🦀".into(),
     };
-    p.sanitize();
+    p.sanitize().unwrap();
     assert_eq!(p.ascii, "Hello");
     assert_eq!(p.mid_codepoint, "h");
     assert_eq!(p.zero, "");

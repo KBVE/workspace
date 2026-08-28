@@ -12,6 +12,9 @@ rust-version.workspace = true
 
 [dependencies]
 holy-derive = { version = "0.2.2", path = "../holy-derive" }
+# The runtime half. A validate rule is a regex match, and the generated code
+# calls into this crate to run it.
+regex = { workspace = true }
 
 [dev-dependencies]
 # Compile-fail tests: the .stderr fixtures in tests/fail record exact rustc

@@ -15,7 +15,7 @@ fn main() {
 		email: "  test@example.com  ".into(),
 		age: 25,
 	};
-	input.sanitize();
+	input.sanitize().unwrap();
 	assert_eq!(input.username, "hello world");
 	assert_eq!(input.email, "test@example.com");
 	assert_eq!(input.age, 25);

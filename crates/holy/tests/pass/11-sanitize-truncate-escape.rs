@@ -13,7 +13,7 @@ fn main() {
 		title: "Hello World".into(),
 		body: "<b>Hello</b> & \"world\"".into(),
 	};
-	c.sanitize();
+	c.sanitize().unwrap();
 	assert_eq!(c.title, "Hello");
 	assert_eq!(c.body, "&lt;b&gt;Hello&lt;/b&gt; &amp; &quot;world&quot;");
 }

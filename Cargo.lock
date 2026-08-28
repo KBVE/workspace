@@ -5261,6 +5261,7 @@ version = "0.2.2"
 dependencies = [
  "holy-derive",
  "rand 0.10.2",
+ "regex",
  "trybuild",
 ]
 

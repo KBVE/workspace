@@ -90,6 +90,103 @@ fn split_rules(input: &str) -> Vec<String> {
     result
 }
 
+/// Rule names `#[holy(validate = "...")]` accepts.
+///
+/// Checked here so a typo is a compile error pointing at the attribute rather
+/// than a panic from the runtime when that field is first sanitised. The
+/// runtime has the matching arm for each of these.
+const VALIDATE_RULES: &[&str] = &[
+    "captcha_token",
+    "discord_server",
+    "email",
+    "github_url",
+    "hex_code",
+    "non_empty",
+    "service",
+    "ulid",
+    "url",
+    "username",
+];
+
+fn parse_validate_rules(raw: &str, span: proc_macro2::Span) -> Result<Vec<String>, syn::Error> {
+    let mut rules = Vec::new();
+    for token in split_rules(raw) {
+        if !VALIDATE_RULES.contains(&token.as_str()) {
+            return Err(syn::Error::new(
+                span,
+                format!(
+                    "unknown validate rule: '{}'. Known rules: {}",
+                    token,
+                    VALIDATE_RULES.join(", ")
+                ),
+            ));
+        }
+        rules.push(token);
+    }
+    Ok(rules)
+}
+
+/// The `validate_<field>` helper for one field, if it has any validate rules.
+///
+/// Only String and Option<String> can be validated: every rule is a pattern
+/// match over text, and there is no sensible meaning for one over a number.
+/// A None field is skipped rather than rejected -- absent is not the same as
+/// malformed, and `non_empty` on an Option would otherwise mean "required",
+/// which is a different decision than this attribute is making.
+fn process_validators(
+    field: &Field,
+) -> Result<Option<(syn::Ident, proc_macro2::TokenStream)>, syn::Error> {
+    let Some((raw_rules, span)) = get_holy_string_value(&field.attrs, "validate") else {
+        return Ok(None);
+    };
+
+    let field_name = field.ident.as_ref().unwrap().clone();
+    let type_kind = classify_type(&field.ty);
+    let rules = parse_validate_rules(&raw_rules, span)?;
+
+    if rules.is_empty() {
+        return Ok(None);
+    }
+
+    if !matches!(
+        type_kind,
+        FieldTypeKind::String | FieldTypeKind::OptionString
+    ) {
+        return Err(syn::Error::new(
+            span,
+            format!(
+                "validate rules are only valid for String fields, but field '{}' has another type",
+                field_name
+            ),
+        ));
+    }
+
+    let field_label = field_name.to_string();
+    let checks = rules.iter().map(|rule| {
+        quote! {
+            if let Some(__error) = ::holy::validate::check(#rule, #field_label, __value) {
+                __errors.push(__error);
+            }
+        }
+    });
+
+    let body = match type_kind {
+        FieldTypeKind::OptionString => quote! {
+            if let Some(__value) = self.#field_name.as_deref() {
+                #(#checks)*
+            }
+        },
+        _ => quote! {
+            {
+                let __value: &str = self.#field_name.as_str();
+                #(#checks)*
+            }
+        },
+    };
+
+    Ok(Some((field_name, body)))
+}
+
 fn parse_sanitize_rules(
     raw: &str,
     span: proc_macro2::Span,
@@ -366,8 +463,28 @@ pub fn impl_sanitize_macro(ast: &DeriveInput) -> Result<TokenStream, syn::Error>
 
     let mut per_field_methods = Vec::new();
     let mut all_field_calls = Vec::new();
+    let mut validator_methods = Vec::new();
+    let mut validator_calls = Vec::new();
 
     for field in fields.iter() {
+        if let Some((field_name, body)) = process_validators(field)? {
+            let method_name =
+                syn::Ident::new(&format!("validate_{}", field_name), field_name.span());
+            let method_vis = determine_visibility(&field.vis, &field.attrs)?;
+
+            validator_methods.push(quote! {
+                #method_vis fn #method_name(
+                    &self,
+                    __errors: &mut ::std::vec::Vec<::holy::FieldError>,
+                ) {
+                    #body
+                }
+            });
+            validator_calls.push(quote! {
+                self.#method_name(&mut __errors);
+            });
+        }
+
         let Some((field_name, body)) = process_field(field)? else {
             continue;
         };
@@ -392,17 +509,41 @@ pub fn impl_sanitize_macro(ast: &DeriveInput) -> Result<TokenStream, syn::Error>
         });
     }
 
-    if per_field_methods.is_empty() {
+    if per_field_methods.is_empty() && validator_methods.is_empty() {
         return Ok(TokenStream::from(quote! {}));
     }
 
+    // Cleaning runs before checking, always. A rule set like
+    // `sanitize = "trim", validate = "non_empty"` is only meaningful in that
+    // order: a field of spaces has to be trimmed before it can be recognised
+    // as empty.
+    //
+    // Every field is checked before returning rather than stopping at the
+    // first failure, so a caller gets the whole list at once.
+    //
+    // The signature is a Result even for a struct that has no validate rules
+    // yet. That way adding one later is a change to the struct and not to
+    // every call site that sanitises it.
     let expanded = quote! {
         impl #impl_generics #struct_name #ty_generics #where_clause {
-            pub fn sanitize(&mut self) {
+            pub fn sanitize(
+                &mut self,
+            ) -> ::core::result::Result<(), ::std::vec::Vec<::holy::FieldError>> {
                 #(#all_field_calls)*
+
+                #[allow(unused_mut)]
+                let mut __errors = ::std::vec::Vec::new();
+                #(#validator_calls)*
+
+                if __errors.is_empty() {
+                    ::core::result::Result::Ok(())
+                } else {
+                    ::core::result::Result::Err(__errors)
+                }
             }
 
             #(#per_field_methods)*
+            #(#validator_methods)*
         }
     };
 

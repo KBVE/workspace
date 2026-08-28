@@ -12,7 +12,7 @@ fn main() {
     let dirty: String =
         format!("\u{FEFF}  Welcome\u{200B} to\u{202E}reverse\u{200D}!\u{0007}  \n  ",);
     let mut p = Payload { title: dirty };
-    p.sanitize();
+    p.sanitize().unwrap();
     // Newline + bell + bidi + zero-width + BOM all gone; trim removes
     // surrounding whitespace.
     assert_eq!(p.title, "Welcome toreverse!");

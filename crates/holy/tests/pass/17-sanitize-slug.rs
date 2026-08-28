@@ -22,7 +22,7 @@ fn main() {
         d: "@h0ly_byte".into(),
         e: "".into(),
     };
-    p.sanitize();
+    p.sanitize().unwrap();
     assert_eq!(p.a, "hello-world");
     assert_eq!(p.b, "weird-slug");
     assert_eq!(p.c, "alreadyclean");

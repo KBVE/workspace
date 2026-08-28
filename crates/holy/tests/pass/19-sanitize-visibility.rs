@@ -37,7 +37,7 @@ mod inner {
 
 fn main() {
     let mut p = inner::Payload::new("  hi  ", "MIXED", "lower");
-    p.sanitize();
+    p.sanitize().unwrap();
     p.sanitize_a();
     p.sanitize_c();
     assert_eq!(p.a, "hi");

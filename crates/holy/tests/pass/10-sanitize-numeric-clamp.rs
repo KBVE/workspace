@@ -13,7 +13,7 @@ fn main() {
 		value: 150,
 		ratio: -0.5,
 	};
-	s.sanitize();
+	s.sanitize().unwrap();
 	assert_eq!(s.value, 100);
 	assert!((s.ratio - 0.0).abs() < f64::EPSILON);
 }

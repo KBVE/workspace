@@ -19,7 +19,7 @@ fn main() {
         bio: Some("  Hello\u{200B}World  ".into()),
         handle: Some("  My Cool Handle!! ".into()),
     };
-    p.sanitize();
+    p.sanitize().unwrap();
     assert_eq!(p.username, "alice");
     assert_eq!(p.bio.as_deref(), Some("HelloWorld"));
     assert_eq!(p.handle.as_deref(), Some("my-cool-handle"));
@@ -30,7 +30,7 @@ fn main() {
         bio: None,
         handle: None,
     };
-    p2.sanitize();
+    p2.sanitize().unwrap();
     assert_eq!(p2.bio, None);
     assert_eq!(p2.handle, None);
 
