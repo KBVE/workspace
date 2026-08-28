@@ -183,6 +183,21 @@ for (const p of content.passengers) {
   }
 }
 
+// &body -> the mystery needs exactly one, and it is the kind of mistake that
+//          reads as a plot hole rather than a bug: a second victim quietly
+//          becomes whoever the UI happens to list first, and none at all leaves
+//          seven people with alibis for nothing.
+const victims = content.passengers.filter((p) => p.victim);
+if (victims.length !== 1) {
+  throw new Error(
+    `expected exactly one passenger with victim: true, found ${victims.length}`
+    + (victims.length ? ` (${victims.map((p) => p.id).join(', ')})` : ''),
+  );
+}
+if (victims[0].suspect) {
+  throw new Error(`${victims[0].source}: the victim cannot also be a suspect`);
+}
+
 /**
  * &vocab -> the locations collection IS the location vocabulary, so every place
  *           a location is named gets checked against it. A room renamed in

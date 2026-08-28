@@ -82,6 +82,16 @@ export const passenger = z.object({
   /** Where they are found when nothing else has moved them. */
   location: locationId,
   suspect: z.boolean().default(false),
+  /**
+   * The one this is all about. A victim is a passenger and not a collection of
+   * their own: they bought a ticket, they have a berth, and their timeline runs
+   * like anyone's until it stops. What makes them the victim is that it stops.
+   *
+   * &exclusive -> gen-content enforces exactly one, and that they are not also a
+   *           suspect. Two bodies is a different game and nobody murders
+   *           themselves in this one.
+   */
+  victim: z.boolean().default(false),
   /** Short, playable descriptors an NPC system can branch on. */
   traits: z.array(z.string()).default([]),
   relationships: z

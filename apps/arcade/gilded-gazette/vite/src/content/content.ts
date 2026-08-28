@@ -42,6 +42,8 @@ export interface Passenger extends Prose {
   boarded: { at: string; where: string };
   location: LocationId;
   suspect: boolean;
+  /** The one this is all about. Exactly one passenger carries it. */
+  victim: boolean;
   traits: string[];
   relationships: { who: string; tie: string }[];
 
