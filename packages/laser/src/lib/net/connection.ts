@@ -63,6 +63,13 @@ export function defaultCloseReason(
 
 export class ReconnectingSocket {
 	private ws: WebSocket | null = null;
+	/**
+	 * Scopes one attempt's listeners. close() aborts it, which detaches them
+	 * before the browser delivers the socket's own close event -- otherwise
+	 * that event reports the shutdown a second time, on top of the one close()
+	 * already reported, and every consumer tears down twice.
+	 */
+	private attempt: AbortController | null = null;
 	private closed = false;
 	private attempts = 0;
 	private everOpened = false;
@@ -112,73 +119,101 @@ export class ReconnectingSocket {
 			reason: this.state.reason,
 		});
 
-		const url =
-			typeof this.opts.url === 'function'
-				? this.opts.url()
-				: this.opts.url;
-		const ws = new WebSocket(url);
+		// Aborting the previous attempt's controller before replacing it keeps a
+		// socket that failed to open from holding listeners for the life of the
+		// client.
+		this.attempt?.abort();
+		this.attempt = new AbortController();
+		const { signal } = this.attempt;
+
+		let ws: WebSocket;
+		try {
+			const url =
+				typeof this.opts.url === 'function'
+					? this.opts.url()
+					: this.opts.url;
+			ws = new WebSocket(url);
+		} catch (error) {
+			// The URL may come from a factory, which exists so a token can be
+			// refreshed per attempt -- so it can hand back something the
+			// WebSocket constructor rejects. Left to escape, this attempt would
+			// end with no socket, no close event and no retry timer: the state
+			// stays 'connecting' forever with nothing alive to move it.
+			this.onAttemptEnded(
+				error instanceof Error ? error.message : String(error),
+			);
+			return;
+		}
+
 		// Binary frames (postcard) arrive as ArrayBuffer rather than Blob, so the
 		// message handler can decode them synchronously.
 		ws.binaryType = 'arraybuffer';
 		this.ws = ws;
 
-		ws.addEventListener('open', () => {
-			this.attempts = 0;
-			this.everOpened = true;
-			this.setState({ status: 'connected', attempts: 0 });
-			this.handlers.onOpen?.(ws);
-		});
-		ws.addEventListener('message', (ev: MessageEvent) =>
-			this.handlers.onMessage?.(ev),
+		ws.addEventListener(
+			'open',
+			() => {
+				this.attempts = 0;
+				this.everOpened = true;
+				this.setState({ status: 'connected', attempts: 0 });
+				this.handlers.onOpen?.(ws);
+			},
+			{ signal },
 		);
-		ws.addEventListener('close', (ev: CloseEvent) => {
-			this.ws = null;
-			const reason = this.opts.closeReason!(
-				ev.code,
-				ev.reason,
-				this.everOpened,
-			);
-			if (this.closed) {
-				this.setState({ status: 'closed', attempts: this.attempts });
-				return;
-			}
-			if (this.opts.shouldReconnect && !this.opts.shouldReconnect()) {
-				this.setState({
-					status: 'closed',
-					attempts: this.attempts,
-					reason,
-				});
-				return;
-			}
-			this.attempts += 1;
-			if (
-				this.opts.maxAttempts > 0 &&
-				this.attempts > this.opts.maxAttempts
-			) {
-				this.setState({
-					status: 'closed',
-					attempts: this.attempts,
-					reason,
-				});
-				return;
-			}
-			const delay = Math.min(
-				this.opts.baseDelayMs * 2 ** (this.attempts - 1),
-				this.opts.maxDelayMs,
-			);
-			this.setState({
-				status: 'reconnecting',
-				attempts: this.attempts,
-				reason,
-				nextRetryMs: delay,
-			});
-			this.timer = window.setTimeout(() => this.connect(), delay);
+		ws.addEventListener(
+			'message',
+			(ev: MessageEvent) => this.handlers.onMessage?.(ev),
+			{ signal },
+		);
+		ws.addEventListener(
+			'close',
+			(ev: CloseEvent) => {
+				this.ws = null;
+				this.onAttemptEnded(
+					this.opts.closeReason!(ev.code, ev.reason, this.everOpened),
+				);
+			},
+			{ signal },
+		);
+	}
+
+	/**
+	 * One attempt is over, for any reason short of a deliberate close: decide
+	 * between retrying and going terminal. Shared by the close event and by a
+	 * constructor that threw, because the two failures are the same event as
+	 * far as a caller is concerned.
+	 */
+	private onAttemptEnded(reason: string): void {
+		if (this.opts.shouldReconnect && !this.opts.shouldReconnect()) {
+			this.setState({ status: 'closed', attempts: this.attempts, reason });
+			return;
+		}
+		this.attempts += 1;
+		if (this.opts.maxAttempts > 0 && this.attempts > this.opts.maxAttempts) {
+			this.setState({ status: 'closed', attempts: this.attempts, reason });
+			return;
+		}
+		const delay = Math.min(
+			this.opts.baseDelayMs * 2 ** (this.attempts - 1),
+			this.opts.maxDelayMs,
+		);
+		this.setState({
+			status: 'reconnecting',
+			attempts: this.attempts,
+			reason,
+			nextRetryMs: delay,
 		});
+		this.timer = window.setTimeout(() => this.connect(), delay);
 	}
 
 	close(): void {
 		this.closed = true;
 		window.clearTimeout(this.timer);
+		// Detach before closing. The browser delivers a close event for a socket
+		// it was told to close, and handling it would report the shutdown a
+		// second time on top of the setState below.
+		this.attempt?.abort();
+		this.attempt = null;
 		this.ws?.close();
 		this.ws = null;
 		this.setState({ status: 'closed', attempts: this.attempts });

@@ -175,7 +175,17 @@ export class GameClient {
 		let msg: ServerEvent;
 		try {
 			msg = decodeServerEvent(new Uint8Array(ev.data));
-		} catch {
+		} catch (err) {
+			// A frame the client cannot decode means the two sides disagree
+			// about the wire format, which is the single most useful thing a
+			// consumer can be told and the hardest to discover otherwise. The
+			// connection is left alone: one bad frame is not a reason to drop a
+			// session that is otherwise healthy.
+			this.bus.emit(
+				'error',
+				`undecodable server frame (${ev.data.byteLength} bytes): ` +
+					`${err instanceof Error ? err.message : String(err)}`,
+			);
 			return;
 		}
 		if ('Welcome' in msg) this.bus.emit('welcome', msg.Welcome);

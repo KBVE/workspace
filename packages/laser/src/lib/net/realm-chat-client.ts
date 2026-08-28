@@ -99,7 +99,15 @@ export class RealmChatClient {
 			frame = JSON.parse(
 				typeof ev.data === 'string' ? ev.data : String(ev.data),
 			);
-		} catch {
+		} catch (err) {
+			// Surfaced rather than swallowed: the gateway sending something
+			// that is not a gamechat frame is a deployment mismatch, and a chat
+			// window that silently shows nothing is indistinguishable from a
+			// quiet channel.
+			this.bus.emit(
+				'error',
+				`undecodable chat frame: ${err instanceof Error ? err.message : String(err)}`,
+			);
 			return;
 		}
 		if (frame.kind !== GAMECHAT_KIND_CHAT) return;
