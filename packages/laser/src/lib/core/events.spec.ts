@@ -147,3 +147,91 @@ describe('LaserEventBus', () => {
 		expect(bus.eventNames()).toContain('ping');
 	});
 });
+
+describe('LaserEventBus debug', () => {
+	it('keeps a bounded history once one is asked for', () => {
+		const bus = new LaserEventBus<TestEvents>();
+		bus.setDebug({ historySize: 2 });
+
+		bus.emit('ping', { value: 1 });
+		bus.emit('ping', { value: 2 });
+		bus.emit('ping', { value: 3 });
+
+		expect(bus.getHistory().map((r) => r.data)).toEqual([
+			{ value: 2 },
+			{ value: 3 },
+		]);
+	});
+
+	it('records nothing until a history is asked for', () => {
+		const bus = new LaserEventBus<TestEvents>();
+		bus.emit('ping', { value: 1 });
+		expect(bus.getHistory()).toEqual([]);
+	});
+
+	// Shrinking the size has to drop what is already held, or the bound is only
+	// enforced for events that arrive after the call.
+	it('trims an existing history when the size shrinks', () => {
+		const bus = new LaserEventBus<TestEvents>();
+		bus.setDebug({ historySize: 5 });
+		for (let i = 0; i < 5; i++) bus.emit('ping', { value: i });
+
+		bus.setDebug({ historySize: 2 });
+		expect(bus.getHistory().map((r) => r.data)).toEqual([
+			{ value: 3 },
+			{ value: 4 },
+		]);
+	});
+
+	it('traces to the console when tracing is on', () => {
+		const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+		const bus = new LaserEventBus<TestEvents>();
+
+		bus.setDebug({ trace: true });
+		bus.emit('ping', { value: 1 });
+		expect(debug).toHaveBeenCalledWith('[laser] ping', { value: 1 });
+
+		bus.setDebug({ trace: false });
+		debug.mockClear();
+		bus.emit('ping', { value: 2 });
+		expect(debug).not.toHaveBeenCalled();
+
+		debug.mockRestore();
+	});
+
+	it('dumps the history for a human', () => {
+		const table = vi.spyOn(console, 'table').mockImplementation(() => {});
+		const bus = new LaserEventBus<TestEvents>();
+		bus.setDebug({ historySize: 1 });
+		bus.emit('ping', { value: 1 });
+
+		bus.dumpHistory();
+		expect(table).toHaveBeenCalled();
+		table.mockRestore();
+	});
+
+	it('clears the history along with the handlers', () => {
+		const bus = new LaserEventBus<TestEvents>();
+		bus.setDebug({ historySize: 2 });
+		bus.emit('ping', { value: 1 });
+
+		bus.clear();
+		expect(bus.getHistory()).toEqual([]);
+	});
+
+	it('unsubscribes an error handler', () => {
+		const bus = new LaserEventBus<TestEvents>();
+		const onError = vi.fn();
+		const off = bus.onError(onError);
+
+		bus.on('ping', () => {
+			throw new Error('boom');
+		});
+		bus.emit('ping', { value: 1 });
+		expect(onError).toHaveBeenCalledOnce();
+
+		off();
+		bus.emit('ping', { value: 2 });
+		expect(onError).toHaveBeenCalledOnce();
+	});
+});

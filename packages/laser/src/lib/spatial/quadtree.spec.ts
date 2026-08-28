@@ -154,3 +154,51 @@ describe('Quadtree', () => {
 		expect(found[0].name).toBe('range0');
 	});
 });
+
+describe('subdivision', () => {
+	const box = (x: number, y: number, size = 1) => ({
+		bounds: { xMin: x, yMin: y, xMax: x + size, yMax: y + size },
+	});
+
+	// Past capacity the node splits and hands each range to whichever child
+	// fully contains it. Nothing exercised the child branches before this, so a
+	// quadrant wired to the wrong sibling would have gone unnoticed.
+	it('pushes overflow into the quadrant that contains it', () => {
+		const tree = new Quadtree(
+			{ xMin: 0, yMin: 0, xMax: 100, yMax: 100 },
+			1,
+		);
+
+		const corners = [box(1, 1), box(90, 1), box(1, 90), box(90, 90)];
+		for (const c of corners) expect(tree.insert(c as never)).toBe(true);
+
+		// Each corner comes back from a query of its own quadrant alone.
+		for (const c of corners) {
+			const found = tree.queryRange(c.bounds);
+			expect(found).toHaveLength(1);
+		}
+		expect(tree.queryRange({ xMin: 0, yMin: 0, xMax: 100, yMax: 100 })).toHaveLength(
+			4,
+		);
+	});
+
+	// A range straddling the centre fits in no child, and the root is already at
+	// capacity, so there is nowhere for it to go. Reporting that is the point:
+	// silently dropping it would lose an entity from the index.
+	it('refuses a range that fits in no quadrant once full', () => {
+		const tree = new Quadtree({ xMin: 0, yMin: 0, xMax: 100, yMax: 100 }, 1);
+		expect(tree.insert(box(1, 1) as never)).toBe(true);
+
+		const straddling = { bounds: { xMin: 10, yMin: 10, xMax: 90, yMax: 90 } };
+		expect(tree.insert(straddling as never)).toBe(false);
+	});
+
+	it('returns nothing for a query outside its bounds', () => {
+		const tree = new Quadtree({ xMin: 0, yMin: 0, xMax: 10, yMax: 10 }, 4);
+		tree.insert(box(1, 1) as never);
+
+		expect(
+			tree.queryRange({ xMin: 500, yMin: 500, xMax: 600, yMax: 600 }),
+		).toEqual([]);
+	});
+});

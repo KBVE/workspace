@@ -162,3 +162,202 @@ describe('PlayerController', () => {
 		expect(tooltipMock.setVisible).toHaveBeenCalledWith(false);
 	});
 });
+
+/**
+ * A scene whose cursor keys and WASD keys a test can hold down. The factory
+ * above hands out a fresh cursor object per call, which is right for the
+ * construction tests and no use for driving movement.
+ */
+function createDrivableScene() {
+	const cursors = {
+		up: { isDown: false },
+		down: { isDown: false },
+		left: { isDown: false },
+		right: { isDown: false },
+	};
+	const wasd: Record<number, { isDown: boolean }> = {
+		87: { isDown: false },
+		65: { isDown: false },
+		83: { isDown: false },
+		68: { isDown: false },
+	};
+	const fKey = { isDown: false };
+	return {
+		cursors,
+		wasd,
+		scene: {
+			input: {
+				on: vi.fn(),
+				off: vi.fn(),
+				keyboard: {
+					createCursorKeys: () => cursors,
+					addKey: vi.fn((code: number) => wasd[code] ?? fKey),
+				},
+			},
+			scale: { height: 600 },
+			add: {
+				text: vi.fn().mockReturnValue({
+					setDepth: vi.fn().mockReturnThis(),
+					setPadding: vi.fn().mockReturnThis(),
+					setVisible: vi.fn().mockReturnThis(),
+					setPosition: vi.fn().mockReturnThis(),
+				}),
+				// Each call has to yield its own Arc carrying the coordinates it
+				// was given: VirtualJoystick measures a pointer against base.x,
+				// so a shared stub at the origin puts every touch out of reach.
+				circle: vi.fn((x: number, y: number) => ({
+					x,
+					y,
+					setDepth: vi.fn().mockReturnThis(),
+					setScrollFactor: vi.fn().mockReturnThis(),
+					setVisible: vi.fn().mockReturnThis(),
+					destroy: vi.fn(),
+					setPosition: vi.fn(function (
+						this: { x: number; y: number },
+						nx: number,
+						ny: number,
+					) {
+						this.x = nx;
+						this.y = ny;
+						return this;
+					}),
+				})),
+			},
+		},
+	};
+}
+
+describe('PlayerController movement', () => {
+	// Eight directions, each reachable by arrows or by WASD, and the diagonals
+	// are checked before the cardinals -- so a wrong order turns a diagonal into
+	// whichever cardinal the chain happens to reach first. The keys tell the
+	// whole story, and none of these branches ran before.
+	const cases: [string, string[], string][] = [
+		['left arrow', ['left'], 'left'],
+		['right arrow', ['right'], 'right'],
+		['up arrow', ['up'], 'up'],
+		['down arrow', ['down'], 'down'],
+		['left+up', ['left', 'up'], 'up-left'],
+		['left+down', ['left', 'down'], 'down-left'],
+		['right+up', ['right', 'up'], 'up-right'],
+		['right+down', ['right', 'down'], 'down-right'],
+	];
+
+	const wasdFor: Record<string, number> = { left: 65, right: 68, up: 87, down: 83 };
+
+	it.each(cases)('moves on %s', (_name, keys, direction) => {
+		const rig = createDrivableScene();
+		const gridEngine = createMockGridEngine();
+		const controller = new PlayerController(
+			rig.scene as never,
+			gridEngine,
+			createMockQuadtree(),
+		);
+
+		for (const key of keys) {
+			rig.cursors[key as 'left'].isDown = true;
+		}
+		controller.handleMovement();
+		expect(gridEngine.move).toHaveBeenCalledWith('player', direction);
+	});
+
+	it.each(cases)('moves on %s held on WASD instead', (_name, keys, direction) => {
+		const rig = createDrivableScene();
+		const gridEngine = createMockGridEngine();
+		const controller = new PlayerController(
+			rig.scene as never,
+			gridEngine,
+			createMockQuadtree(),
+		);
+
+		for (const key of keys) {
+			rig.wasd[wasdFor[key]].isDown = true;
+		}
+		controller.handleMovement();
+		expect(gridEngine.move).toHaveBeenCalledWith('player', direction);
+	});
+
+	it('moves nowhere with nothing held', () => {
+		const rig = createDrivableScene();
+		const gridEngine = createMockGridEngine();
+		new PlayerController(
+			rig.scene as never,
+			gridEngine,
+			createMockQuadtree(),
+		).handleMovement();
+
+		expect(gridEngine.move).not.toHaveBeenCalled();
+	});
+});
+
+describe('PlayerController joystick', () => {
+	it('is off unless asked for', () => {
+		const rig = createDrivableScene();
+		new PlayerController(rig.scene as never, createMockGridEngine(), createMockQuadtree());
+		expect(rig.scene.add.circle).not.toHaveBeenCalled();
+	});
+
+	it('takes a config object through', () => {
+		const rig = createDrivableScene();
+		new PlayerController(
+			rig.scene as never,
+			createMockGridEngine(),
+			createMockQuadtree(),
+			{ joystick: { radius: 80, x: 10, y: 20 } },
+		);
+		expect(rig.scene.add.circle).toHaveBeenCalledWith(
+			10,
+			20,
+			80,
+			expect.anything(),
+			expect.anything(),
+		);
+	});
+
+	it('takes `true` as "default config"', () => {
+		const rig = createDrivableScene();
+		new PlayerController(
+			rig.scene as never,
+			createMockGridEngine(),
+			createMockQuadtree(),
+			{ joystick: true },
+		);
+		expect(rig.scene.add.circle).toHaveBeenCalledWith(
+			120,
+			480,
+			60,
+			expect.anything(),
+			expect.anything(),
+		);
+	});
+
+	// On a phone the stick is the input; a keyboard key held at the same time
+	// must not fight it for the same frame.
+	it('wins over the keyboard while it is active', () => {
+		const rig = createDrivableScene();
+		const gridEngine = createMockGridEngine();
+		const controller = new PlayerController(
+			rig.scene as never,
+			gridEngine,
+			createMockQuadtree(),
+			{ joystick: true },
+		);
+
+		const pointerdown = rig.scene.input.on.mock.calls.find(
+			([e]) => e === 'pointerdown',
+		)![1] as (p: unknown) => void;
+		const pointermove = rig.scene.input.on.mock.calls.find(
+			([e]) => e === 'pointermove',
+		)![1] as (p: unknown) => void;
+
+		const pointer = { x: 120, y: 480 };
+		pointerdown(pointer);
+		pointer.x = 200;
+		pointermove(pointer);
+
+		rig.cursors.up.isDown = true;
+		controller.handleMovement();
+
+		expect(gridEngine.move).toHaveBeenCalledExactlyOnceWith('player', 'right');
+	});
+});
