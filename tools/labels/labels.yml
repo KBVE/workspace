@@ -46,9 +46,14 @@ kind:
   - name: 'kind/chore'
     color: 'c5def5'
     description: 'Dependencies, CI, tooling, housekeeping'
+    supersedes: 'upgrade'
   - name: 'kind/plan'
     color: 'fbca04'
     description: 'Design or proposal. No code yet'
+  - name: 'kind/question'
+    color: 'd876e3'
+    description: 'Needs an answer before it can be scoped'
+    supersedes: 'question'
 
 # Where the work is stuck. Deliberately short: GitHub already models assignee,
 # milestone, and review state, and a status label that duplicates one of those
@@ -63,6 +68,20 @@ status:
   - name: 'status/in-progress'
     color: 'fef2c0'
     description: 'Someone is actively on this'
+  # Terminal states. Not kinds -- they say why nobody is working on it, which is
+  # the same question the rest of this family answers.
+  - name: 'status/duplicate'
+    color: 'cfd3d7'
+    description: 'Already tracked elsewhere'
+    supersedes: 'duplicate'
+  - name: 'status/invalid'
+    color: 'e4e669'
+    description: 'Not a real problem, or not reproducible'
+    supersedes: 'invalid'
+  - name: 'status/wontfix'
+    color: 'ffffff'
+    description: 'Understood and deliberately not being fixed'
+    supersedes: 'wontfix'
 
 # Where the work is, by top-level group. Mirrors the project globs in
 # .moon/workspace.yml.
@@ -125,3 +144,41 @@ tag:
   - name: 'tag/windmill'
     color: 'd4c5f9'
     description: 'Windmill scripts and flows'
+
+# Severity, kept under its original bare names rather than prefixed. Declared
+# here so the sync owns their colours and descriptions; it is the one family
+# that does not carry a prefix.
+level:
+  - name: '0'
+    color: 'fbca04'
+    description: 'Neutral Level'
+  - name: '1'
+    color: 'e7ba04'
+    description: 'Level 1'
+  - name: '2'
+    color: 'c49d03'
+    description: 'Level 2'
+  - name: '3'
+    color: 'c98003'
+    description: 'Level 3'
+  - name: '4'
+    color: 'c97d03'
+    description: 'Level 4'
+  - name: '5'
+    color: 'd93f0b'
+    description: 'Level 5'
+  - name: '6'
+    color: 'b60205'
+    description: 'Level 6'
+
+# The only labels the sync deletes, and only ones named here. Both are calls for
+# outside contribution, which this repository does not take -- the work arrives
+# from the user or an agent, not from a drive-by.
+#
+# Deleting is deliberate and bounded on purpose: everything not declared above
+# and not listed here is reported as unmanaged and left alone.
+retire:
+  - name: 'help'
+    description: 'Contribution signal with no audience here'
+  - name: 'good first issue'
+    description: 'Contribution signal with no audience here'

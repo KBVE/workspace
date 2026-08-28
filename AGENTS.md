@@ -99,10 +99,13 @@ repository uses. Four families, prefixed so GitHub's substring picker can
 narrow to one:
 
 - `kind/*` — what the work is (`bug`, `feature`, `security`, `refactor`,
-  `docs`, `test`, `chore`, `plan`)
-- `status/*` — where it is stuck (`needs-triage`, `blocked`, `in-progress`)
+  `docs`, `test`, `chore`, `plan`, `question`)
+- `status/*` — why it is not moving (`needs-triage`, `blocked`, `in-progress`,
+  and the terminal `duplicate`, `invalid`, `wontfix`)
 - `area/*` — which top-level group it touches
 - `tag/*` — the moon tag vocabulary
+- `0`–`6` — severity, kept under its original bare names. The one family
+  without a prefix
 
 `area/*` and `tag/*` are not applied by hand-maintained lists of projects:
 `tools/labels/sync.mjs` reads the moon project graph, so adding `tags: ['npm']`
@@ -124,7 +127,8 @@ node tools/labels/sync.mjs --apply
 Adding a tag is two deliberate lines: the entry in `labels.yml` and the
 `moon.yml` that uses it. Either alone fails the check or is reported as dead.
 
-The sync never deletes. Where a declared label has an older synonym already on
+The sync deletes only what `labels.yml` lists under `retire`, which is two
+contribution signals this repository has no audience for. Where a declared label has an older synonym already on
 GitHub, `supersedes` in `labels.yml` makes the sync **rename** it — `bug`
 becomes `kind/bug` — so the label and anything filed under it survive and the
 duplicate spelling stops existing. Everything else it does not describe is

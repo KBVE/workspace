@@ -49,7 +49,11 @@ const sh = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', maxBuffer:
 
 function main() {
   const families = parseLabels(readFileSync(join(HERE, 'labels.yml'), 'utf8'))
-  const declared = Object.values(families).flat()
+  // 'retire' is not a family of labels this repository has; it is the list of
+  // names it is allowed to delete. Kept in the same file so the whole
+  // vocabulary, including what was dropped and why, reads as one document.
+  const { retire: retiring = [], ...keep } = families
+  const declared = Object.values(keep).flat()
   const declaredTags = new Set((families.tag ?? []).map((l) => l.name.slice('tag/'.length)))
   const declaredAreas = new Set((families.area ?? []).map((l) => l.name.slice('area/'.length)))
 
@@ -112,8 +116,12 @@ function main() {
       })
     : []
   const superseded = new Set(renames.map((l) => l.supersedes))
+  const retire = existing ? retiring.filter((l) => existing.has(l.name)) : []
+  const retiringNames = new Set(retire.map((l) => l.name))
   const unmanaged = existing
-    ? [...existing.keys()].filter((n) => !declared.some((l) => l.name === n) && !superseded.has(n))
+    ? [...existing.keys()].filter(
+        (n) => !declared.some((l) => l.name === n) && !superseded.has(n) && !retiringNames.has(n),
+      )
     : []
 
   const apply = process.argv.includes('--apply')
@@ -136,6 +144,10 @@ function main() {
       sh('gh', ['label', 'create', l.name, '--color', norm(l.color), '--description', l.description ?? ''])
       console.log(`created ${l.name}`)
     }
+    for (const l of retire) {
+      sh('gh', ['label', 'delete', l.name, '--yes'])
+      console.log(`deleted ${l.name}`)
+    }
     for (const l of wrong) {
       sh('gh', ['label', 'edit', l.name, '--color', norm(l.color), '--description', l.description ?? ''])
       console.log(`updated ${l.name}`)
@@ -143,6 +155,7 @@ function main() {
   } else {
     for (const l of renames) console.log(`would rename ${l.supersedes} -> ${l.name}`)
     for (const l of missing) console.log(`would create ${l.name}`)
+    for (const l of retire) console.log(`would delete ${l.name} -- ${l.description ?? 'retired'}`)
     for (const l of wrong) console.log(`would update ${l.name}`)
   }
 
@@ -154,7 +167,7 @@ function main() {
   console.log(
     existing
       ? `\n${declared.length} declared, ${renames.length} to rename, ${missing.length} to create, ` +
-          `${wrong.length} to correct, ${unmanaged.length} unmanaged.`
+          `${wrong.length} to correct, ${retire.length} to delete, ${unmanaged.length} unmanaged.`
       : `\n${declared.length} declared. Graph checked; GitHub not compared.`,
   )
 
