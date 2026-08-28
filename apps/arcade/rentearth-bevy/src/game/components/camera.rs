@@ -45,8 +45,7 @@ impl CameraRig {
     /// `TREE_HEIGHT / zoom` logical pixels, and the atlas's 144-texel cell is
     /// drawn at `144 * zoom / (TREE_HEIGHT * scale_factor)` texels per physical
     /// pixel. At `TREE_HEIGHT = 36` on a 2x display that is `2 * zoom`, so
-    /// these four levels give 1, 2, 4 and 8 -- one per level of the mip chain,
-    /// which is why there are four of each.
+    /// these levels give a half, then 1, 2, 4 and 8.
     ///
     /// Powers of two are the whole point. At any other ratio the sampler sits
     /// between two mip levels and blends both, and the pixel art is soft at
@@ -54,13 +53,22 @@ impl CameraRig {
     /// four arbitrary levels and bought nothing: the ratio was a constant 3,
     /// so every level blended 58/42 rather than landing anywhere.
     ///
+    /// The closest level is under one texel per pixel, which is magnification
+    /// rather than minification -- no mip is involved and the sampler is
+    /// `Nearest`, so it draws each texel as a clean block of four. Levels in
+    /// that direction are free. Levels in the other direction are not: each one
+    /// needs another mip, and the atlas packs its jungle trees 63 texels into a
+    /// 64-texel cell, so a fifth halving would start averaging neighbouring
+    /// trees into each other. Going further out means generating the chain per
+    /// cell rather than across the whole atlas.
+    ///
     /// The cost is that zoom is now tied to the window: a bigger window shows
     /// more map rather than showing it larger. That is the usual bargain for
     /// pixel art, and it is what makes the alignment hold at all -- the ratio
     /// depends on the window's pixel height, so nothing that ignores the window
     /// can be aligned to it. A fractional display scale (1.5x, say) would put
     /// the ratio back between levels; 1x and 2x both work.
-    pub const ZOOM_LEVELS: [f32; 4] = [0.5, 1.0, 2.0, 4.0];
+    pub const ZOOM_LEVELS: [f32; 5] = [0.25, 0.5, 1.0, 2.0, 4.0];
 
     /// The level `steps` away from the current one.
     ///

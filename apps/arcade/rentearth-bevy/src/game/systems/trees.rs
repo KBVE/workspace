@@ -92,10 +92,11 @@ impl Plugin for TreePlugin {
 /// Levels in the tree atlas's mip chain, the full-size image included.
 ///
 /// Not the whole chain down to a pixel. The atlas packs its trees side by side
-/// with only a few pixels of gutter, and every halving spends some of that: by
-/// the fourth level a gutter is under a pixel and neighbouring trees start
-/// averaging into each other. Four levels covers minification down to an eighth
-/// of full size, which is past the furthest the camera zooms.
+/// with only a few pixels of gutter -- the jungle pines are 63 texels into a
+/// 64-texel cell -- and every halving spends some of it, so a fifth level would
+/// start averaging neighbouring trees together. Four covers minification to an
+/// eighth of full size, which is the furthest the camera goes. Reaching further
+/// out means halving each cell on its own rather than the atlas as a whole.
 const MIP_LEVELS: u32 = 4;
 
 /// The atlas, and whether its mip chain has been built yet.
@@ -325,10 +326,17 @@ fn add_mipmaps(atlas: Option<ResMut<TreeAtlas>>, mut images: ResMut<Assets<Image
         return;
     };
 
-    // One mip level per zoom level, which is not a coincidence: the levels are
-    // chosen so each one samples the next mip exactly. See
-    // `CameraRig::ZOOM_LEVELS`.
-    debug_assert_eq!(MIP_LEVELS as usize, CameraRig::ZOOM_LEVELS.len());
+    // The chain has to reach the furthest zoom, or the coarsest level aliases.
+    // Each zoom level doubles the texels per pixel and each mip halves them, so
+    // the last level needs `log2` of its ratio. Levels closer than one texel per
+    // pixel magnify and need no mip at all, which is why there are fewer of
+    // these than there are zoom levels. See `CameraRig::ZOOM_LEVELS`.
+    debug_assert!(
+        CameraRig::ZOOM_LEVELS
+            .last()
+            .is_some_and(|z| 2.0 * z <= (1u32 << (MIP_LEVELS - 1)) as f32),
+        "the mip chain does not reach the furthest zoom level",
+    );
 
     let width = image.texture_descriptor.size.width;
     let height = image.texture_descriptor.size.height;

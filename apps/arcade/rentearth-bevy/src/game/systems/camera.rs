@@ -28,18 +28,24 @@ const PAN_SPEED: f32 = 900.0;
 /// The levels are discrete, so a notch cannot be a fraction of one.
 const ZOOM_THRESHOLD: f32 = 1.0;
 
-/// Pixels of trackpad scroll that count as one wheel notch.
+/// Pixels of scroll that count as one wheel notch.
 ///
-/// A wheel reports a line per notch; a trackpad reports pixels, and tens of
-/// them per flick. Summing both as though they were the same unit sent a single
-/// two-finger swipe through every zoom level at once.
-const PIXELS_PER_NOTCH: f32 = 50.0;
+/// A wheel reports a line per notch; a trackpad -- and plenty of mice on macOS,
+/// which is what makes this matter -- reports pixels instead. Summing both as
+/// though they were the same unit sent a single swipe through every zoom level
+/// at once, and dividing them too hard made a real wheel feel like it was
+/// ignoring half its clicks.
+///
+/// If the zoom ever feels wrong on a new device, the `debug!` in `zoom_scroll`
+/// says which unit it is sending and how much of it, which beats guessing at
+/// this number twice.
+const PIXELS_PER_NOTCH: f32 = 12.0;
 
 /// How quickly zoom closes on its target, per second.
 ///
 /// Exponential rather than linear, so the step starts fast and settles, and so
 /// the rate does not depend on the frame time.
-const ZOOM_EASE: f32 = 14.0;
+const ZOOM_EASE: f32 = 20.0;
 
 pub struct CameraPlugin;
 
@@ -169,6 +175,7 @@ fn zoom_scroll(
     mut rigs: Query<&mut CameraRig>,
 ) {
     for event in wheel.read() {
+        debug!("scroll {:?} y {}", event.unit, event.y);
         *pending += match event.unit {
             MouseScrollUnit::Line => event.y,
             MouseScrollUnit::Pixel => event.y / PIXELS_PER_NOTCH,
