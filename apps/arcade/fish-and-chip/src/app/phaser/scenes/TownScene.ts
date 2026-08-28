@@ -11,6 +11,11 @@ declare global {
     __GRID_ENGINE__?: GridEngine;
     /** The town this run generated. Read by the e2e suite. */
     __TOWN__?: TownMap;
+    /**
+     * Milliseconds of Phaser's clock this scene has stepped through. Read by
+     * the e2e suite, which cannot time a walk with a stopwatch: see update().
+     */
+    __TOWN_ELAPSED_MS__?: number;
   }
 }
 
@@ -282,7 +287,14 @@ export class TownScene extends Scene {
     }
   }
 
-  update() {
+  update(_time: number, delta: number) {
+    // grid-engine moves characters by frame delta, not by wall clock, and the
+    // two are not the same number: a CI runner rendering in software delivers
+    // roughly a third of real time as game time. Publishing the sum lets a
+    // test measure tiles per game-second, which is the speed the player is
+    // actually configured with, instead of measuring how fast the runner is.
+    window.__TOWN_ELAPSED_MS__ = (window.__TOWN_ELAPSED_MS__ ?? 0) + delta;
+
     const cursors = this.cursor;
     const keys = this.keys;
 

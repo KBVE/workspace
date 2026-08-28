@@ -243,6 +243,14 @@ test.describe('fish and chip', () => {
 	// at 4 tiles a second by default, which was fine on the 20x20 map this
 	// replaced. This measures the real thing -- a held key, through Phaser
 	// input, through grid-engine -- rather than asserting on a config value.
+	//
+	// The walk is timed on Phaser's clock, not the wall clock. grid-engine
+	// integrates frame delta, and a CI runner drawing through swiftshader
+	// delivers about a third of real time as game time, so a stopwatch here
+	// measures the runner and fails on a game that is walking correctly.
+	//
+	// Row 1 is the strip above the building band, clear right across the map on
+	// every seed, so there is room to walk without depending on the seed.
 	test('walks fast enough to cross the town', async ({ page }) => {
 		await booted(page);
 		await page.evaluate(() => window.__FISHCHIP_GAME__?.scene.start('TownScene'));
@@ -250,16 +258,24 @@ test.describe('fish and chip', () => {
 
 		const position = () =>
 			page.evaluate(() => window.__GRID_ENGINE__?.getPosition('player') ?? null);
+		const gameClock = () => page.evaluate(() => window.__TOWN_ELAPSED_MS__ ?? 0);
 		await expect.poll(position).not.toBeNull();
 
 		await page.evaluate(() => window.__GRID_ENGINE__?.setPosition('player', { x: 1, y: 1 }));
 		await page.locator('canvas').click({ position: { x: 10, y: 10 } });
 
+		// Two game-seconds, however long the runner takes to produce them. Long
+		// enough that the tile the player is midway through when the key comes
+		// up is worth well under a tile per second of error.
+		const started = await gameClock();
 		await page.keyboard.down('d');
-		await page.waitForTimeout(1_000);
+		await expect
+			.poll(async () => (await gameClock()) - started, { timeout: 60_000 })
+			.toBeGreaterThanOrEqual(2_000);
 		await page.keyboard.up('d');
 
+		const seconds = ((await gameClock()) - started) / 1_000;
 		const travelled = (await position())!.x - 1;
-		expect(travelled).toBeGreaterThanOrEqual(5);
+		expect(travelled / seconds).toBeGreaterThanOrEqual(5);
 	});
 });
