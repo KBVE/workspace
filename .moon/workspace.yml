@@ -43,6 +43,13 @@ vcs:
   # the assets 404 for everyone else.
   sync: true
   hooks:
+    # Rejects a message that is not a conventional commit, or that names a
+    # type or scope the repository does not use. Scopes come from the project
+    # graph, so this is also what keeps a commit attributable to a project.
+    # Reads tools/labels/labels.lock.json rather than starting moon: this runs
+    # on every commit.
+    commit-msg:
+      - 'node ./tools/commit/validate.mjs "$ARG1"'
     pre-commit:
       - 'bash ./tools/hooks/pre-commit.sh'
     pre-push:

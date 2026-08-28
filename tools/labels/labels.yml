@@ -38,7 +38,11 @@ kind:
     color: '0e8a16'
     description: 'New capability. Lands as feat()'
     supersedes: 'enhancement'
-    commit: 'feat'
+    # `content` sits with feat rather than docs on purpose: game text and data
+    # are not prose about the software, they are the thing that ships. The
+    # pipeline takes MDX to SQL, or straight into the game, so authoring a
+    # telegram line adds capability the same way code does.
+    commit: 'feat content'
   - name: 'kind/security'
     color: 'b60205'
     description: 'Vulnerability, hardening, or secret exposure'
@@ -60,7 +64,7 @@ kind:
     color: 'c5def5'
     description: 'Dependencies, CI, tooling, housekeeping'
     supersedes: 'upgrade'
-    commit: 'chore ci build perf'
+    commit: 'chore ci build perf release'
   - name: 'kind/plan'
     color: 'fbca04'
     description: 'Design or proposal. No code yet'

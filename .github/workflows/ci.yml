@@ -24,6 +24,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The commit-msg hook covers commits, but a pull request title is composed in
+  # the browser where no hook runs -- and label-pr.mjs reads the type out of it.
+  # An unconventional title silently gets no kind/* label rather than a wrong
+  # one, which is the kind of failure nobody notices.
+  title:
+    name: title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      # Reads labels.lock.json, so it needs no toolchain and no project graph.
+      - name: Check the pull request title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: node tools/commit/validate.mjs --title "$TITLE"
+
   # The generated CODEOWNERS is an artifact of each project's owners block, so
   # it can fall behind when someone edits moon.yml without running a task.
   sync:

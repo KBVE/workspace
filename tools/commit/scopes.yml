@@ -1,0 +1,17 @@
+# Commit scopes that are not a moon project.
+#
+# A scope should normally name the project the change is in --
+# `fix(fish-and-chip):` -- and those come from the project graph via
+# tools/labels/labels.lock.json, so they need no listing here. This file is for
+# the handful of changes that are genuinely repository-wide and belong to no
+# single project.
+#
+# Kept short deliberately. Every entry here is a change that cannot be
+# attributed to a project, and reaching for one when a project would do is how
+# scopes stop meaning anything.
+extra:
+  - 'ci'       # workflows, actions, runners
+  - 'moon'     # workspace configuration, toolchains, the project graph itself
+  - 'agents'   # AGENTS.md and the conventions it records
+  - 'repo'     # gitignore, gitattributes, licence, README
+  - 'deps'     # dependency bumps that span projects

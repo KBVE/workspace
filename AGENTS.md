@@ -54,6 +54,33 @@ against the session that caused it.
 
 For the same reason, never `git add -A`.
 
+## Commits
+
+Conventional commits, and they are enforced rather than encouraged. The
+`commit-msg` hook runs `tools/commit/validate.mjs`, and CI checks pull request
+titles the same way — the labeller reads the type out of the title, so an
+unconventional one silently gets no `kind/*` label.
+
+```
+type(scope): subject          fix(laser): stop the resource pools going negative
+```
+
+**Types** are the `commit` fields on the kind labels in
+`tools/labels/labels.yml`, so `feat` meaning `kind/feature` is stated once:
+`feat`, `content`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`,
+`perf`, `release`. `content` counts as a feature — game text and data are what
+ships, not prose about the software.
+
+**Scopes** are moon project ids, the five `area/*` group names, or one of the
+repository-wide scopes in `tools/commit/scopes.yml` (`ci`, `moon`, `agents`,
+`repo`, `deps`). That is what keeps a commit attributable to a project. A scope
+that could mean several projects is rejected: write `rentearth-bevy` or
+`rentearth.com`, not `rentearth`.
+
+Subjects are lower case, no full stop. The hook reads
+`tools/labels/labels.lock.json` rather than starting moon, so it costs about
+40ms per commit.
+
 ## Getting work back to main
 
 Push the branch and open a pull request. Do not merge it, and never push to

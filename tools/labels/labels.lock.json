@@ -86,7 +86,7 @@
       "color": "c5def5",
       "description": "Dependencies, CI, tooling, housekeeping",
       "supersedes": "upgrade",
-      "commit": "chore ci build perf",
+      "commit": "chore ci build perf release",
       "family": "kind"
     },
     {
@@ -102,7 +102,7 @@
       "color": "0e8a16",
       "description": "New capability. Lands as feat()",
       "supersedes": "enhancement",
-      "commit": "feat",
+      "commit": "feat content",
       "family": "kind"
     },
     {
@@ -242,6 +242,56 @@
   "retire": [
     "good first issue",
     "help"
+  ],
+  "scopes": [
+    "bevy_battle",
+    "bevy_behavior",
+    "bevy_cam",
+    "bevy_chat",
+    "bevy_db",
+    "bevy_dungeon",
+    "bevy_inventory",
+    "bevy_items",
+    "bevy_kbve_net",
+    "bevy_mapdb",
+    "bevy_npc",
+    "bevy_pathfinder",
+    "bevy_player",
+    "bevy_quests",
+    "bevy_skills",
+    "bevy_spells",
+    "bevy_statemachine",
+    "bevy_supa",
+    "bevy_tasker",
+    "commit",
+    "embeddb",
+    "embeddb-derive",
+    "erust",
+    "fish-and-chip",
+    "gilded-gazette",
+    "holy",
+    "holy-derive",
+    "hooks",
+    "i18n",
+    "itch",
+    "jedi",
+    "kbve",
+    "kbve-proto",
+    "kbve-py",
+    "labels",
+    "laser",
+    "lfs",
+    "npm",
+    "packages",
+    "protobuf",
+    "python",
+    "release",
+    "rentearth-api",
+    "rentearth-bevy",
+    "rentearth.com",
+    "uniti",
+    "windmill",
+    "worktree"
   ],
   "routes": [
     {
@@ -497,6 +547,12 @@
       "labels": [
         "area/services",
         "tag/windmill"
+      ]
+    },
+    {
+      "source": "tools/commit",
+      "labels": [
+        "area/tools"
       ]
     },
     {
