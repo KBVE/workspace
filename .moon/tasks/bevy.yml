@@ -1,0 +1,17 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+# Inherited by every project tagged 'bevy'. A Bevy game is a windowed binary,
+# which the rust toolchain file has no task for -- it defines build, test, lint
+# and format, all of which run headless and none of which let you look at the
+# thing.
+inheritedBy:
+  tag: 'bevy'
+
+tasks:
+  # Native, for looking at it. Projects extend this with their own `args` when
+  # the binary needs features; the command itself is the same everywhere.
+  run:
+    command: 'cargo run --release'
+    # Opens a window and waits for you to close it: nothing to cache, and
+    # nothing CI can do with it.
+    preset: 'server'

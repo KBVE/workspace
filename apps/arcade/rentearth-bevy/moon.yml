@@ -66,6 +66,18 @@ tasks:
     options:
       cache: false
 
+  # Inherited from the 'bevy' tag, which supplies the command. Named here for
+  # the two things it cannot know: the water is behind a feature flag, and the
+  # textures are LFS objects -- without the blobs the sea renders as Bevy's
+  # placeholder rather than as water.
+  #
+  # Set RENTEARTH_SCREENSHOT to a path to capture one settled frame and quit,
+  # which is how a shader change gets compared against the one before it.
+  run:
+    args: '--features water'
+    deps:
+      - '~:assets'
+
   # Local only. The threaded bundles need cross-origin isolation, so the usual
   # `python3 -m http.server` in dist/ reproduces a failure the deployment does
   # not have.
