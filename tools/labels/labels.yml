@@ -18,17 +18,27 @@
 # non-destructive: nothing is deleted, and no issue loses a label.
 
 # What the work is. Roughly the conventional-commit types this repository
-# actually uses -- feat, fix, refactor, chore, test, docs account for 91 of the
+# actually uses.
+#
+# `commit` lists the conventional-commit types that imply the label, space
+# separated. It is what label-pr.mjs reads to turn a pull request title into a
+# kind, so the mapping lives beside the label rather than in the workflow that
+# applies it. A type named twice would make the mapping ambiguous, and a test
+# rejects that.
+#
+# Originally -- feat, fix, refactor, chore, test, docs account for 91 of the
 # last 94 commits -- plus the two that describe an issue rather than a change.
 kind:
   - name: 'kind/bug'
     color: 'd73a4a'
     description: "Something is broken"
     supersedes: 'bug'
+    commit: 'fix'
   - name: 'kind/feature'
     color: '0e8a16'
     description: 'New capability. Lands as feat()'
     supersedes: 'enhancement'
+    commit: 'feat'
   - name: 'kind/security'
     color: 'b60205'
     description: 'Vulnerability, hardening, or secret exposure'
@@ -36,17 +46,21 @@ kind:
   - name: 'kind/refactor'
     color: '5319e7'
     description: 'Behaviour unchanged, shape improved'
+    commit: 'refactor'
   - name: 'kind/docs'
     color: '0075ca'
     description: 'Documentation, comments, AGENTS.md'
     supersedes: 'documentation'
+    commit: 'docs'
   - name: 'kind/test'
     color: '1d76db'
     description: 'Test coverage or test infrastructure'
+    commit: 'test'
   - name: 'kind/chore'
     color: 'c5def5'
     description: 'Dependencies, CI, tooling, housekeeping'
     supersedes: 'upgrade'
+    commit: 'chore ci build perf'
   - name: 'kind/plan'
     color: 'fbca04'
     description: 'Design or proposal. No code yet'

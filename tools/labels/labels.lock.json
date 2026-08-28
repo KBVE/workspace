@@ -78,6 +78,7 @@
       "color": "d73a4a",
       "description": "Something is broken",
       "supersedes": "bug",
+      "commit": "fix",
       "family": "kind"
     },
     {
@@ -85,6 +86,7 @@
       "color": "c5def5",
       "description": "Dependencies, CI, tooling, housekeeping",
       "supersedes": "upgrade",
+      "commit": "chore ci build perf",
       "family": "kind"
     },
     {
@@ -92,6 +94,7 @@
       "color": "0075ca",
       "description": "Documentation, comments, AGENTS.md",
       "supersedes": "documentation",
+      "commit": "docs",
       "family": "kind"
     },
     {
@@ -99,6 +102,7 @@
       "color": "0e8a16",
       "description": "New capability. Lands as feat()",
       "supersedes": "enhancement",
+      "commit": "feat",
       "family": "kind"
     },
     {
@@ -118,6 +122,7 @@
       "name": "kind/refactor",
       "color": "5319e7",
       "description": "Behaviour unchanged, shape improved",
+      "commit": "refactor",
       "family": "kind"
     },
     {
@@ -131,6 +136,7 @@
       "name": "kind/test",
       "color": "1d76db",
       "description": "Test coverage or test infrastructure",
+      "commit": "test",
       "family": "kind"
     },
     {

@@ -1,0 +1,44 @@
+name: Label pull requests
+
+# pull_request_target, not pull_request, because this repository is public: a
+# pull request from a fork gets a read-only token on the pull_request trigger,
+# so labelling would silently do nothing on exactly the contributions that
+# most need it.
+#
+# That trigger runs with a write token, which is only safe because nothing here
+# executes code from the pull request. The checkout below takes the base
+# branch -- pull_request_target's default ref -- and the only thing read from
+# it is labels.lock.json. The changed file list comes from the API, not from
+# the branch. Do not add a `ref:` to that checkout, and do not run a build,
+# install dependencies, or execute anything from the head.
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+# edited fires on every title change, and the title is half the input.
+concurrency:
+  group: label-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      # Base branch only. See the note above before changing this.
+      # Pinned by digest like the rest of the workflows here, which matters
+      # more than usual on a trigger that carries a write token.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # No toolchain setup and no moon: label-pr.mjs reads labels.lock.json,
+      # which already carries the resolved labels and the route map. The
+      # runner's node is enough.
+      - name: Apply labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/labels/label-pr.mjs "${{ github.event.pull_request.number }}"

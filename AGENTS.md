@@ -128,6 +128,19 @@ node tools/labels/sync.mjs --remote          # compare with GitHub, report only
 node tools/labels/sync.mjs --apply           # write to GitHub
 ```
 
+Pull requests are labelled automatically. `.github/workflows/label-pr.yml`
+runs `tools/labels/label-pr.mjs`, which reads the lock and nothing else: the
+title's conventional-commit type gives `kind/*`, and the changed paths give
+`area/*` and `tag/*` through the route map. The kind is reconciled, so
+retitling a pull request from `feat()` to `fix()` moves the label rather than
+leaving both; scope labels are only added, and anything outside those three
+families is never touched. `--explain` shows what it would do without calling
+GitHub:
+
+```bash
+node tools/labels/label-pr.mjs --explain "fix(fish-and-chip): x" apps/arcade/fish-and-chip/src/game.ts
+```
+
 `labels.lock.json` is generated and committed. It holds the resolved label set
 and a `routes` map from every project source to the `area/*` and `tag/*` labels
 it implies, so tooling can turn changed paths into labels without running moon
