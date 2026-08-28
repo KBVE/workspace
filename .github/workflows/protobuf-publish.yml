@@ -63,6 +63,13 @@ jobs:
       - uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1.5.0
         if: steps.creds.outputs.present == 'true'
         with:
+          # Required, and not covered by the job's working-directory: that
+          # default applies to `run` steps only, never to an action. Without it
+          # buf starts at the repository root, walks the whole monorepo, and
+          # finds an installed copy of this module under node_modules -- every
+          # message then collides with itself and the push fails on a build
+          # error that says nothing about the real cause.
+          input: packages/protobuf
           token: ${{ secrets.BUF_TOKEN }}
           push: true
           # Labels the commit on the registry so a consumer can pin to an exact
