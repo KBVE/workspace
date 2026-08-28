@@ -49,6 +49,10 @@ show_missing = true
 # project moon would have to declare them as outputs of.
 addopts = "--cov --cov-report=term-missing --cov-report=xml:reports/coverage.xml --junitxml=reports/junit.xml"
 asyncio_mode = "auto"
+# Unset, pytest-asyncio warns on every run that the default will change in a
+# future release. "function" is the current default, so this pins today's
+# behaviour rather than adopting an unreviewed one later.
+asyncio_default_fixture_loop_scope = "function"
 
 [build-system]
 requires = ["hatchling"]
