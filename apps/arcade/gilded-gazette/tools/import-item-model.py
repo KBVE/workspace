@@ -48,7 +48,7 @@ def parse() -> argparse.Namespace:
     p.add_argument('--name', default='', help='mesh name in the glb; defaults to the out stem')
     p.add_argument('--texture-size', type=int, default=256,
                    help='square size the albedo is resized to')
-    p.add_argument('--triangles', type=int, default=800,
+    p.add_argument('--triangles', type=int, default=400,
                    help='triangle budget; the mesh is collapsed down to it')
     p.add_argument('--stand', action='store_true',
                    help='keep the asset upright instead of laying it down')

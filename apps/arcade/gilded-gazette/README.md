@@ -96,8 +96,8 @@ downloads are a .blend plus a 1k PBR set, and none of the normal, roughness or
 metallic maps survive: `shaders/prop.gdshader` takes one albedo and a baked lamp
 tint, so the other three megabytes would be downloaded by every browser and then
 ignored. `tools/import-item-model.py` keeps the diffuse, resizes it to 256,
-collapses the mesh to a triangle budget, lays the object down, puts its origin on
-the ground under it, and writes one self-contained glb:
+collapses the mesh to a triangle budget of 400, lays the object down, puts its
+origin on the ground under it, and writes one self-contained glb:
 
 ```
 blender -b ~/Downloads/ornate_medieval_dagger_1k/ornate_medieval_dagger_1k.blend \
@@ -106,10 +106,16 @@ blender -b ~/Downloads/ornate_medieval_dagger_1k/ornate_medieval_dagger_1k.blend
 
 Both budgets are worth understanding before raising either. Vertex data is the
 bulk of what a glb weighs, not the image: the dagger arrived at 6,290 triangles
-and 192K, of which 162K was positions, normals, UVs and indices. At 800 triangles
-and a 256 albedo it is 37K, and it is still the most detailed thing in the train
--- the crates it lies beside are 68 triangles each. A hand-sized object seen from
-across a carriage does not repay more than that.
+and 192K, of which 162K was positions, normals, UVs and indices. At 400 triangles
+and a 256 albedo it is 26K.
+
+400 is where it was put by looking at it rather than by picking a round number.
+Rendered against the same model at 800, 200 and 120: 800 and 400 are not
+distinguishable; at 200 the crossguard starts to thin; at 120 the crossguard is
+gone and the pommel is a stub, which is where it stops being a dagger and becomes
+a spike. That is still six times the 68 triangles a crate costs, and it should be
+-- a crate is a box, and what has to survive here is a silhouette with a guard and
+a pommel in it.
 
 The glb is committed; the download is not.
 
@@ -119,15 +125,21 @@ the export never ships. So the numbers to watch are in `.godot/imported`, and th
 do not follow the source. The dagger's 10.5K jpeg imported to a 78.9K `.ctex`,
 because textures default to lossless: `compress/mode=1` in the `.import` puts it
 at 9.9K, which is a bigger saving than every other decision here put together.
-The mesh lands at 25.6K.
+The mesh lands at 14.5K, so the whole dagger costs about 25K of the download.
+
+Texture size is a style decision as much as a size one, and 256 is deliberate. The
+prop atlas is mostly flat swatches, but its plank tiles are photographic, so a
+photographed albedo on an item is in register with what the carriage is already
+wearing rather than at odds with it. Taken down far enough -- 16, say -- the UV
+islands collapse to one colour each and the model reads as flat-shaded, which is a
+different game's look and available if that is ever the one wanted.
 
 That is also the answer to gltfpack, which is the obvious tool to reach for here.
 Its headline win is a smaller glb -- quantized attributes, meshopt compression --
 and this game does not download the glb. Measured on the dagger: the default
 quantized output does not import at all under Godot 4.7.2, which records
 `valid=false` in the `.import` and produces no scene; `gltfpack -noq` imports
-cleanly and lands at 25.7K against the 25.6K it already was, because Godot
-re-encodes either way. What it would still be good for is its simplifier, which
+cleanly and gains nothing at all, because Godot re-encodes either way. What it would still be good for is its simplifier, which
 is better than Blender's collapse -- worth revisiting if an item ever arrives
 that decimates badly. What an item then needs is an mdx in
 `shared/data/items` naming that model and a `found` spot in the room it lies in --
