@@ -26,30 +26,29 @@
   "types": "./index.d.ts",
   "exports": {
     ".": {
-      "import": "./laser.es.js",
-      "types": "./index.d.ts"
+      "types": "./index.d.ts",
+      "import": "./laser.es.js"
     },
     "./ecs": {
-      "import": "./ecs.es.js",
-      "types": "./ecs.d.ts"
+      "types": "./ecs.d.ts",
+      "import": "./ecs.es.js"
     },
     "./mecs": {
-      "import": "./mecs.es.js",
-      "types": "./mecs.d.ts"
+      "types": "./mecs.d.ts",
+      "import": "./mecs.es.js"
     },
     "./phaser": {
-      "import": "./phaser.es.js",
-      "types": "./phaser.d.ts"
+      "types": "./phaser.d.ts",
+      "import": "./phaser.es.js"
     },
     "./r3f": {
-      "import": "./r3f.es.js",
-      "types": "./r3f.d.ts"
-    }
+      "types": "./r3f.d.ts",
+      "import": "./r3f.es.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
-    "*.es.js",
-    "laser.es.js",
-    "index.d.ts",
+    "*.js",
     "**/*.d.ts",
     "*.md"
   ],

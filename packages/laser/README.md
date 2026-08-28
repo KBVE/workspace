@@ -22,24 +22,44 @@ npm install @kbve/laser
 
 Laser requires the following peer dependencies (install the ones you need):
 
+Only React is required. Every other peer is optional and belongs to one entry
+point, so installing `@kbve/laser` for its ECS pulls in neither Phaser nor three.
+
 - `react` >= 18.0.0
 - `react-dom` >= 18.0.0
-- `phaser` >= 3.80.0 _(optional — only needed for Phaser features)_
-- `three` >= 0.160.0 _(optional — only needed for R3F features)_
-- `@react-three/fiber` >= 9.0.0 _(optional)_
-- `@react-three/drei` >= 10.0.0 _(optional)_
+- `phaser` >= 4.1.0 _(optional — `@kbve/laser/phaser`)_
+- `@phaserjs/rapier-connector` >= 1.0.0 _(optional — `@kbve/laser/phaser`)_
+- `three` >= 0.160.0 _(optional — `@kbve/laser/r3f`)_
+- `@react-three/fiber` >= 9.0.0 _(optional — `@kbve/laser/r3f`)_
+- `@react-three/drei` >= 10.0.0 _(optional — `@kbve/laser/r3f`)_
+- `bitecs` >= 0.4.0 _(optional — `@kbve/laser` and `@kbve/laser/ecs`)_
+- `fastnoise-lite` >= 1.1.0 _(optional — `@kbve/laser`)_
 
 ## Usage
 
+The renderer bindings live behind subpaths, not the root barrel. That split is
+what keeps the optional peers optional: importing `PhaserGame` from `@kbve/laser`
+would make every consumer install three, and importing `Stage` from it would
+make every consumer install Phaser.
+
 ```tsx
-import {
-	PhaserGame,
-	usePhaserEvent,
-	Stage,
-	useGameLoop,
-	laserEvents,
-} from '@kbve/laser';
+// Renderer-agnostic: event bus, ECS, determinism, netcode, tile pathing.
+import { laserEvents, LaserEventBus } from '@kbve/laser';
+
+// Phaser bindings. Needs phaser installed.
+import { PhaserGame, usePhaserEvent } from '@kbve/laser/phaser';
+
+// React Three Fiber bindings. Needs three and @react-three/fiber installed.
+import { Stage, useGameLoop } from '@kbve/laser/r3f';
 ```
+
+| Subpath | Contents |
+| --- | --- |
+| `@kbve/laser` | event bus, ECS helpers, determinism, netcode, spatial and tile utilities |
+| `@kbve/laser/ecs` | the bitECS component and store layer on its own |
+| `@kbve/laser/mecs` | `SharedArrayBuffer` views, for a worker or WASM boundary |
+| `@kbve/laser/phaser` | `PhaserGame`, hooks, player controller, object pooling, rapier |
+| `@kbve/laser/r3f` | `Stage`, `useGameLoop`, the POM material |
 
 ### Support
 

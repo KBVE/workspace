@@ -4,7 +4,7 @@ import path from 'node:path';
 
 /**
  * Guards the entry-point split. laser is consumed as SOURCE (tsconfig path +
- * vite alias), so its bare imports resolve relative to packages/npm/laser, which
+ * vite alias), so its bare imports resolve relative to packages/laser, which
  * has no node_modules. The repo root's hoisted tree masks that locally; a
  * container's bounded install does not, and vite substitutes an optional-peer
  * stub that rollup then dies on. That failure is always CI-only, and it landed
@@ -126,6 +126,10 @@ describe('laser entry points', () => {
 		) as { exports: Record<string, unknown> };
 
 		for (const key of Object.keys(pkg.exports)) {
+			// './package.json' is a file the package re-exports as itself, so
+			// tooling can read the manifest of an installed copy. It is the one
+			// export with no entry module behind it.
+			if (key === './package.json') continue;
 			const name = key === '.' ? 'index.ts' : `${key.slice(2)}.ts`;
 			expect(
 				existsSync(path.join(SRC, name)),

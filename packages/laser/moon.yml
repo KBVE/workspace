@@ -6,9 +6,9 @@
 # `webServer`, so the split bought nothing and the fixture lives under
 # e2e/fixture/ inside the package it tests.
 #
-# Publishing is not wired up yet. `build` emits the bundle and the .d.ts files
-# into dist/, which is the shape npm expects, but nothing pushes it -- version
-# lives in package.json and the release path is still to be decided.
+# Publishing is not wired up yet: `pack` assembles and verifies the tarball,
+# but nothing pushes it, and the version lives in package.json until there is a
+# release path to read it from.
 layer: 'library'
 language: 'typescript'
 stack: 'frontend'
@@ -40,6 +40,16 @@ tasks:
     command: 'tsc --noEmit'
     toolchains: ['node']
     inputs: ['@group(sources)', '@group(configs)', 'e2e/**/*', 'playwright.config.ts']
+
+  # Assembles dist/ into the tree npm publishes and checks it holds together.
+  # Not part of `build`: it writes the manifest and README into build output, so
+  # keeping it separate leaves `build` with outputs moon alone owns.
+  pack:
+    command: 'node tools/pack.mjs'
+    toolchains: ['node']
+    deps:
+      - '~:build'
+    inputs: ['@group(sources)', '@group(configs)', 'tools/pack.mjs', 'README.md']
 
   # Playwright ships no browser with the npm package. Declared as a task so e2e
   # can depend on it rather than every caller remembering to run it.

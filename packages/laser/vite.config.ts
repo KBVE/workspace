@@ -8,8 +8,8 @@ import * as path from 'node:path';
 // Ported from the Nx workspace. Two Nx plugins were dropped rather than
 // replaced: nxViteTsPaths resolved `@kbve/laser` through tsconfig.base.json,
 // which this repository does not have -- the pnpm workspace link does the same
-// job -- and nxCopyAssetsPlugin copied the README, which the `pack` task in
-// moon.yml now does alongside the manifest.
+// job -- and nxCopyAssetsPlugin copied the README, which tools/pack.mjs
+// now does alongside the manifest.
 //
 // Build output stays inside the project (`dist`) instead of a workspace-level
 // dist/packages/npm/laser, because moon hashes task outputs by project.
