@@ -30,6 +30,7 @@ import {
   type FactRow,
   type Placement,
 } from '../research/world';
+import { Notebook } from './Notebook';
 import { useSend } from '../state/gameStore';
 import { useRunningOrder } from '../state/paperStore';
 import styles from './dossier.module.css';
@@ -74,6 +75,7 @@ function Board() {
       <Scrubber />
       <div className={styles.scroll}>
         <Manifest focus={focus} />
+        <Notebook />
         {focus ? (
           <Person eid={focus} />
         ) : (

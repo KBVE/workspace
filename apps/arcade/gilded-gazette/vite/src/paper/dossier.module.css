@@ -232,3 +232,75 @@
   cursor: default;
   opacity: 0.2;
 }
+
+/* --- the notebook --------------------------------------------------------
+   Three columns of a printed card, ruled and narrow. Not a table: the columns
+   have different lengths and nothing lines up across them, so rows would be a
+   grid pretending the three questions are asked of the same list. */
+.notebook {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.column { min-width: 0; }
+
+.columnHead {
+  margin: 0 0 0.2rem;
+  font-size: 0.68rem;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: #55503f;
+  border-bottom: 1px solid #cfc6ad;
+  padding-bottom: 0.1rem;
+}
+
+.pencil {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0.12rem 0.15rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.74rem;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.pencil:hover { background: rgba(107, 32, 24, 0.08); }
+
+/* Fixed width so the names stay in a column whether or not a mark is on them. */
+.pencilGlyph {
+  flex: 0 0 0.7rem;
+  color: #6b2018;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.pencilName { min-width: 0; overflow-wrap: anywhere; }
+
+/* Struck through rather than hidden: what has been ruled out is still part of
+   the reasoning, and a sheet you cannot read your own eliminations off is a
+   sheet you have to keep in your head anyway. */
+.out .pencilName { text-decoration: line-through; color: #55503f; }
+.likely .pencilName { font-weight: 700; }
+
+/* Named for what it does rather than for a state, because `clear` is also a Mark
+   and a class looked up by mark name would have found this button. */
+.rubOut {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.68rem;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  color: #6b2018;
+  cursor: pointer;
+  padding: 0;
+}
+
+.rubOut:disabled { color: #8a8069; cursor: default; }
