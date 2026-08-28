@@ -15,7 +15,7 @@
 // repo maintained by hand is the thing this avoids.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export class TagError extends Error {}
@@ -59,7 +59,14 @@ export function cargoVersion(text) {
   return null;
 }
 
-export function projectSource(project, cwd = process.cwd()) {
+/**
+ * The tag's project as the graph knows it: where its source lives and what
+ * tags it carries. Callers branch on those tags -- the itch workflow publishes
+ * a tag that names an 'itch' project and no-ops on any other -- so that
+ * deciding which release mechanism a tag belongs to is a graph lookup rather
+ * than a list of project ids in a workflow.
+ */
+export function projectNode(project, cwd = process.cwd()) {
   const out = execFileSync('moon', ['query', 'projects', '--id', project], {
     cwd,
     encoding: 'utf8',
@@ -71,7 +78,7 @@ export function projectSource(project, cwd = process.cwd()) {
         `run \`moon query projects\` to see them.`,
     );
   }
-  return found[0].source;
+  return found[0];
 }
 
 export function manifestVersion(root, source) {
@@ -118,7 +125,8 @@ export function manifestVersion(root, source) {
 
 export function verify(tag, root = process.cwd()) {
   const { project, version } = parseTag(tag);
-  const source = projectSource(project, root);
+  const node = projectNode(project, root);
+  const source = node.source;
   const manifest = manifestVersion(root, source);
   if (manifest.version !== version) {
     throw new TagError(
@@ -128,7 +136,7 @@ export function verify(tag, root = process.cwd()) {
         `tag again -- do not move a tag that has already been released.`,
     );
   }
-  return { project, version, source, file: manifest.file };
+  return { project, version, source, file: manifest.file, tags: node.config?.tags ?? [] };
 }
 
 // Only run when invoked directly, so the tests can import the functions.
@@ -143,6 +151,21 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
     console.log(
       `${tag} matches ${result.file} (project ${result.project} at ${result.source}).`,
     );
+    // Handing the resolved project back to the workflow keeps every release
+    // workflow free of project names: one asks the graph what the tag means,
+    // then decides from the tags it carries.
+    if (process.env.GITHUB_OUTPUT) {
+      appendFileSync(
+        process.env.GITHUB_OUTPUT,
+        [
+          `project=${result.project}`,
+          `version=${result.version}`,
+          `source=${result.source}`,
+          `tags=${JSON.stringify(result.tags)}`,
+          '',
+        ].join('\n'),
+      );
+    }
   } catch (error) {
     if (error instanceof TagError) {
       console.error(`::error::${error.message}`);
