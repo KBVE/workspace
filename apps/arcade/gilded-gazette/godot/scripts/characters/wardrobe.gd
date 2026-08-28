@@ -97,11 +97,16 @@ const BEARDS := {
 ## made to sit near each other and do; across one they read as a costume change at the
 ## waist. [code]whole_set[/code] is for a suit that has to arrive complete: a
 ## breastplate over a peasant shirt is not a knight down on his luck, it is a mistake.
+## No wizard. The pack this project vendors has no Male_Wizard_* or Female_Wizard_*
+## meshes in it -- eight files that were named here and have never been in the
+## repository -- so both outfits were entries describing clothes that do not exist.
+## Nothing ever rendered them, because `crowd: false` kept them out of every roll and
+## nobody had been written into one; the first character given a long coat would have
+## turned up in bare skin. Re-adding them is these four lines and eight glbs.
 const STYLES := {
 	&"peasant": {"group": &"common"},
 	&"ranger": {"group": &"common"},
 	&"noble": {"group": &"fine"},
-	&"wizard": {"group": &"fine", "crowd": false},
 	## Nobody takes an oath at fifteen. Plate on a teen body reads as a child in their
 	## father's armour, which is a story this one is not telling.
 	&"knight": {"group": &"plate", "whole_set": true, "crowd": false, "adult_only": true},
@@ -200,28 +205,6 @@ const OUTFITS := {
 				"hides": [SLOT_HAIR]},
 		],
 	},
-	&"male_wizard": {
-		"sex": &"male",
-		"style": &"wizard",
-		"parts": {
-			SLOT_TORSO: "models/outfits/Male_Wizard_Body.glb",
-			SLOT_ARMS: "models/outfits/Male_Wizard_Arms.glb",
-			SLOT_LEGS: "models/outfits/Male_Wizard_Legs.glb",
-			SLOT_FEET: "models/outfits/Male_Wizard_Feet.glb",
-		},
-		"accessories": [],
-	},
-	&"female_wizard": {
-		"sex": &"female",
-		"style": &"wizard",
-		"parts": {
-			SLOT_TORSO: "models/outfits/Female_Wizard_Body.glb",
-			SLOT_ARMS: "models/outfits/Female_Wizard_Arms.glb",
-			SLOT_LEGS: "models/outfits/Female_Wizard_Legs.glb",
-			SLOT_FEET: "models/outfits/Female_Wizard_Feet.glb",
-		},
-		"accessories": [],
-	},
 	## Plate and cloth are two different torsos of the same suit, not two layers, so
 	## the armoured one is a separate outfit rather than an accessory over the other.
 	&"male_knight": {
@@ -265,9 +248,9 @@ const OUTFITS := {
 ## so this is the line where variety is paid for. The catalogue above stays complete
 ## so widening the pool is a one-line edit rather than a research trip.
 ##
-## A style marked [code]crowd: false[/code] ships without being rolled. Sworn orders
-## and wizardry are rare enough on this line that meeting one at random would spend the
-## surprise the story is saving.
+## A style marked [code]crowd: false[/code] ships without being rolled. A sworn order
+## is rare enough on this line that meeting one at random would spend the surprise the
+## story is saving.
 const POOL := {
 	"bodies": [&"regular_male", &"regular_female", &"teen_female"],
 	"outfits": [&"male_peasant", &"female_peasant", &"male_ranger", &"female_ranger",
@@ -418,11 +401,14 @@ const CAST := {
 		"skin_tint": Color(0.78, 0.68, 0.60),
 		"hair_tint": Color(0.28, 0.24, 0.22),
 	},
+	## Shirtsleeves under a good waistcoat: a grain factor is a man who works and
+	## dresses as though he does not, and the arms are where that comes apart.
 	&"thompson": {
 		"stature_metres": 1.84,
 		"body": &"regular_male",
 		"outfit": &"male_noble",
 		"hair": &"simple_parted",
+		"parts": {SLOT_ARMS: "models/outfits/Male_Peasant_Arms.glb"},
 		"palette": {
 			SLOT_TORSO: Color(0.60, 0.50, 0.50),
 			SLOT_LEGS: Color(0.42, 0.38, 0.40),
@@ -432,13 +418,18 @@ const CAST := {
 		"skin_tint": Color(1.00, 1.00, 1.00),
 		"hair_tint": Color(0.72, 0.62, 0.46),
 	},
+	## A good coat over plain trousers and boots that have walked a city. The gorget
+	## is the conductor's collar and not a doctor's, so he does not wear one.
 	&"weiss": {
 		"stature_metres": 1.69,
 		"body": &"regular_male",
 		"outfit": &"male_noble",
 		"hair": &"simple_parted",
 		"beard": &"beard",
-		"accessories": ["models/outfits/Male_Noble_Acc_Gorget.glb"],
+		"parts": {
+			SLOT_LEGS: "models/outfits/Male_Ranger_Legs.glb",
+			SLOT_FEET: "models/outfits/Male_Ranger_Feet_Boots.glb",
+		},
 		"palette": {
 			SLOT_TORSO: Color(0.44, 0.46, 0.52),
 			SLOT_LEGS: Color(0.34, 0.35, 0.40),
@@ -488,6 +479,79 @@ const CAST := {
 		"tints": {SLOT_NECK: Color(0.62, 0.24, 0.20)},
 		"skin_tint": Color(0.92, 0.86, 0.80),
 		"hair_tint": Color(0.45, 0.34, 0.26),
+	},
+	## White jacket, dark trousers: the company's service dress, which is a peasant
+	## shirt over noble legs and reads as neither. Nothing on him is his own.
+	&"pryce": {
+		"stature_metres": 1.72,
+		"body": &"regular_male",
+		"outfit": &"male_peasant",
+		"hair": &"simple_parted",
+		"parts": {
+			SLOT_LEGS: "models/outfits/Male_Noble_Legs.glb",
+			SLOT_FEET: "models/outfits/Male_Noble_Feet.glb",
+		},
+		"palette": {
+			SLOT_TORSO: Color(0.90, 0.89, 0.86),
+			SLOT_LEGS: Color(0.20, 0.20, 0.23),
+			SLOT_FEET: Color(0.18, 0.17, 0.18),
+			"accent": Color(0.74, 0.70, 0.58),
+		},
+		"skin_tint": Color(0.88, 0.80, 0.72),
+		"hair_tint": Color(0.30, 0.26, 0.22),
+	},
+	## A good coat over working clothes, which is the whole of him: the torso is
+	## somebody else's station and everything under it is his own.
+	&"halloran": {
+		"stature_metres": 1.79,
+		"body": &"regular_male",
+		"outfit": &"male_peasant",
+		"hair": &"simple_parted",
+		"beard": &"beard",
+		"parts": {SLOT_TORSO: "models/outfits/Male_Noble_Body.glb"},
+		"palette": {
+			SLOT_TORSO: Color(0.24, 0.26, 0.24),
+			SLOT_LEGS: Color(0.36, 0.33, 0.28),
+			SLOT_FEET: Color(0.24, 0.21, 0.18),
+			"accent": Color(0.56, 0.52, 0.44),
+		},
+		"skin_tint": Color(0.86, 0.76, 0.66),
+		"hair_tint": Color(0.36, 0.22, 0.16),
+	},
+	## Travelling clothes chosen to be looked at: a good bodice over a ranger's
+	## practical everything else, because four trunks and no berth is a woman dressed
+	## for the platform rather than for the night.
+	&"zsofia": {
+		"stature_metres": 1.66,
+		"body": &"regular_female",
+		"outfit": &"female_ranger",
+		"hair": &"long",
+		"parts": {SLOT_TORSO: "models/outfits/Female_Noble_Body.glb"},
+		"palette": {
+			SLOT_TORSO: Color(0.52, 0.20, 0.24),
+			SLOT_LEGS: Color(0.26, 0.22, 0.24),
+			SLOT_FEET: Color(0.24, 0.20, 0.20),
+			"accent": Color(0.82, 0.70, 0.42),
+		},
+		"skin_tint": Color(0.94, 0.86, 0.78),
+		"hair_tint": Color(0.16, 0.13, 0.12),
+	},
+	## A plain suit and plain boots, and nothing anywhere on him that catches a lamp.
+	## A courier is dressed to be forgotten by everybody in the carriage.
+	&"rennick": {
+		"stature_metres": 1.77,
+		"body": &"regular_male",
+		"outfit": &"male_noble",
+		"hair": &"simple_parted",
+		"parts": {SLOT_FEET: "models/outfits/Male_Peasant_Feet.glb"},
+		"palette": {
+			SLOT_TORSO: Color(0.27, 0.27, 0.30),
+			SLOT_LEGS: Color(0.23, 0.23, 0.26),
+			SLOT_FEET: Color(0.19, 0.17, 0.16),
+			"accent": Color(0.42, 0.42, 0.46),
+		},
+		"skin_tint": Color(0.90, 0.82, 0.74),
+		"hair_tint": Color(0.24, 0.20, 0.18),
 	},
 }
 

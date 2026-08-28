@@ -154,3 +154,62 @@ func test_plate_is_only_ever_worn_by_an_adult() -> void:
 			var appearance := Wardrobe.roll(i, suit)
 			assert_bool(Wardrobe.BODIES[appearance.body]["adult"]).override_failure_message(
 				"seed %d put %s in %s" % [i, appearance.body, suit]).is_true()
+
+
+## The catalogue itself, not merely the parts of it somebody is wearing.
+##
+## The two tests above walk what the cast and the crowd actually put on, which is why
+## they never noticed that both wizard outfits named eight meshes this repository has
+## never contained. Nothing wore them -- `crowd: false` kept them out of every roll and
+## nobody had been written into one -- so an entry describing clothes that do not exist
+## sat there waiting for the first character given a long coat.
+func test_every_outfit_in_the_catalogue_is_wearable() -> void:
+	for outfit: StringName in Wardrobe.OUTFITS:
+		var suit: Dictionary = Wardrobe.OUTFITS[outfit]
+		for slot: StringName in suit["parts"]:
+			assert_bool(ResourceLoader.exists(Wardrobe.kit_path(suit["parts"][slot]))) \
+				.override_failure_message("%s names %s for its %s, which is not in the kit"
+					% [outfit, suit["parts"][slot], slot]).is_true()
+		for accessory: Dictionary in suit.get("accessories", []):
+			assert_bool(ResourceLoader.exists(Wardrobe.kit_path(accessory["model"]))) \
+				.override_failure_message("%s offers %s, which is not in the kit"
+					% [outfit, accessory["model"]]).is_true()
+
+
+## Everybody the mystery names is dressed on purpose.
+##
+## A passenger with no written appearance still gets one -- rolled off their id, stable
+## and shipped -- which is right for filler and wrong for somebody whose berth is in the
+## register. The roll cannot know that a steward wears white or that the guard's collar
+## is the company's, so a principal left to it is a principal the player cannot tell
+## from a stranger.
+func test_everybody_in_the_register_is_dressed_on_purpose() -> void:
+	for passenger: Dictionary in GameContent.passengers():
+		var id := StringName(passenger.get("id", ""))
+		assert_bool(Wardrobe.CAST.has(id)).override_failure_message(
+			"%s is in the content and not in the wardrobe, so they are wearing a roll"
+			% id
+		).is_true()
+
+
+## And no two of them are the same person from across a carriage.
+##
+## There are eight outfits and twelve passengers, so sharing a suit is unavoidable and
+## sharing a silhouette is not: the wardrobe mixes garments across suits on purpose --
+## the steward is a peasant shirt over noble legs, the engineer a good coat over
+## working clothes. What has to be unique is the set of pieces, because that is what
+## somebody sees at the end of a corridor before they are close enough to read a face.
+func test_no_two_passengers_are_wearing_the_same_thing() -> void:
+	var worn := {}
+	for passenger: Dictionary in GameContent.passengers():
+		var id := StringName(passenger.get("id", ""))
+		var appearance := Wardrobe.appearance_of(id)
+		var pieces: Array[String] = []
+		for piece: Dictionary in Wardrobe.pieces_of(appearance):
+			pieces.append(String(piece["model"]))
+		pieces.sort()
+		var silhouette := "|".join(pieces)
+		assert_bool(worn.has(silhouette)).override_failure_message(
+			"%s is wearing exactly what %s is wearing" % [id, worn.get(silhouette, "")]
+		).is_false()
+		worn[silhouette] = id
