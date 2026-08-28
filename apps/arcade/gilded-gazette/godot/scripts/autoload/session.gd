@@ -42,8 +42,16 @@ const DEPARTURE_MINUTES := 16 * 60 + 5
 var time_of_day: CTimeOfDay
 var run: CRun
 
+## Who did it this run. Drawn in [method begin] and deliberately never packed into the
+## bridged state: React has no use for it, and the browser hands anybody who asks a copy
+## of everything that crosses. It is answered here, when an accusation is made.
+var culprit: StringName = &""
+
+var _draw := RandomNumberGenerator.new()
+
 var _scope := ECSScope.new()
 var _clock: SClock
+var _places: SPassengerPlace
 
 func _ready() -> void:
 	time_of_day = CTimeOfDay.new()
@@ -53,9 +61,9 @@ func _ready() -> void:
 	_clock = SClock.new()
 	_clock.world_minutes_per_second = 1.0
 	_scope.add_system(&"clock", _clock)
-	var places := SPassengerPlace.new()
-	places.departure_minutes = DEPARTURE_MINUTES
-	_scope.add_system(&"passenger_place", places)
+	_places = SPassengerPlace.new()
+	_places.departure_minutes = DEPARTURE_MINUTES
+	_scope.add_system(&"passenger_place", _places)
 
 	# What they wear is decided here, once, rather than when a carriage comes into
 	# view: the rig [SCastBody] builds is thrown away and rebuilt every time the player
@@ -98,8 +106,33 @@ func begin() -> void:
 	run.level_index = 0
 	run.score = 0
 	run.outcome = &"start"
+	culprit = _draw_a_culprit()
+	if _places != null:
+		_places.culprit = culprit
 	time_of_day.running = true
 	_clock.set_minutes(time_of_day, DEPARTURE_MINUTES)
+
+
+## Anybody aboard but the body. Not the `suspect` flag, which is who the enquiry has
+## formally named and is a fact about the enquiry rather than about the night: the
+## conductor is not a suspect and knows it, which is a reason to be able to draw him
+## rather than a reason not to.
+func _draw_a_culprit() -> StringName:
+	var eligible: Array[StringName] = []
+	for passenger: Dictionary in GameContent.passengers():
+		if passenger.get("victim", false):
+			continue
+		eligible.append(StringName(passenger.get("id", "")))
+	if eligible.is_empty():
+		return &""
+	_draw.randomize()
+	return eligible[_draw.randi_range(0, eligible.size() - 1)]
+
+
+## Whether the accusation is the right one. The only question the run's answer is ever
+## asked, and the only place it is compared.
+func accuses_correctly(content_id: StringName) -> bool:
+	return not culprit.is_empty() and content_id == culprit
 
 
 func _exit_tree() -> void:
