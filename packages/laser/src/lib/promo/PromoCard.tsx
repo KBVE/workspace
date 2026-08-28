@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { isSafeExternalUrl } from '../embed/external';
 import type { AdCreative } from './types';
 
 const ACCENT = '#6ea8ff';
@@ -22,19 +23,27 @@ export interface AdCardProps {
  */
 export function AdCard({ creative, onOpen, style, className }: AdCardProps) {
 	const accent = creative.accent ?? ACCENT;
+	// A creative is host-supplied data, so its url is no more trustworthy than
+	// any other string off the wire. `rel="noopener noreferrer"` says nothing
+	// about a `javascript:` href, which runs in this page rather than opening
+	// one. An unsafe url leaves the card rendered and inert: the alternative is
+	// a hole in a boot screen where an ad used to be.
+	const safe = isSafeExternalUrl(creative.url);
 	return (
 		<a
-			href={creative.url}
+			href={safe ? creative.url : undefined}
 			target="_blank"
 			rel="noopener noreferrer"
 			className={className}
 			onClick={
-				onOpen
-					? (e) => {
-							e.preventDefault();
-							onOpen(creative);
-						}
-					: undefined
+				!safe
+					? (e) => e.preventDefault()
+					: onOpen
+						? (e) => {
+								e.preventDefault();
+								onOpen(creative);
+							}
+						: undefined
 			}
 			style={{
 				display: 'flex',
