@@ -5,6 +5,7 @@ package kbve.npc.v1;
 import "kbve/common/v1/element.proto";
 import "kbve/common/v1/equip_slot.proto";
 import "kbve/common/v1/rarity.proto";
+import "kbve/common/v1/extension.proto";
 import "kbve/common/v1/registry.proto";
 import "kbve/type/v1/id.proto";
 
@@ -500,20 +501,6 @@ message PetInfo {
   optional kbve.common.v1.Element secondary_element = 10;
 }
 
-// Game-specific data that does not belong in the shared schema.
-message NpcExtension {
-  // Namespaced key, e.g. "discordsh.encounter_weight".
-  string key = 1;
-
-  oneof value {
-    string string_value = 2;
-    int64 int_value = 3;
-    double float_value = 4;
-    bool bool_value = 5;
-    bytes bytes_value = 6;
-  }
-}
-
 // One place an NPC is meant to be, and when they set off for it.
 //
 // The offset is measured from wherever the world places them, so the same
@@ -621,7 +608,7 @@ message Npc {
   optional SpatialProperties spatial = 47;
   optional InteractionFlags interaction = 48;
 
-  repeated NpcExtension extensions = 49;
+  repeated kbve.common.v1.Extension extensions = 49;
 
   optional SpriteAtlas sprite_atlas = 51;
   // Item refs this merchant buys and sells; prices come from the item domain.

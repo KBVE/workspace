@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package kbve.quest.v1;
 
+import "kbve/common/v1/extension.proto";
 import "kbve/common/v1/registry.proto";
 import "kbve/dialogue/v1/dialogue.proto";
 import "kbve/type/v1/id.proto";
@@ -232,20 +233,6 @@ message QuestTimeLimits {
   optional int32 daily_reset_hour = 5;
 }
 
-// Game-specific data that does not belong in the shared schema.
-message QuestExtension {
-  // Namespaced key, e.g. "discordsh.dungeon_depth".
-  string key = 1;
-
-  oneof value {
-    string string_value = 2;
-    int64 int_value = 3;
-    double float_value = 4;
-    bool bool_value = 5;
-    bytes bytes_value = 6;
-  }
-}
-
 // A quest definition.
 //
 // Supersedes kbve.schema.Quest, which modelled objectives as a flat list with
@@ -298,7 +285,7 @@ message Quest {
   // "player:level:5".
   repeated string triggers = 29;
 
-  repeated QuestExtension extensions = 30;
+  repeated kbve.common.v1.Extension extensions = 30;
 
   optional string credits = 31;
   // Hidden from production builds.

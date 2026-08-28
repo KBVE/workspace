@@ -6,6 +6,7 @@ import "google/protobuf/struct.proto";
 import "kbve/common/v1/element.proto";
 import "kbve/common/v1/equip_slot.proto";
 import "kbve/common/v1/rarity.proto";
+import "kbve/common/v1/extension.proto";
 import "kbve/common/v1/registry.proto";
 import "kbve/type/v1/id.proto";
 
@@ -443,20 +444,6 @@ message ItemSet {
   repeated SetBonus bonuses = 4;
 }
 
-// Game-specific data that does not belong in the shared schema.
-message ItemExtension {
-  // Namespaced key, e.g. "isometric.gather_time".
-  string key = 1;
-
-  oneof value {
-    string string_value = 2;
-    int64 int_value = 3;
-    double float_value = 4;
-    bool bool_value = 5;
-    bytes bytes_value = 6;
-  }
-}
-
 // An item definition.
 //
 // Supersedes kbve.schema.Object, which carried a single flat set of fields with
@@ -516,7 +503,7 @@ message Item {
   repeated string related_item_refs = 36;
   optional string set_ref = 37;
 
-  repeated ItemExtension extensions = 38;
+  repeated kbve.common.v1.Extension extensions = 38;
   optional string credits = 39;
   // Hidden from production builds.
   optional bool drafted = 40;
