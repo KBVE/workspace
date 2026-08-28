@@ -40,31 +40,31 @@
       },
       "level:won": {
         "label": "Verdict",
-        "text": "{level} settled. The enquiry moves on TODO."
+        "text": "{level} settled. The enquiry moves on a carriage."
       },
       "level:lost": {
         "label": "Setback",
-        "text": "{level} lost. The carriage is walked again TODO."
+        "text": "{level} lost. The carriage is walked again from the vestibule."
       },
       "scene:loading": {
         "label": "Presses",
-        "text": "Setting the next edition, TODO."
+        "text": "Setting the next edition, the formes still open."
       },
       "scene:ready": {
         "label": "Presses",
-        "text": "Edition printed, TODO"
+        "text": "Edition printed, the ink not yet dry."
       },
       "scene:failed": {
         "label": "Presses",
-        "text": "The type would not set: {scene} TODO"
+        "text": "The type would not set: {scene} broken up and returned to the case."
       },
       "game:score": {
         "label": "Ledger",
-        "text": "Evidence tallied at {score}. TODO"
+        "text": "Evidence tallied at {score} and entered in the ledger."
       },
       "game:run_over": {
         "label": "Final",
-        "text": "The affair is concluded. Presses stopped. TODO"
+        "text": "The affair is concluded. Presses stopped, the last edition away on the mail train."
       },
       "edition:new": {
         "label": "Stop Press",
