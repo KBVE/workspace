@@ -58,12 +58,20 @@ jobs:
         run: |
           echo "::notice::Tag verified. ${{ steps.tag.outputs.project }} ships to itch.io; see the itch workflow for this tag."
 
+      # protobuf-publish.yml runs on the same tag and pushes the module to the
+      # Buf Schema Registry. Same reasoning as itch above: the graph decides,
+      # so this file never learns a project id.
+      - name: Published by protobuf-publish.yml
+        if: contains(fromJSON(steps.tag.outputs.tags), 'proto')
+        run: |
+          echo "::notice::Tag verified. ${{ steps.tag.outputs.project }} publishes to the BSR; see the protobuf-publish workflow for this tag."
+
       # Everything else has no artifact yet: there is no registry to push to
       # and no deployable service. This job exists so a tag is checked from the
       # day tags start being used, rather than the check arriving after the
       # first wrong one has shipped. The build and push steps land here
       # alongside the registry.
       - name: Nothing to publish yet
-        if: ${{ !contains(fromJSON(steps.tag.outputs.tags), 'itch') }}
+        if: ${{ !contains(fromJSON(steps.tag.outputs.tags), 'itch') && !contains(fromJSON(steps.tag.outputs.tags), 'proto') }}
         run: |
           echo "::notice::Tag verified. No publish target is configured yet."

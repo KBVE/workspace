@@ -1,16 +1,29 @@
 name: protobuf-publish
 
-# Publishing happens only after a change has landed on main, so the BSR module
-# always reflects a reviewed state. Never runs on pull requests: secrets are
-# not available to forks, and should not be.
+# Publishing is a release, not a side effect of merging.
+#
+# This used to run on every push to main, which meant the registry head moved
+# with every commit and a consumer pinning the module got whatever landed last.
+# A schema is a promise to the people generating code from it, and a promise
+# that changes silently is not one. So it publishes on a release tag and
+# nothing else.
+#
+# Tags follow the repository convention, `<moon project id>@<semver>`, which
+# for this project means `protobuf@0.1.0`. release.yml verifies every tag of
+# that shape against the project's own manifest; this workflow does the same
+# check itself rather than trusting that the other one ran, because the version
+# it labels the registry commit with has to be the version the manifest claims.
+#
+# Never runs on pull requests: secrets are not available to forks, and should
+# not be.
 on:
   push:
-    branches: [main]
-    # The workflow file is listed alongside the schemas so a fix to the publish
-    # step itself reaches the runner. Without it a broken publish can only be
-    # repaired by an unrelated schema change or a manual dispatch.
-    paths: ['packages/protobuf/**', '.github/workflows/protobuf-publish.yml']
+    tags: ['protobuf@*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish, e.g. protobuf@0.1.0'
+        required: true
 
 permissions:
   contents: read
@@ -24,16 +37,14 @@ jobs:
   push:
     name: buf push
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/protobuf
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
       # The token is absent until someone adds it. Detect that and skip with a
-      # notice rather than failing every push to main with a credential error.
+      # notice rather than failing a release with a credential error.
       - name: Check for registry credentials
         id: creds
         env:
@@ -46,39 +57,69 @@ jobs:
             echo "::notice::BUF_TOKEN is not set; skipping publish to the BSR."
           fi
 
-      # The breaking-change task is commented out in the project config while
-      # the schemas are still being reshaped. Publishing is the point at which
-      # that stops being acceptable, so fail loudly here rather than silently
-      # shipping a module with no compatibility guarantee behind it.
+      # A published module with no compatibility check behind it is worse than
+      # an unpublished one: consumers pin it, and the first breaking change
+      # reaches them as a build failure they did not cause. Fail loudly here
+      # rather than shipping that.
       #
       # Commented task lines carry a '#' after the indent, so anchoring on the
-      # two-space indent distinguishes a defined task from the disabled block.
+      # two-space indent distinguishes a defined task from a disabled block.
       - name: Breaking-change check must be enabled before publishing
         if: steps.creds.outputs.present == 'true'
         run: |
-          if grep -qE '^  breaking:' "$GITHUB_WORKSPACE/packages/protobuf/moon.yml"; then
+          if grep -qE '^  breaking:' packages/protobuf/moon.yml; then
             echo "Breaking-change check is enabled."
           else
             echo "::error::protobuf has no active 'breaking' task. Re-enable it in packages/protobuf/moon.yml before publishing to the BSR."
             exit 1
           fi
 
+      - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
+        if: steps.creds.outputs.present == 'true'
+        with:
+          auto-install: true
+
+      # The tag names the version the registry commit is labelled with, so a
+      # tag that disagrees with the manifest would publish 0.2.0 against a
+      # package.json still saying 0.1.0 -- and nothing downstream could tell.
+      # Same script release.yml uses; the check belongs to whoever acts on the
+      # tag, not to whoever happens to have run first.
+      - name: Tag matches the manifest
+        id: tag
+        if: steps.creds.outputs.present == 'true'
+        run: node tools/release/verify-tag.mjs "${{ inputs.tag || github.ref_name }}"
+
       - uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1.5.0
         if: steps.creds.outputs.present == 'true'
         with:
-          # Required, and not covered by the job's working-directory: that
-          # default applies to `run` steps only, never to an action. Without it
-          # buf starts at the repository root, walks the whole monorepo, and
-          # finds an installed copy of this module under node_modules -- every
-          # message then collides with itself and the push fails on a build
-          # error that says nothing about the real cause.
-          input: packages/protobuf
-          token: ${{ secrets.BUF_TOKEN }}
-          push: true
-          # The module is created on the first successful push, and the default
-          # is private. A private module is capped at 100 types, which this one
-          # passed long ago -- the push fails with "private repositories are
-          # limited to 100 types", which reads as a permissions problem and is
-          # really a visibility one. These schemas are public by decision, so
-          # say so at creation; the setting has no effect afterwards.
-          push_create_visibility: public
+          setup_only: true
+
+      # Pushed by hand rather than through the action's `push: true`, because
+      # the action offers no way to set a label and a label is the whole point:
+      # it is what lets a consumer depend on `buf.build/kbve/proto:0.1.0` and
+      # get the same schema tomorrow.
+      #
+      # Two labels go on every release. The semver is the durable pin. `main`
+      # is the moving one, and under a release-gated workflow it now means
+      # "latest release" rather than "latest commit", which is what an unpinned
+      # consumer should get.
+      #
+      # --git-metadata is deliberately not used: it derives labels from every
+      # git tag pointing at the commit, which would add `protobuf@0.1.0`
+      # alongside `0.1.0` and make the label list a record of how the release
+      # was triggered rather than what it is. The source URL is passed instead.
+      - name: Push to the BSR
+        if: steps.creds.outputs.present == 'true'
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          test -n "$VERSION" || { echo "::error::verify-tag produced no version."; exit 1; }
+          buf push packages/protobuf \
+            --error-format github-actions \
+            --label "$VERSION" \
+            --label main \
+            --source-control-url "https://github.com/${{ github.repository }}/commit/${{ github.sha }}" \
+            --create \
+            --create-visibility public
+          echo "::notice::Published buf.build/kbve/proto:$VERSION"
