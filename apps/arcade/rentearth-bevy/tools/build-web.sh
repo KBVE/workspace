@@ -11,24 +11,17 @@
 # navigator.gpu and imports one or the other.
 #
 # Both bundles are threaded. `+atomics` makes the binary import a shared memory
-# instead of defining its own, which is what lets a web worker instantiate the
-# same module against the same heap and become a thread of this program rather
-# than a second copy of it. The standard library rustup ships for wasm32 is
-# built without those features, so it is rebuilt from source here -- that is
-# the `-Z build-std`, and the reason for the second toolchain.
+# instead of defining its own, which is what lets a worker join this program
+# rather than run a second copy of it. rustup's wasm32 std is built without
+# those features, hence `-Z build-std` and the second toolchain.
 #
-# The page needs cross-origin isolation for any of it to work: no COOP/COEP,
-# no SharedArrayBuffer, and `new WebAssembly.Memory({shared: true})` throws
-# before the game gets a frame. On itch that is the "SharedArrayBuffer support"
-# checkbox in the project's embed options, which is a setting on the page and
-# not something an upload can carry. index.html says so rather than failing
-# blank.
+# The page must be cross-origin isolated or SharedArrayBuffer does not exist
+# and the shared memory cannot be constructed; index.html says so rather than
+# failing blank.
 #
-# What threads buy, precisely: bevy_tasks hardcodes a single-threaded pool on
-# wasm32 -- `cfg(all(not(target_arch = "wasm32"), feature = "multi_threaded"))`
-# -- so Bevy's own schedule, extract and asset work stay on the main thread
-# whatever this script does. The workers are for what the game hands to
-# bevy_tasker.
+# Note what threads do not buy: bevy_tasks hardcodes a single-threaded pool on
+# wasm32, so Bevy's own schedule stays on the main thread whatever this script
+# does. The workers are for what the game hands to bevy_tasker.
 set -euo pipefail
 
 crate_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -55,21 +48,18 @@ wasm_bin="$(rustup run "${toolchain}" rustc --print sysroot)/bin"
 [ -x "${wasm_bin}/cargo" ] || { echo "error: ${toolchain} has no cargo in ${wasm_bin}." >&2; exit 1; }
 
 # --shared-memory and --import-memory are not implied by +atomics: without them
-# lld emits a module that defines its own memory, every worker instantiates a
-# private heap, and the pool silently does nothing shared. --max-memory is
-# mandatory once memory is shared, because a shared memory cannot be grown
-# past a maximum it never declared. 2GiB is address space reserved, not
-# committed.
+# lld defines a private memory per instance and the pool silently shares
+# nothing. --max-memory is mandatory once memory is shared; 2GiB is address
+# space reserved, not committed.
 wasm_rustflags="-C target-feature=+atomics,+bulk-memory,+mutable-globals"
 wasm_rustflags="${wasm_rustflags} -C link-arg=--shared-memory"
 wasm_rustflags="${wasm_rustflags} -C link-arg=--import-memory"
 wasm_rustflags="${wasm_rustflags} -C link-arg=--max-memory=2147483648"
 
-# wasm-bindgen rewrites the module to give each thread its own thread-locals,
-# and it needs these four to do it -- without them it stops at "failed to find
-# `__wasm_init_tls`". lld emits the symbols but does not export them, because
-# nothing inside the module references them: the caller is the generated glue,
-# which does not exist yet at link time.
+# wasm-bindgen needs these four to give each thread its own thread-locals;
+# without them it stops at "failed to find `__wasm_init_tls`". lld emits them
+# but does not export them, since the only caller is glue that does not exist
+# yet at link time.
 for symbol in __wasm_init_tls __tls_size __tls_align __tls_base; do
   wasm_rustflags="${wasm_rustflags} -C link-arg=--export=${symbol}"
 done

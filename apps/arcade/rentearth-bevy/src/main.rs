@@ -12,6 +12,8 @@
 //!
 //! Dependencies run one way: systems may use core, never the reverse.
 
+#[cfg(target_arch = "wasm32")]
+use bevy::asset::AssetMetaCheck;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 
@@ -84,6 +86,14 @@ fn main() {
             DefaultPlugins
                 .set(AssetPlugin {
                     file_path: asset_path(),
+                    // The asset server asks for `<asset>.meta` before every
+                    // load and falls back to defaults when it 404s. This
+                    // project ships none, so on the web that is one failed
+                    // round trip per asset and a console full of red that
+                    // hides real errors. Natively a miss is a stat, so the
+                    // check stays on there.
+                    #[cfg(target_arch = "wasm32")]
+                    meta_check: AssetMetaCheck::Never,
                     ..default()
                 })
                 .set(WindowPlugin {
