@@ -32,8 +32,9 @@ import {
   type FactRow,
   type Placement,
 } from '../research/world';
+import { Accusation } from './Accusation';
 import { Notebook } from './Notebook';
-import { useSend } from '../state/gameStore';
+import { name, useNaming } from '../state/notebookStore';
 import { useRunningOrder } from '../state/paperStore';
 import styles from './dossier.module.css';
 
@@ -78,6 +79,7 @@ function Board() {
       <div className={styles.scroll}>
         <Manifest focus={focus} />
         <Notebook />
+        <Accusation />
         {focus ? (
           <Person eid={focus} />
         ) : (
@@ -124,7 +126,7 @@ function Scrubber() {
 }
 
 function Manifest({ focus }: { focus: number }) {
-  const send = useSend();
+  const naming = useNaming();
   const victimEid = eidOf(useVictim());
   const order = useRunningOrder();
   // One name, once. The run is over the moment it is given, and a second would talk a
@@ -162,8 +164,8 @@ function Manifest({ focus }: { focus: number }) {
             >
               <span className={styles.personName}>
                 {passenger.name}
-                {passenger.suspect && (
-                  <span className={styles.mark} title="Under enquiry"> †</span>
+                {!passenger.suspect && (
+                  <span className={styles.mark} title="The body"> †</span>
                 )}
               </span>
               <span className={styles.personWhere}>
@@ -171,11 +173,14 @@ function Manifest({ focus }: { focus: number }) {
               </span>
             </button>
             <button
-              className={styles.accuse}
-              data-testid={`accuse-${ids[passenger.passengerEid]}`}
+              className={`${styles.accuse}${
+                naming.who === ids[passenger.passengerEid] ? ` ${styles.picked}` : ''
+              }`}
+              data-testid={`name-${ids[passenger.passengerEid]}`}
               disabled={settled}
-              title={settled ? 'The enquiry is closed.' : `Name ${passenger.name}`}
-              onClick={() => send('ui:accuse', { who: ids[passenger.passengerEid] })}
+              aria-pressed={naming.who === ids[passenger.passengerEid]}
+              title={settled ? 'The enquiry is closed.' : `Put ${passenger.name} in the accusation`}
+              onClick={() => name('who', ids[passenger.passengerEid])}
             >
               Name
             </button>

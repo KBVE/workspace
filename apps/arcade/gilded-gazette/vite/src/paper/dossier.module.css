@@ -304,3 +304,52 @@
 }
 
 .rubOut:disabled { color: #8a8069; cursor: default; }
+
+/* --- the accusation ------------------------------------------------------ */
+.namingRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.25rem 0;
+}
+
+.namingLabel {
+  flex: 0 0 5rem;
+  font-size: 0.7rem;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  color: #55503f;
+}
+
+.namingPick {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.76rem;
+  padding: 0.15rem 0.2rem;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid #cfc6ad;
+  border-radius: 2px;
+}
+
+.namingPick:disabled { color: #8a8069; background: none; }
+
+/* The one irreversible control on the board, and the only red one. */
+.name {
+  margin-top: 0.45rem;
+  width: 100%;
+  padding: 0.3rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: #f4efe2;
+  background: #6b2018;
+  border: 0;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.name:disabled { background: #8a8069; cursor: default; }
+.name:not(:disabled):hover { background: #571a13; }

@@ -92,7 +92,12 @@ test('the sheet leaves off what the answer can never be', async ({ page }) => {
     if ((await row(page, `suspect:${id}`).count()) === 0) missing.push(id);
   }
   expect(missing).toHaveLength(1);
-  await expect(page.getByTitle('The body')).toHaveCount(2);
+
+  // And the manifest marks exactly one of them as the body, which is the sheet and the
+  // register agreeing about who is dead. Scoped to the manifest rather than the page:
+  // the passenger list and the rail carry the same mark, and how many places show it
+  // is a layout question rather than anything this test is about.
+  await expect(page.getByTestId('dossier-manifest').getByTitle('The body')).toHaveCount(1);
 
   await expect(row(page, 'room:platform')).toHaveCount(0);
 

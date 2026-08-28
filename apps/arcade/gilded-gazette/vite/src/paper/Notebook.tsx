@@ -1,11 +1,4 @@
-import {
-  items,
-  locations,
-  listedAs,
-  passengers,
-  type Item,
-  type LocationId,
-} from '../content/content';
+import { rooms, suspects, weapons } from './answers';
 import { useVictim } from '../state/researchStore';
 import {
   clearMarks,
@@ -30,41 +23,6 @@ interface Column {
   /** Said when the column has nothing in it worth ruling out. */
   thin?: string;
 }
-
-/**
- * Everybody aboard who is not the body, which is exactly the set TheNight draws its
- * culprit from. Who the body is is drawn per run and arrives on the wire, so this
- * takes it as an argument rather than reading a flag that no longer exists -- and
- * before the enquiry opens it lists everybody, which is the honest answer for the
- * half second before the engine has said.
- */
-const suspects = (victim: string) =>
-  passengers
-    .filter((p) => p.id !== victim)
-    .map((p) => ({ id: p.id, label: listedAs(p) }));
-
-/**
- * The weapons the run can name, which are the ones it can also put in a room: the
- * model is the qualification, not the kind. TheNight draws from this same rule.
- *
- * A weapon with no model is real content -- somebody owns it, it has a page -- but
- * nothing can place it aboard, so listing it would put a row on the sheet that no
- * evidence can ever bear on and no run can ever be about.
- */
-const weapons = () =>
-  items
-    .filter((i: Item) => i.kind === 'weapon' && i.model)
-    .map((i) => ({ id: i.id, label: i.name }));
-
-/**
- * Rooms in the consist, and not the platform. The platform is where people were
- * before they were passengers; nobody is killed there, and TheNight will not put
- * the scene there either.
- */
-const rooms = () =>
-  locations
-    .filter((l) => typeof l.carriage === 'number')
-    .map((l) => ({ id: l.id as LocationId, label: l.name }));
 
 const MARK_TITLE: Record<Mark, string> = {
   clear: 'Not ruled on',

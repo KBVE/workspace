@@ -44,3 +44,32 @@ export const useMark = (key: string): Mark =>
 
 export const useMarkedCount = (): number =>
   useNotebookStore((s) => Object.values(s.marks).filter((m) => m !== 'clear').length);
+
+
+/**
+ * The accusation being assembled, as content ids, empty until each part is chosen.
+ *
+ * Kept beside the marks because it is the same act: the sheet is where the reader
+ * works it out and this is where they commit to it. Nothing here reaches the engine
+ * until they say so -- a half-built accusation is a thought, not an answer.
+ */
+interface NamingStore {
+  who: string;
+  weapon: string;
+  room: string;
+}
+
+export const useNamingStore = create<NamingStore>()(() => ({ who: '', weapon: '', room: '' }));
+
+const setNaming = useNamingStore.setState;
+
+export const name = (part: keyof NamingStore, id: string): void =>
+  setNaming((s) => ({ [part]: s[part] === id ? '' : id }) as Partial<NamingStore>);
+
+export const forgetNaming = (): void => setNaming({ who: '', weapon: '', room: '' });
+
+export const useNaming = (): NamingStore => useNamingStore((s) => s);
+
+/** All three, or it is not an accusation. */
+export const useNamingIsWhole = (): boolean =>
+  useNamingStore((s) => Boolean(s.who && s.weapon && s.room));
