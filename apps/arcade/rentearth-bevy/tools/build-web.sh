@@ -41,6 +41,19 @@ wasm="${workspace_dir}/target/${target}/release/rentearth-bevy.wasm"
 toolchain="$(sed -n '1s/[[:space:]]*$//p' "${crate_dir}/tools/wasm-toolchain.txt")"
 [ -n "${toolchain}" ] || { echo "error: wasm-toolchain.txt is empty." >&2; exit 1; }
 
+# The nightly's own bin directory, put in front of PATH for the build.
+#
+# Neither `cargo +toolchain` nor `rustup run` is enough under moon. moon puts
+# the pinned stable toolchain's bin directory at the head of PATH, and those
+# are rustup's real binaries rather than its shims, so they ignore both the
+# `+toolchain` argument -- "no such command: `+nightly-...`" -- and the
+# RUSTUP_TOOLCHAIN that `rustup run` sets. `rustup run` does launch the right
+# cargo, but that cargo then looks up `rustc` on PATH, finds the stable one,
+# and build-std goes hunting for standard library sources in a sysroot that
+# does not have them. Putting this directory first is what makes the two agree.
+wasm_bin="$(rustup run "${toolchain}" rustc --print sysroot)/bin"
+[ -x "${wasm_bin}/cargo" ] || { echo "error: ${toolchain} has no cargo in ${wasm_bin}." >&2; exit 1; }
+
 # --shared-memory and --import-memory are not implied by +atomics: without them
 # lld emits a module that defines its own memory, every worker instantiates a
 # private heap, and the pool silently does nothing shared. --max-memory is
@@ -105,10 +118,8 @@ build() {
   echo "==> ${name}"
   # Cargo keys its target directory on the feature set, so these two do not
   # share artifacts and the second build is not incremental over the first.
-  # `rustup run`, not `cargo +toolchain`: the `+` directive is understood by
-  # rustup's cargo proxy, and under moon `cargo` is the real binary proto
-  # installed, which rejects it with "no such command: `+nightly-...`".
-  RUSTFLAGS="${wasm_rustflags}" rustup run "${toolchain}" cargo build --release --target "${target}" \
+  RUSTFLAGS="${wasm_rustflags}" PATH="${wasm_bin}:${PATH}" \
+    "${wasm_bin}/cargo" build --release --target "${target}" \
     -Z build-std=std,panic_abort \
     "${water[@]}" "$@" \
     --manifest-path "${crate_dir}/Cargo.toml"
