@@ -10,10 +10,17 @@
 layer: 'application'
 language: 'typescript'
 stack: 'frontend'
-tags: ['godot', 'game']
+tags: ['godot', 'game', 'lfs', 'itch']
 
 owners:
   defaultOwner: '@h0lybyte'
+
+# The one fact the project graph cannot answer: the itch page slug lives on
+# itch, not here. ITCH_DIST because this project's web build is a subdirectory
+# -- the vite root is not the project root.
+env:
+  ITCH_TARGET: 'kbve/gilded-gazette:html'
+  ITCH_DIST: 'vite/dist'
 
 fileGroups:
   # The contract: edited by hand, compiled into both runtimes. Anything here
@@ -26,18 +33,36 @@ fileGroups:
     - 'tools/*.mjs'
 
 tasks:
+  # vite/ is an npm island outside the pnpm workspace globs, so moon's own
+  # install does not reach it and every task here that runs npm has to depend
+  # on this one. It runs in CI for the same reason: without it a runner has no
+  # node_modules under vite/ and the first npm script fails on a missing vite.
   install:
     command: 'npm --prefix vite ci'
     options:
       cache: false
-      runInCI: false
     inputs:
       - 'vite/package-lock.json'
       - 'vite/package.json'
 
+  # The engine and, just as importantly, its web export templates. Exporting
+  # without them does not fail loudly: Godot reports a missing template and
+  # writes nothing, so the vite build that follows finds an empty public/godot
+  # and ships a page with no game in it.
+  godot:
+    command: 'bash ./tools/ensure-godot.sh'
+    inputs:
+      - 'tools/ensure-godot.sh'
+      - '.godot-version'
+      - 'godot/project.godot'
+    options:
+      cache: false
+
   # shared/ -> godot/scripts/ecs/*.gd and vite/src/**. Never edit the outputs.
   gen:
     command: 'npm --prefix vite run gen'
+    deps:
+      - '~:install'
     inputs:
       - '@group(contract)'
       - '@group(generators)'
@@ -46,6 +71,8 @@ tasks:
   # shared/. Read-only, so it is the one safe to run everywhere.
   gen-check:
     command: 'npm --prefix vite run gen:check'
+    deps:
+      - '~:install'
     inputs:
       - '@group(contract)'
       - '@group(generators)'
@@ -54,14 +81,22 @@ tasks:
 
   typecheck:
     command: 'npm --prefix vite run typecheck'
+    deps:
+      - '~:install'
     inputs:
       - 'vite/src/**/*'
       - 'vite/tsconfig*.json'
 
+  # The whole artifact, in the one order that works: shared/ generates into both
+  # runtimes, Godot exports into vite/public/godot, then vite builds around
+  # what is there. Depending on build-godot is what makes `build` mean the game
+  # rather than the page it is mounted in -- an itch release runs this task and
+  # nothing else.
   build:
     command: 'npm --prefix vite run build'
     deps:
       - '~:gen'
+      - '~:build-godot'
     inputs:
       - 'vite/src/**/*'
       - 'vite/index.html'
@@ -70,26 +105,37 @@ tasks:
     outputs:
       - 'vite/dist'
 
-  # Everything below shells out to a Godot 4.7 binary with the export templates
+  # Everything below shells out to a Godot binary with the export templates
   # installed, and the character art has to be smudged from Forgejo first (see
-  # the repo-root .lfsconfig). Neither is true of a bare CI runner, so these are
-  # opted out of `moon ci` and driven by the game's own workflow instead.
+  # the repo-root .lfsconfig). Neither used to be true of a bare CI runner, so
+  # these were opted out of `moon ci` -- which meant nothing ever checked that
+  # the game builds. Both are tasks now: `godot` installs the engine, and
+  # `assets` comes from the 'lfs' tag. A runner needs no more than a Forgejo
+  # credential.
   build-shell:
     command: 'npm --prefix vite run build:shell'
-    options:
-      runInCI: false
+    deps:
+      - '~:install'
     inputs:
       - 'vite/src/**/*'
       - 'vite/vite.shell.config.ts'
     outputs:
       - 'godot/web/shell.html'
 
+  # &shell -> build:shell emits godot/web/shell.html, which the export template
+  #           consumes, so it has to run before the export and not after.
+  # &assets -> the cast models are LFS objects. Inherited `assets` hangs off
+  #            `build`, and moon runs a task's deps in parallel, so the export
+  #            has to name it or it can start before the blobs are there and
+  #            bake pointer files into the pck.
   build-godot:
     command: 'npm --prefix vite run build:godot'
     options:
-      runInCI: false
       cache: false
     deps:
+      - '~:install'
+      - '~:godot'
+      - '~:assets'
       - '~:build-shell'
     outputs:
       - 'vite/public/godot'
@@ -97,13 +143,37 @@ tasks:
   test-godot:
     command: 'npm --prefix vite run test:godot'
     options:
-      runInCI: false
+      cache: false
+    deps:
+      - '~:install'
+      - '~:godot'
+
+  # Playwright ships no browser with the npm package. A task so that e2e can
+  # depend on it rather than every caller remembering.
+  e2e-browser:
+    command: 'npm --prefix vite exec -- playwright install --with-deps chromium'
+    deps:
+      - '~:install'
+    options:
       cache: false
 
+  # Boots the exported game in a real browser. gdUnit4 runs against the engine
+  # with no web export in sight, so this is the only check that proves the
+  # thing that ships starts at all.
+  #
+  # Not `runInCI: false`, which would read as "release-only" but means moon
+  # skips it in any CI environment -- including when the release workflow asks
+  # for it by name, so the gate would silently never run.
   e2e:
     command: 'npm --prefix vite run e2e'
     options:
-      runInCI: false
       cache: false
     deps:
       - '~:build'
+      - '~:e2e-browser'
+
+  # What ships and what gates it.
+  publish:
+    deps:
+      - '~:build'
+      - '~:e2e'
