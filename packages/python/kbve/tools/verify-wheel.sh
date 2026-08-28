@@ -45,6 +45,7 @@ import re
 import sys
 
 import kbve
+import kbve.argocd
 import kbve.seo
 import kbve.mdx
 import kbve.svg
@@ -99,13 +100,15 @@ scripts = [ep for ep in dist.entry_points if ep.group == "console_scripts"]
 if not scripts:
     raise SystemExit("no console scripts in the wheel")
 
-# kbve.seo needs neither extra, so its commands have to work in a bare install.
-for ep in scripts:
-    if ep.name.startswith("kbve-seo-"):
-        ep.load()
+# kbve.seo and kbve.argocd need neither extra -- pydantic and PyYAML are in the
+# base install -- so their commands have to work without one.
+light = [ep for ep in scripts
+         if ep.name.startswith(("kbve-seo-", "kbve-argocd-"))]
+for ep in light:
+    ep.load()
 
-print(f"  bare:      seo + stdlib modules only, py.typed ok, "
-      f"{len(scripts)} scripts declared")
+print(f"  bare:      seo + argocd + stdlib modules, py.typed ok, "
+      f"{len(light)}/{len(scripts)} scripts run unextra'd")
 PY
 
 # --- [server]: the exported API -------------------------------------------

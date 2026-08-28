@@ -27,4 +27,7 @@ per-file-ignores =
 	kbve/seo/report.py: E231
 	kbve/svg/dag.py: E231, E702
 	tests/test_svg.py: E231
+	# Same again: the YAML fixtures are f-strings, and `apiVersion: apps/v1`
+	# inside one reads as a bare colon.
+	tests/test_argocd.py: E231
 	kbve/proto/*_pb2*.py: E501, E303, F401, E261, W504, E302, W291, E271, E211, E111, E225, E231, F541, E114, E128

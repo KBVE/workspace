@@ -54,6 +54,9 @@ kbve-skin-variant = "kbve.blender.skin_variant:main"
 # kbve.seo needs no extra: it is pydantic and PyYAML, both core.
 kbve-seo-audit = "kbve.seo.audit:main"
 kbve-seo-report = "kbve.seo.report:main"
+# kbve.argocd is PyYAML only -- file manipulation, no cluster access.
+kbve-argocd-annotate = "kbve.argocd.annotate:main"
+kbve-argocd-label = "kbve.argocd.label_resources:main"
 
 # Everything else the Nx workspace hung off this distribution stayed there:
 # kbve.nx, kbve.sprite, kbve.osrs, kbve.seo, kbve.mdx, kbve.svg, kbve.ai,

@@ -93,6 +93,26 @@ and no broken relative links. Anything that encodes one site's convention
 (`tags`, `sem`, JSON-LD `source_path`, a social card) is off until a profile
 asks for it.
 
+## ArgoCD and Kubernetes (`kbve.argocd`)
+
+Two passes over a directory of ArgoCD `Application` YAML — no cluster, no
+kubectl, no network, so they run on a pull request rather than against a live
+cluster.
+
+```bash
+kbve-argocd-annotate --mode validate --apps-dir <dir>   # kbve.com/* annotations
+kbve-argocd-label    --mode drift    --apps-dir <dir>   # propagate them as labels
+```
+
+`annotate` derives an Application's category and stack from the directory it
+sits in and writes the `kbve.com/*` annotation set; `label` reads those back and
+puts them on the Kubernetes resources the Application points at, so a resource
+carries the provenance its Application declares. Manifests are found in
+`manifests/`, `manifest/` or `k8s/` beside the Application.
+
+Same exit contract as the auditor: `0` clean, `1` findings that should block,
+`2` could not run.
+
 ## Content and rendering (`kbve.mdx`, `kbve.svg`, `kbve.ai`)
 
 `kbve.svg` renders donut charts and DAGs to inline SVG at generation time, so a
@@ -139,7 +159,6 @@ that has no equivalent here yet:
 | module | needs |
 | --- | --- |
 | `kbve.osrs` | `apps/kbve/astro-kbve` content tree |
-| `kbve.argocd` | `apps/kube` |
 | `kbve.unreal` | `apps/rentearth/unreal-rentearth` |
 | `kbve.sprite.ship_footprint` | `apps/agones/arpg/{web,server}` |
 
