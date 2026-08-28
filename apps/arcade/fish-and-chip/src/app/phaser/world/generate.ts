@@ -358,7 +358,28 @@ export function generateTown(options: TownOptions): TownMap {
 		return streets[0];
 	};
 
-	const playerSpawn = streetSpawn();
+	/**
+	 * The street tile nearest a landmark. The player starts by the sand pit
+	 * rather than wherever the street plan happened to drop them: the pit is
+	 * the way into the fishing game, and a spawn on the far side of town made
+	 * the first thing you do a hike.
+	 *
+	 * Still a street tile, so the guarantee that a spawn can be walked out of
+	 * holds. Falls back to a random street if the pit is somehow walled in.
+	 */
+	const spawnNear = (target: Position): Position => {
+		const reachable = streets
+			.filter((spot) => free(spot.x, spot.y) && !reserved.has(index(spot.x, spot.y, width)))
+			.sort(
+				(a, b) =>
+					Math.abs(a.x - target.x) +
+					Math.abs(a.y - target.y) -
+					(Math.abs(b.x - target.x) + Math.abs(b.y - target.y)),
+			);
+		return reachable[0] ?? streetSpawn();
+	};
+
+	const playerSpawn = spawnNear(landmarks.fishingPit);
 	const npcSpawns: Position[] = [];
 	for (let placed = 0; placed < npcCount; placed++) npcSpawns.push(streetSpawn());
 

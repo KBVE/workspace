@@ -50,6 +50,19 @@ describe('generateTown', () => {
 		}
 	});
 
+	it.each(SEEDS)('starts the player within reach of the sand pit on seed %i', (seed) => {
+		const map = generateTown({ seed });
+		const pit = map.landmarks.fishingPit;
+		const away =
+			Math.abs(map.playerSpawn.x - pit.x) + Math.abs(map.playerSpawn.y - pit.y);
+
+		// The pit is the way into the fishing game, so the player starts on the
+		// street beside it rather than wherever the street plan dropped them.
+		// TownScene's interact range is a tile, so this is close enough that F
+		// works where you land.
+		expect(away, `spawn ${map.playerSpawn.x},${map.playerSpawn.y} pit ${pit.x},${pit.y}`).toBeLessThanOrEqual(2);
+	});
+
 	it('puts the building landmark on a doorway with a clear approach', () => {
 		const map = generateTown({ seed: 11 });
 		const solid = collidableGids();
