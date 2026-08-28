@@ -1,0 +1,118 @@
+# The labels this repository uses. Source of truth.
+#
+# Two halves. The ones below are written by hand, because "is this a bug" is a
+# judgement no graph can make. The scope labels -- area/* and tag/* -- are not
+# here at all: sync.mjs derives them from the moon project graph, the same way
+# .github/CODEOWNERS is generated, so they cannot drift from the projects they
+# describe. Adding a tag to a moon.yml adds the label.
+#
+# sync.mjs never deletes. Labels already on GitHub that are not described here
+# are reported and left alone.
+#
+# Prefixes are load-bearing: GitHub's label picker is a substring match, so
+# typing "kind/" narrows to one family.
+
+# What the work is. Roughly the conventional-commit types this repository
+# actually uses -- feat, fix, refactor, chore, test, docs account for 91 of the
+# last 94 commits -- plus the two that describe an issue rather than a change.
+kind:
+  - name: 'kind/bug'
+    color: 'd73a4a'
+    description: "Something is broken"
+  - name: 'kind/feature'
+    color: '0e8a16'
+    description: 'New capability. Lands as feat()'
+  - name: 'kind/security'
+    color: 'b60205'
+    description: 'Vulnerability, hardening, or secret exposure'
+  - name: 'kind/refactor'
+    color: '5319e7'
+    description: 'Behaviour unchanged, shape improved'
+  - name: 'kind/docs'
+    color: '0075ca'
+    description: 'Documentation, comments, AGENTS.md'
+  - name: 'kind/test'
+    color: '1d76db'
+    description: 'Test coverage or test infrastructure'
+  - name: 'kind/chore'
+    color: 'c5def5'
+    description: 'Dependencies, CI, tooling, housekeeping'
+  - name: 'kind/plan'
+    color: 'fbca04'
+    description: 'Design or proposal. No code yet'
+
+# Where the work is stuck. Deliberately short: GitHub already models assignee,
+# milestone, and review state, and a status label that duplicates one of those
+# goes stale the moment someone uses the native field instead.
+status:
+  - name: 'status/needs-triage'
+    color: 'ededed'
+    description: 'Not yet scoped or prioritised'
+  - name: 'status/blocked'
+    color: 'e99695'
+    description: 'Waiting on something outside this repository'
+  - name: 'status/in-progress'
+    color: 'fef2c0'
+    description: 'Someone is actively on this'
+
+# Where the work is, by top-level group. Mirrors the project globs in
+# .moon/workspace.yml.
+area:
+  - name: 'area/apps'
+    color: '006b75'
+    description: 'Games and websites under apps/'
+  - name: 'area/crates'
+    color: '006b75'
+    description: 'Rust libraries under crates/'
+  - name: 'area/packages'
+    color: '006b75'
+    description: 'Shared packages under packages/'
+  - name: 'area/services'
+    color: '006b75'
+    description: 'Deployed services under services/'
+  - name: 'area/tools'
+    color: '006b75'
+    description: 'Repository tooling under tools/'
+
+# The moon tag vocabulary. This list is what a `tags:` entry in any moon.yml is
+# allowed to say.
+#
+# moon cannot enforce this itself -- `constraints` only offers
+# enforceLayerRelationships and tagRelationships, with no allowlist -- so
+# sync.mjs --check does it, and CI runs that. Without it the drift just moves
+# one level down: a typo'd tag in a moon.yml would quietly mint a label, and
+# `tag/bevy` and `tag/bevvy` would both look official.
+#
+# Adding a tag is a deliberate line here plus the moon.yml that uses it. A tag
+# nobody uses is reported too, so retired ones do not linger as dead labels.
+tag:
+  - name: 'tag/game'
+    color: 'd4c5f9'
+    description: 'A playable game project'
+  - name: 'tag/bevy'
+    color: 'd4c5f9'
+    description: 'Bevy engine'
+  - name: 'tag/godot'
+    color: 'd4c5f9'
+    description: 'Godot engine'
+  - name: 'tag/phaser'
+    color: 'd4c5f9'
+    description: 'Phaser engine'
+  - name: 'tag/astro'
+    color: 'd4c5f9'
+    description: 'Astro site'
+  - name: 'tag/itch'
+    color: 'd4c5f9'
+    description: 'Published to itch.io'
+  - name: 'tag/npm'
+    color: 'd4c5f9'
+    description: 'Published to npm'
+  - name: 'tag/proto'
+    color: 'd4c5f9'
+    description: 'Protobuf schemas and generated code'
+  - name: 'tag/lfs'
+    color: 'd4c5f9'
+    description: 'Needs Git LFS assets to build'
+  - name: 'tag/windmill'
+    color: 'd4c5f9'
+    description: 'Windmill scripts and flows'

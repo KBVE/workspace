@@ -1,0 +1,27 @@
+# The label vocabulary, and the check that keeps it honest.
+layer: 'tool'
+language: 'javascript'
+stack: 'infrastructure'
+
+owners:
+  defaultOwner: '@h0lybyte'
+
+tasks:
+  # Fails when a moon.yml declares a tag labels.yml does not, which is the
+  # drift that matters -- moon has no tag allowlist of its own. Needs no
+  # network: the GitHub half is skipped when gh is unavailable.
+  check:
+    command: 'node sync.mjs'
+    toolchains: ['node']
+    inputs:
+      - 'labels.yml'
+      - 'sync.mjs'
+      # Workspace-relative: a tag can be added in any project, so the check is
+      # stale the moment any moon.yml changes.
+      - '/**/moon.yml'
+
+  test:
+    command: 'node --test'
+    toolchains: ['node']
+    inputs:
+      - '*.mjs'

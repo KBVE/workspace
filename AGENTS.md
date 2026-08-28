@@ -92,6 +92,42 @@ each project's `moon.yml`, so whoever owns the touched projects is requested.
 `release.yml` verifies and publishes, and `itch.yml` ships game builds to itch.
 Releasing is not something to do on the way to merging a branch.
 
+## Labels
+
+`tools/labels/labels.yml` is the source of truth for every label this
+repository uses. Four families, prefixed so GitHub's substring picker can
+narrow to one:
+
+- `kind/*` — what the work is (`bug`, `feature`, `security`, `refactor`,
+  `docs`, `test`, `chore`, `plan`)
+- `status/*` — where it is stuck (`needs-triage`, `blocked`, `in-progress`)
+- `area/*` — which top-level group it touches
+- `tag/*` — the moon tag vocabulary
+
+`area/*` and `tag/*` are not applied by hand-maintained lists of projects:
+`tools/labels/sync.mjs` reads the moon project graph, so adding `tags: ['npm']`
+to a `moon.yml` is what makes `tag/npm` meaningful.
+
+That runs both directions. **`labels.yml` also defines which tags a `moon.yml`
+is allowed to declare.** moon cannot enforce this itself — `constraints` only
+offers `enforceLayerRelationships` and `tagRelationships` — so `moon run
+labels:check` does, and it fails on a tag the vocabulary does not contain.
+Without it a typo would quietly mint a label and `tag/bevy` and `tag/bevvy`
+would both look official.
+
+```bash
+moon run labels:check           # graph vs vocabulary; no network needed
+node tools/labels/sync.mjs      # also compare against GitHub, report only
+node tools/labels/sync.mjs --apply
+```
+
+Adding a tag is two deliberate lines: the entry in `labels.yml` and the
+`moon.yml` that uses it. Either alone fails the check or is reported as dead.
+
+The sync never deletes. Labels already on GitHub that `labels.yml` does not
+describe — this repository had eighteen before the file existed — are reported
+and left alone.
+
 ## Toolchains
 
 Versions are pinned in `.prototools` and `.moon/toolchains.yml`; `rust-toolchain.toml`
