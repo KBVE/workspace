@@ -22,6 +22,8 @@ pub enum Terrain {
     Plains,
     Grassland,
     Forest,
+    Jungle,
+    Taiga,
     Hills,
     Mountain,
     Tundra,
@@ -29,13 +31,15 @@ pub enum Terrain {
 }
 
 impl Terrain {
-    pub const ALL: [Terrain; 10] = [
+    pub const ALL: [Terrain; 12] = [
         Terrain::Ocean,
         Terrain::Coast,
         Terrain::Desert,
         Terrain::Plains,
         Terrain::Grassland,
         Terrain::Forest,
+        Terrain::Jungle,
+        Terrain::Taiga,
         Terrain::Hills,
         Terrain::Mountain,
         Terrain::Tundra,
@@ -54,6 +58,11 @@ impl Terrain {
             Terrain::Plains => Color::srgb(0.72, 0.69, 0.37),
             Terrain::Grassland => Color::srgb(0.40, 0.59, 0.27),
             Terrain::Forest => Color::srgb(0.20, 0.40, 0.23),
+            // Darker and less yellow than forest, so the tropics read as their
+            // own band rather than as more of the same green.
+            Terrain::Jungle => Color::srgb(0.12, 0.32, 0.16),
+            // Toward grey: boreal ground is moss and rock, not pasture.
+            Terrain::Taiga => Color::srgb(0.24, 0.37, 0.29),
             Terrain::Hills => Color::srgb(0.49, 0.46, 0.33),
             Terrain::Mountain => Color::srgb(0.54, 0.52, 0.53),
             Terrain::Tundra => Color::srgb(0.63, 0.65, 0.59),
@@ -80,6 +89,8 @@ impl Terrain {
             Terrain::Tundra => 3.0,
             Terrain::Ice => 4.0,
             Terrain::Forest => 5.0,
+            Terrain::Jungle => 5.0,
+            Terrain::Taiga => 4.0,
             Terrain::Hills => 11.0,
             Terrain::Mountain => 24.0,
         }
@@ -176,7 +187,9 @@ fn classify(spec: MapSpec, o: Offset) -> Terrain {
     if lat > 0.93 {
         return Terrain::Ice;
     }
-    if lat > 0.76 {
+    // Pulled back from 0.76 to leave a boreal band between the ice and the
+    // temperate zone, which is where the conifers live.
+    if lat > 0.80 {
         return Terrain::Tundra;
     }
 
@@ -190,16 +203,49 @@ fn classify(spec: MapSpec, o: Offset) -> Terrain {
         return Terrain::Hills;
     }
 
-    // Moisture band. Deserts at the horse latitudes, not at the equator --
-    // that is where the real ones are, and it stops the tropics reading as one
-    // flat green mass.
-    let moisture = fbm(spec, o, 0.15, 3) - (lat - 0.32).abs().mul_add(-0.9, 0.42);
+    let moisture = moisture(spec, o, lat);
+
+    // Cold and wet is conifer, not broadleaf.
+    if lat > 0.62 {
+        return if moisture > 0.46 {
+            Terrain::Taiga
+        } else {
+            Terrain::Plains
+        };
+    }
+
+    // Hot and wet.
+    if lat < 0.20 && moisture > 0.54 {
+        return Terrain::Jungle;
+    }
+
     match moisture {
-        m if m < 0.30 => Terrain::Desert,
+        m if m < 0.36 => Terrain::Desert,
         m if m < 0.46 => Terrain::Plains,
-        m if m < 0.66 => Terrain::Grassland,
+        m if m < 0.56 => Terrain::Grassland,
         _ => Terrain::Forest,
     }
+}
+
+/// How wet a tile is, in roughly `0.2..0.8`.
+///
+/// The band this returns matters more than the shape. `fbm` averages several
+/// octaves of value noise, so its output clusters hard around 0.5 and only
+/// rarely approaches either end -- a threshold set at 0.66, as the forest one
+/// was, sits outside what the noise can actually produce often enough to
+/// matter, and the biome it guards effectively does not exist. The previous
+/// formula also subtracted a term that reached 0.42 at its worst, pushing the
+/// whole distribution below every threshold above desert. Forest came out on
+/// 122 tiles out of 73728.
+fn moisture(spec: MapSpec, o: Offset, lat: f32) -> f32 {
+    let wet = fbm(spec, o, 0.15, 3);
+
+    // A dry belt at the horse latitudes, where the real deserts are, fading to
+    // nothing toward the equator and toward the poles. Bounded well under the
+    // spread of `wet` so it biases the result rather than dominating it.
+    let dryness = 0.30 * (1.0 - ((lat - 0.32).abs() / 0.20).min(1.0));
+
+    wet - dryness
 }
 
 /// Fractal noise: several octaves of value noise summed with halving amplitude.

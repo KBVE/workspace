@@ -2,9 +2,19 @@
 
 use bevy::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
+use bevy::asset::RenderAssetUsages;
+#[cfg(not(target_arch = "wasm32"))]
+use bevy::camera::{ImageRenderTarget, RenderTarget};
+#[cfg(not(target_arch = "wasm32"))]
+use bevy::render::render_resource::{
+    Extent3d, TextureDimension, TextureFormat, TextureUsages,
+};
+#[cfg(not(target_arch = "wasm32"))]
 use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 
 use crate::game::components::camera::CameraRig;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::game::systems::camera::spawn_camera;
 
 use crate::game::components::tile::Tile;
 
@@ -28,7 +38,8 @@ impl Plugin for DebugPlugin {
 
         #[cfg(not(target_arch = "wasm32"))]
         if std::env::var("RENTEARTH_SCREENSHOT").is_ok() {
-            app.add_systems(Update, screenshot_when_settled);
+            app.add_systems(Startup, render_to_image.after(spawn_camera))
+                .add_systems(Update, screenshot_when_settled);
         }
     }
 }
@@ -39,22 +50,97 @@ impl Plugin for DebugPlugin {
 #[cfg(not(target_arch = "wasm32"))]
 const SCREENSHOT_FRAME: u32 = 240;
 
-/// Save one frame and quit, so a shader change can be compared against the one
-/// before it rather than from memory:
+/// Size of a captured frame. Fixed rather than taken from the window, so two
+/// shots can be compared pixel for pixel whatever the window happened to be.
+#[cfg(not(target_arch = "wasm32"))]
+const CAPTURE_SIZE: (u32, u32) = (2560, 1440);
+
+/// Where a captured frame is rendered.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Resource)]
+struct CaptureTarget(Handle<Image>);
+
+/// Point the camera at an offscreen image instead of at the window.
+///
+/// Capturing the window reads the window's own surface, and macOS hands back a
+/// surface full of zeroes whenever that window is not in front -- occluded,
+/// on another space, or behind a sleeping display. The failure is silent and
+/// total: the scene, the UI text, everything comes back pure black, which looks
+/// exactly like a rendering bug and wasted a while being investigated as one.
+/// An offscreen target does not care what the window is doing.
+#[cfg(not(target_arch = "wasm32"))]
+fn render_to_image(
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    cameras: Query<Entity, With<Camera>>,
+) {
+    let (width, height) = CAPTURE_SIZE;
+
+    let mut image = Image::new_fill(
+        Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        &[0, 0, 0, 255],
+        TextureFormat::Rgba8UnormSrgb,
+        RenderAssetUsages::RENDER_WORLD,
+    );
+    // RENDER_ATTACHMENT to be drawn into, COPY_SRC to be read back out.
+    image.texture_descriptor.usage =
+        TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_SRC | TextureUsages::RENDER_ATTACHMENT;
+
+    let handle = images.add(image);
+
+    // A component in its own right in Bevy 0.19, not a field on `Camera`.
+    for camera in &cameras {
+        commands
+            .entity(camera)
+            .insert(RenderTarget::Image(ImageRenderTarget {
+                handle: handle.clone(),
+                scale_factor: 1.0,
+            }));
+    }
+
+    commands.insert_resource(CaptureTarget(handle));
+}
+
+/// Save one frame and quit, so a change can be compared against the one before
+/// it rather than from memory:
 ///
 /// ```text
-/// RENTEARTH_SCREENSHOT=/tmp/water.png cargo run --features water
+/// RENTEARTH_SCREENSHOT=/tmp/shot.png moon run rentearth-bevy:run
 /// ```
+///
+/// `RENTEARTH_CAMERA=x,z,zoom` pins where the shot is taken from. Without it
+/// the comparison is worthless: the window opens under the pointer and macOS
+/// delivers the trackpad's momentum scroll to it, so `zoom_scroll` runs before
+/// anyone has touched anything and every capture lands at a different place and
+/// magnification. Two shots of the same build came out looking like two
+/// different changes.
 ///
 /// Native only -- there is no disk to write to on the web.
 #[cfg(not(target_arch = "wasm32"))]
 fn screenshot_when_settled(
     mut commands: Commands,
+    target: Option<Res<CaptureTarget>>,
     mut frame: Local<u32>,
     mut taken: Local<bool>,
+    mut rigs: Query<&mut CameraRig>,
     mut exit: MessageWriter<AppExit>,
 ) {
     *frame += 1;
+
+    // Every frame, not once at startup: the stray scroll arrives several frames
+    // in, so a single write at startup is overwritten before the shot is taken.
+    if let Some((x, z, zoom)) = pinned_camera() {
+        for mut rig in &mut rigs {
+            rig.focus.x = x;
+            rig.focus.z = z;
+            rig.zoom = zoom;
+        }
+    }
 
     if *taken {
         // Not the frame the shot was requested on: the capture is observed a
@@ -73,10 +159,30 @@ fn screenshot_when_settled(
         return;
     };
 
+    let Some(target) = target else {
+        return;
+    };
+
     *taken = true;
     commands
-        .spawn(Screenshot::primary_window())
+        .spawn(Screenshot::image(target.0.clone()))
         .observe(save_to_disk(path));
+}
+
+/// `RENTEARTH_CAMERA=x,z,zoom`, if it parses. A malformed value is ignored
+/// rather than fatal -- this is a debugging aid, and refusing to start because
+/// a comma is missing helps nobody.
+#[cfg(not(target_arch = "wasm32"))]
+fn pinned_camera() -> Option<(f32, f32, f32)> {
+    let raw = std::env::var("RENTEARTH_CAMERA").ok()?;
+    let mut parts = raw.split(',').map(|p| p.trim().parse::<f32>());
+    match (parts.next(), parts.next(), parts.next()) {
+        (Some(Ok(x)), Some(Ok(z)), Some(Ok(zoom))) => Some((x, z, zoom)),
+        _ => {
+            warn!("RENTEARTH_CAMERA should be `x,z,zoom`; ignoring {raw:?}");
+            None
+        }
+    }
 }
 
 /// Whether the browser worker pool is running work off the main thread.

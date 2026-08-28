@@ -7,10 +7,10 @@
 //! no per-frame system pointing anything at anything.
 
 use bevy::asset::RenderAssetUsages;
+use bevy::image::{ImageFilterMode, ImageLoaderSettings, ImageSampler, ImageSamplerDescriptor};
 use bevy::light::NotShadowCaster;
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
-use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 
 use crate::game::components::tile::BasePosition;
 use crate::game::core::hex::HEX_SIZE;
@@ -31,11 +31,42 @@ const TREES_PER_TILE: usize = 7;
 /// size on screen, and still draws in as many batches as there are variants.
 const CLUMP_VARIANTS: usize = 6;
 
-/// Trunk-to-tip height of one tree, before the correction below.
-const TREE_HEIGHT: f32 = 21.0;
+/// World height of a full atlas cell.
+///
+/// Not of a tree: sprites are bottom-aligned inside a cell they do not all
+/// fill, so a spruce occupying half its cell draws half as tall as a pine
+/// filling one. That is the point -- the pack's own proportions decide how the
+/// biomes compare, rather than a number per biome here.
+const TREE_HEIGHT: f32 = 30.0;
 
-/// Canopy width as a fraction of height.
-const TREE_ASPECT: f32 = 0.62;
+/// Canopy width as a fraction of height. The atlas cell's own proportions --
+/// the quad has to match the sprite or the trees come out stretched.
+const TREE_ASPECT: f32 = ATLAS_CELL_W / ATLAS_CELL_H;
+
+/// One cell of the tree atlas, in pixels.
+const ATLAS_CELL_W: f32 = 64.0;
+const ATLAS_CELL_H: f32 = 144.0;
+
+/// Which run of atlas cells each wooded biome draws from.
+///
+/// Half-open, in cells. The atlas is ordered by biome so a range is a pair
+/// rather than a list: spruce, then broadleaf, then pine.
+const TAIGA_CELLS: std::ops::Range<usize> = 0..4;
+const FOREST_CELLS: std::ops::Range<usize> = 4..6;
+const JUNGLE_CELLS: std::ops::Range<usize> = 6..8;
+
+/// Total cells across the atlas, which is what a UV is measured against.
+const ATLAS_CELLS: usize = 8;
+
+/// The biomes that carry trees, and where their trees come from.
+fn tree_cells(terrain: Terrain) -> Option<std::ops::Range<usize>> {
+    match terrain {
+        Terrain::Forest => Some(FOREST_CELLS),
+        Terrain::Jungle => Some(JUNGLE_CELLS),
+        Terrain::Taiga => Some(TAIGA_CELLS),
+        _ => None,
+    }
+}
 
 /// How far from the tile centre trees are scattered, against a hex whose
 /// circumradius is `HEX_SIZE`. Slightly inside it: a little overhang looks like
@@ -54,14 +85,28 @@ impl Plugin for TreePlugin {
 
 fn spawn_trees(
     mut commands: Commands,
+    assets: Res<AssetServer>,
     spec: Res<MapSpec>,
     world: Res<WorldTiles>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut images: ResMut<Assets<Image>>,
 ) {
+    // Nearest, not linear. These are pixel art: filtering them averages
+    // neighbouring pixels into the mush that the art is drawn to avoid, and
+    // the hard edge is the whole point of the style.
+    let atlas = assets
+        .load_builder()
+        .with_settings(|settings: &mut ImageLoaderSettings| {
+            settings.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+                mag_filter: ImageFilterMode::Nearest,
+                min_filter: ImageFilterMode::Nearest,
+                ..ImageSamplerDescriptor::default()
+            });
+        })
+        .load("trees/trees.png");
+
     let material = materials.add(StandardMaterial {
-        base_color_texture: Some(images.add(conifer_texture())),
+        base_color_texture: Some(atlas),
         // Mask, not Blend. A masked quad writes depth, so trees occlude each
         // other and the terrain correctly with no sorting; blended ones would
         // need to be drawn back to front, which is a per-frame sort over every
@@ -71,16 +116,30 @@ fn spawn_trees(
         ..default()
     });
 
-    let clumps: Vec<Handle<Mesh>> = (0..CLUMP_VARIANTS)
-        .map(|v| meshes.add(clump_mesh(v as u32)))
+    // A clump per (biome, variant). Every clump is still one mesh and they all
+    // share the one material, so the whole forest draws in as many calls as
+    // there are combinations here -- and only for the ones on screen.
+    let biomes = [Terrain::Forest, Terrain::Jungle, Terrain::Taiga];
+    let clumps: Vec<Vec<Handle<Mesh>>> = biomes
+        .iter()
+        .map(|t| {
+            let cells = tree_cells(*t).expect("listed biome has no trees");
+            (0..CLUMP_VARIANTS)
+                .map(|v| meshes.add(clump_mesh(v as u32, cells.clone())))
+                .collect()
+        })
         .collect();
 
     let mut planted = 0usize;
+    let mut first: Option<Vec3> = None;
 
     for offset in spec.tiles() {
-        if world.at(*spec, offset) != Some(Terrain::Forest) {
+        let Some(kind) = world.at(*spec, offset) else {
             continue;
-        }
+        };
+        let Some(biome) = biomes.iter().position(|t| *t == kind) else {
+            continue;
+        };
 
         // Which clump this tile draws. Hashed from the tile's own coordinates
         // rather than counted, so it does not change when the neighbouring
@@ -90,10 +149,10 @@ fn spawn_trees(
 
         // On the tile's top face, not its centre: `elevation` is where the
         // column's surface is, which is what the trees stand on.
-        let position = offset.to_hex().to_world(Terrain::Forest.elevation());
+        let position = offset.to_hex().to_world(kind.elevation());
 
         commands.spawn((
-            Mesh3d(clumps[variant].clone()),
+            Mesh3d(clumps[biome][variant].clone()),
             MeshMaterial3d(material.clone()),
             Transform::from_translation(position),
             // Wraps with the map. `wrap_tiles` moves everything carrying this,
@@ -105,9 +164,15 @@ fn spawn_trees(
             NotShadowCaster,
         ));
         planted += 1;
+        first.get_or_insert(position);
     }
 
-    info!("planted {planted} forest tiles");
+    // The position as well as the count. Forests are a small fraction of the
+    // map, so "planted 122" on its own leaves no way to go and look at one.
+    match first {
+        Some(p) => info!("planted {planted} wooded tiles; first at x {:.0} z {:.0}", p.x, p.z),
+        None => info!("planted no wooded tiles"),
+    }
 }
 
 /// Build one clump: `TREES_PER_TILE` quads in the tile's local space.
@@ -117,7 +182,7 @@ fn spawn_trees(
 /// a visibility computation every frame and a transform propagated on every
 /// camera move. One mesh per tile keeps the entity count in the same order as
 /// the tiles themselves.
-fn clump_mesh(variant: u32) -> Mesh {
+fn clump_mesh(variant: u32, cells: std::ops::Range<usize>) -> Mesh {
     // Vertical distances are foreshortened by the camera's pitch and horizontal
     // ones are not, so a quad built to the height it should look would come out
     // squat. This is the exact factor, which is why the trees are modelled at
@@ -154,12 +219,20 @@ fn clump_mesh(variant: u32) -> Mesh {
 
         let base = positions.len() as u32;
 
+        // Which tree in the atlas. Picked per tree rather than per clump, so a
+        // single tile carries more than one shade of green -- a stand of one
+        // colour reads as a solid block from any distance.
+        let span = cells.len();
+        let cell = cells.start + (hash(variant, i as u32, 0x7Bu32) * span as f32) as usize % span;
+        let u0 = cell as f32 / ATLAS_CELLS as f32;
+        let u1 = (cell + 1) as f32 / ATLAS_CELLS as f32;
+
         // Standing on the tile's surface, so the bottom edge is at y = 0.
         for (dx, dy, u, v) in [
-            (-half_width, 0.0, 0.0, 1.0),
-            (half_width, 0.0, 1.0, 1.0),
-            (half_width, height, 1.0, 0.0),
-            (-half_width, height, 0.0, 0.0),
+            (-half_width, 0.0, u0, 1.0),
+            (half_width, 0.0, u1, 1.0),
+            (half_width, height, u1, 0.0),
+            (-half_width, height, u0, 0.0),
         ] {
             // Z carries the scatter's second axis: the quad stands in XY, so
             // the tile's depth is the world Z the tree is placed at.
@@ -179,97 +252,6 @@ fn clump_mesh(variant: u32) -> Mesh {
     .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
     .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
     .with_inserted_indices(Indices::U32(indices))
-}
-
-/// Width and height of the tree sprite.
-const SPRITE_W: usize = 64;
-const SPRITE_H: usize = 96;
-
-/// Draw a conifer.
-///
-/// Generated rather than loaded. A tree is about thirty pixels tall on screen
-/// at the default zoom, so what carries it is the silhouette and a light side,
-/// and both of those are a few lines of arithmetic -- against a PNG, which is
-/// another LFS object, another licence to record, and another thing to keep in
-/// step with the hex size. Swapping in real art later is a change to this
-/// function and nothing else.
-fn conifer_texture() -> Image {
-    let mut data = vec![0u8; SPRITE_W * SPRITE_H * 4];
-
-    // Three overlapping tiers, each a triangle widening toward its base. The
-    // overlap is what gives a conifer its stepped outline; a single triangle
-    // reads as a cone.
-    const TIERS: usize = 3;
-    let trunk_top = (SPRITE_H as f32 * 0.80) as usize;
-
-    for y in 0..SPRITE_H {
-        for x in 0..SPRITE_W {
-            let fx = x as f32 / SPRITE_W as f32;
-            let fy = y as f32 / SPRITE_H as f32;
-
-            let mut inside = false;
-
-            // Trunk: a narrow column under the canopy.
-            if y >= trunk_top && (fx - 0.5).abs() < 0.045 {
-                let idx = (y * SPRITE_W + x) * 4;
-                data[idx..idx + 4].copy_from_slice(&[74, 52, 34, 255]);
-                continue;
-            }
-
-            for tier in 0..TIERS {
-                // Each tier starts higher up and reaches lower down than the
-                // one above, so they overlap rather than stack.
-                let top = 0.05 + tier as f32 * 0.24;
-                let bottom = top + 0.42;
-                if fy < top || fy > bottom {
-                    continue;
-                }
-                // Widening from the tier's own apex, and wider for lower tiers.
-                let along = (fy - top) / (bottom - top);
-                let half = along * (0.16 + tier as f32 * 0.10);
-                if (fx - 0.5).abs() <= half {
-                    inside = true;
-                    break;
-                }
-            }
-
-            if !inside {
-                continue;
-            }
-
-            // Lit from the left, matching the scene sun, whose direction has a
-            // negative x. Flat-shaded terrain next to a smoothly shaded tree
-            // would look out of place, so this is two tones and no gradient.
-            let lit = fx < 0.46;
-            let shade = if lit { 1.0 } else { 0.72 };
-            // Darker toward the base, where a real canopy is in its own shadow.
-            let depth = 1.0 - fy * 0.28;
-
-            let rgb = [
-                (0.20 * 255.0 * shade * depth) as u8,
-                (0.44 * 255.0 * shade * depth) as u8,
-                (0.22 * 255.0 * shade * depth) as u8,
-            ];
-
-            let idx = (y * SPRITE_W + x) * 4;
-            data[idx..idx + 3].copy_from_slice(&rgb);
-            data[idx + 3] = 255;
-        }
-    }
-
-    Image::new(
-        Extent3d {
-            width: SPRITE_W as u32,
-            height: SPRITE_H as u32,
-            depth_or_array_layers: 1,
-        },
-        TextureDimension::D2,
-        data,
-        // Srgb: these are colours picked by eye, so they are in the space the
-        // eye picked them in.
-        TextureFormat::Rgba8UnormSrgb,
-        RenderAssetUsages::RENDER_WORLD,
-    )
 }
 
 /// Deterministic value in `0.0..1.0` from two coordinates and a salt.

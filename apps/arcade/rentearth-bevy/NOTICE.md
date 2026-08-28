@@ -40,3 +40,17 @@ notice nobody can read would not discharge it.
 polygons, which are public domain (CC0).
 
 Source: https://github.com/nvkelso/natural-earth-vector
+
+## Pixel Crawler
+
+The tree sprites in `assets/trees/` are cut from the Pixel Crawler Free Pack,
+whose terms do not require credit but say it is appreciated.
+
+    Created by Anokolisa (AnomalyPixel@gmail.com).
+
+    Free to use in commercial products, study, or any other project. The art
+    may be altered in any shape, colour or pattern. It may not be sold as a
+    final product or marketed as an asset pack, altered or otherwise -- only
+    the original author may sell the assets themselves.
+
+Patreon: https://www.patreon.com/Anokolisa

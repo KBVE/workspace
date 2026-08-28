@@ -100,6 +100,18 @@ fn main() {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Rent Earth".into(),
+                        // A capture reads the window's own surface, so a window
+                        // that is not in front reads back as pure black -- the
+                        // UI text along with the scene, which is the tell that
+                        // it is the capture and not the frame. Kept to the
+                        // screenshot run so an ordinary session does not get a
+                        // window it cannot put behind anything.
+                        #[cfg(not(target_arch = "wasm32"))]
+                        window_level: if std::env::var("RENTEARTH_SCREENSHOT").is_ok() {
+                            bevy::window::WindowLevel::AlwaysOnTop
+                        } else {
+                            bevy::window::WindowLevel::Normal
+                        },
                         ..default()
                     }),
                     ..default()

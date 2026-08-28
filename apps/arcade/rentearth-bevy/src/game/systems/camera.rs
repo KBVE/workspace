@@ -40,7 +40,7 @@ impl Plugin for CameraPlugin {
     }
 }
 
-fn spawn_camera(mut commands: Commands, spec: Res<MapSpec>) {
+pub fn spawn_camera(mut commands: Commands, spec: Res<MapSpec>) {
     // Start centred on the map rather than at the origin corner.
     let focus = Vec3::new(spec.world_width() / 2.0, 0.0, spec.world_depth() / 2.0);
 
