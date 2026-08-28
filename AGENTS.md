@@ -124,9 +124,15 @@ node tools/labels/sync.mjs --apply
 Adding a tag is two deliberate lines: the entry in `labels.yml` and the
 `moon.yml` that uses it. Either alone fails the check or is reported as dead.
 
-The sync never deletes. Labels already on GitHub that `labels.yml` does not
-describe — this repository had eighteen before the file existed — are reported
-and left alone.
+The sync never deletes. Where a declared label has an older synonym already on
+GitHub, `supersedes` in `labels.yml` makes the sync **rename** it — `bug`
+becomes `kind/bug` — so the label and anything filed under it survive and the
+duplicate spelling stops existing. Everything else it does not describe is
+reported as unmanaged and left alone.
+
+Labels are per-repository. The sync targets whichever repository the working
+directory belongs to, and prints it before doing anything; the other KBVE
+repositories are untouched and share no label set with this one.
 
 ## Toolchains
 

@@ -11,6 +11,11 @@
 #
 # Prefixes are load-bearing: GitHub's label picker is a substring match, so
 # typing "kind/" narrows to one family.
+#
+# `supersedes` names an older label that means the same thing. sync.mjs renames
+# it rather than creating a second one, so the label and anything filed under it
+# survive and the duplicate spelling stops existing. Renaming is why this can be
+# non-destructive: nothing is deleted, and no issue loses a label.
 
 # What the work is. Roughly the conventional-commit types this repository
 # actually uses -- feat, fix, refactor, chore, test, docs account for 91 of the
@@ -19,18 +24,22 @@ kind:
   - name: 'kind/bug'
     color: 'd73a4a'
     description: "Something is broken"
+    supersedes: 'bug'
   - name: 'kind/feature'
     color: '0e8a16'
     description: 'New capability. Lands as feat()'
+    supersedes: 'enhancement'
   - name: 'kind/security'
     color: 'b60205'
     description: 'Vulnerability, hardening, or secret exposure'
+    supersedes: 'security'
   - name: 'kind/refactor'
     color: '5319e7'
     description: 'Behaviour unchanged, shape improved'
   - name: 'kind/docs'
     color: '0075ca'
     description: 'Documentation, comments, AGENTS.md'
+    supersedes: 'documentation'
   - name: 'kind/test'
     color: '1d76db'
     description: 'Test coverage or test infrastructure'

@@ -79,8 +79,13 @@ function main() {
   // The graph half of --check needs no network, and it is the half CI cares
   // about. Reaching GitHub is best-effort so a runner without gh, without a
   // token, or without network still fails on a bad tag rather than on curl.
+  // Labels are per-repository, and gh picks its target from the working
+  // directory. Naming it out loud is cheap, and makes an --apply run from the
+  // wrong clone obvious before it changes anything -- this org has a dozen
+  // other repositories and none of them share a label set with this one.
   let existing = null
   try {
+    console.log(`repository: ${sh('gh', ['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner']).trim()}`)
     existing = new Map(
       JSON.parse(sh('gh', ['label', 'list', '--limit', '200', '--json', 'name,color,description']))
         .map((l) => [l.name, l]),
@@ -89,14 +94,27 @@ function main() {
     console.warn('warn:  could not reach GitHub; checking the project graph only')
   }
 
-  const missing = existing ? declared.filter((l) => !existing.has(l.name)) : []
+  // A declared label whose older synonym is still on GitHub is a rename, not a
+  // creation. Renaming keeps the label and everything filed under it, and the
+  // duplicate spelling stops existing -- which is how the vocabulary can become
+  // authoritative without deleting anything.
+  const renames = existing
+    ? declared.filter((l) => l.supersedes && !existing.has(l.name) && existing.has(l.supersedes))
+    : []
+  const renaming = new Set(renames.map((l) => l.name))
+  const missing = existing
+    ? declared.filter((l) => !existing.has(l.name) && !renaming.has(l.name))
+    : []
   const wrong = existing
     ? declared.filter((l) => {
         const cur = existing.get(l.name)
         return cur && (norm(cur.color) !== norm(l.color) || (cur.description ?? '') !== (l.description ?? ''))
       })
     : []
-  const unmanaged = existing ? [...existing.keys()].filter((n) => !declared.some((l) => l.name === n)) : []
+  const superseded = new Set(renames.map((l) => l.supersedes))
+  const unmanaged = existing
+    ? [...existing.keys()].filter((n) => !declared.some((l) => l.name === n) && !superseded.has(n))
+    : []
 
   const apply = process.argv.includes('--apply')
 
@@ -109,6 +127,11 @@ function main() {
   }
 
   if (apply) {
+    for (const l of renames) {
+      sh('gh', ['label', 'edit', l.supersedes, '--name', l.name, '--color', norm(l.color),
+                '--description', l.description ?? ''])
+      console.log(`renamed ${l.supersedes} -> ${l.name}`)
+    }
     for (const l of missing) {
       sh('gh', ['label', 'create', l.name, '--color', norm(l.color), '--description', l.description ?? ''])
       console.log(`created ${l.name}`)
@@ -118,6 +141,7 @@ function main() {
       console.log(`updated ${l.name}`)
     }
   } else {
+    for (const l of renames) console.log(`would rename ${l.supersedes} -> ${l.name}`)
     for (const l of missing) console.log(`would create ${l.name}`)
     for (const l of wrong) console.log(`would update ${l.name}`)
   }
@@ -129,8 +153,8 @@ function main() {
 
   console.log(
     existing
-      ? `\n${declared.length} declared, ${missing.length} missing, ${wrong.length} to correct, ` +
-          `${unmanaged.length} unmanaged.`
+      ? `\n${declared.length} declared, ${renames.length} to rename, ${missing.length} to create, ` +
+          `${wrong.length} to correct, ${unmanaged.length} unmanaged.`
       : `\n${declared.length} declared. Graph checked; GitHub not compared.`,
   )
 
