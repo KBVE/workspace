@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.21)
 
 # &why -> the build is three tools that have to run in one order:
 
-# &parity -> the `ci` target runs what .github/workflows/release-itch.yml runs.
+# &parity -> the `ci` target runs what a release runs. moon owns the real
+#            pipeline now (`moon run gilded-gazette:build`); this stays because
+#            it drives the same three tools directly, without the graph in the
+#            way, which is what you want when the export itself is the thing
+#            that is broken.
 
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/godot/project.godot" _project_godot)
 string(REGEX MATCH "config/version=\"([0-9]+\\.[0-9]+\\.[0-9]+)\"" _ "${_project_godot}")

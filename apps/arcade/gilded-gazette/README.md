@@ -3,46 +3,62 @@
 A Godot 4 + React/Vite game, originally built for the Brackeys 16 game jam.
 
 ```
-game/
-  godot/   Godot 4 project (web export target)
-  shared/  state.json, events.json, data/*.mdx -- single source of truth
-  tools/   codegen + asset scripts (shared/ -> godot/ and vite/)
-  vite/    React front end; hosts the web export from public/godot
+godot/   Godot 4 project (web export target)
+shared/  state.json, events.json, data/*.mdx -- single source of truth
+tools/   codegen + asset scripts (shared/ -> godot/ and vite/)
+vite/    React front end; hosts the web export from public/godot
 ```
 
-Build orchestration lives in `game/CMakeLists.txt`; `cmake --build build --target ci`
-runs what `.github/workflows/release-itch.yml` runs.
+Three runtimes in one project, in a fixed order: `shared/` compiles into both
+`godot/` and `vite/`, the Godot web export lands in `vite/public/godot`, then
+Vite builds around it. `moon run gilded-gazette:build` is that whole order;
+`CMakeLists.txt` encodes the same one for a local `cmake --build build --target ci`.
 
-Ships to itch.io as `kbve/gilded-gazette`.
+## Building
 
-## Branch flow
+```
+moon run gilded-gazette:build       # the game: codegen, Godot export, Vite
+moon run gilded-gazette:e2e         # boots the built game in a browser
+moon run gilded-gazette:test-godot  # gdUnit4
+moon run gilded-gazette:dev         # Vite against whatever is in public/godot
+```
 
-`dev` is where work lands; `main` is the release branch. Nothing publishes
-except a merge into `main`.
+Nothing has to be installed first. The editor is pinned in the workspace
+`.prototools` and installed by proto; its web export templates are a task
+(`export-templates`, which proto cannot do -- see `.proto/plugins/godot.toml`),
+and the character art is another (`assets`, from the repo-root `.lfsconfig`).
+Both are dependencies of the build, and the first run is a long one.
 
-| Event | What runs |
-|---|---|
-| push to `dev` | `tests.yml` (gdUnit4, web build, Playwright) and `shell.yml` (rebuilds `game/godot/web/shell.html` when the vite shell changes) |
-| push to `dev` | `dev-pr.yml` opens or refreshes the `dev` to `main` PR, titled with the version it would ship |
-| merge to `main` | `release-itch.yml`: publish if `config/version` is not yet tagged, then fast-forward `dev` back onto `main` |
+`vite/` carries its own `package.json` and `package-lock.json`, outside the
+pnpm workspace globs. It is an npm island on purpose for now; adopting the
+catalog means moving it onto pnpm, which is a separate change.
 
-**Versioning is manual.** `game/godot/project.godot` `config/version` is the
-release gate: the workflow publishes only when no `v<version>` tag exists, so a
-main push that repeats an already-shipped version is a no-op rather than a
-duplicate upload. Bump `config/version` on `dev` when you want the next merge to
-ship; the `dev` to `main` PR body says which of the two will happen.
+## Releasing
 
-### CI secrets
+Ships to itch.io as `kbve/gilded-gazette`, on a tag:
 
-This repo is private and KBVE is on GitHub Free, where organization secrets do
-not reach private repositories. So `BUTLER_API_KEY`, `FORGEJO_USER` and `FORGEJO_TOKEN`
-have to exist as **repository** secrets here, not as the org secrets of the same
-name. `UNITY_PAT` is optional: every use is `secrets.UNITY_PAT ||
-secrets.GITHUB_TOKEN` and the fallback has the permissions the jobs need.
+```
+gilded-gazette@<version>
+```
 
-Local secrets go in `.env`, which is gitignored. Vite inlines any `VITE_`
-prefixed variable into the client bundle, so treat that file as public output,
-not as a vault.
+Push that tag and `.github/workflows/itch.yml` resolves it against the project
+graph, builds, boots the build in a browser, and pushes to itch. **Versioning
+is manual**: the tag is checked against `godot/project.godot` `config/version`
+and the release fails if they disagree, so bump that first and commit it before
+tagging.
+
+The workflow names no game. What makes this one publishable is the `itch` tag
+and `ITCH_TARGET` in `moon.yml`.
+
+### Secrets
+
+`BUTLER_API_KEY` for itch, and `FORGEJO_USER` / `FORGEJO_TOKEN` for the
+character art, which lives on the self-hosted Forgejo named in the repo-root
+`.lfsconfig` rather than on GitHub. All three are repository secrets.
+
+Locally they go in the workspace-root `.env` -- see `.env.example` here for
+the names. Vite inlines any `VITE_` prefixed variable into the client bundle,
+so treat that file as public output, not as a vault.
 
 By Rhombert, Moshhhhh, h0lybyte
 
