@@ -6,6 +6,7 @@ import "google/protobuf/struct.proto";
 import "kbve/common/v1/element.proto";
 import "kbve/common/v1/equip_slot.proto";
 import "kbve/common/v1/extension.proto";
+import "kbve/common/v1/item_amount.proto";
 import "kbve/common/v1/rarity.proto";
 import "kbve/common/v1/registry.proto";
 import "kbve/type/v1/id.proto";
@@ -184,18 +185,9 @@ message EquipmentInfo {
   optional string wardrobe = 11;
 }
 
-// One input to a crafting recipe.
-message CraftingIngredient {
-  // A ULID or an item slug, depending on how the recipe was authored.
-  string item_ref = 1;
-  optional string name = 2;
-  int32 amount = 3;
-  optional bool consumed = 4;
-}
-
 // How an item is made.
 message CraftingRecipe {
-  repeated CraftingIngredient ingredients = 1;
+  repeated kbve.common.v1.ItemAmount ingredients = 1;
   // Tools required but not consumed.
   repeated string required_tools = 2;
   optional string skill = 3;
