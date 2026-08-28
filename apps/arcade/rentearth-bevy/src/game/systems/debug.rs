@@ -1,6 +1,8 @@
 //! Diagnostics. Nothing here affects the game.
 
 use bevy::prelude::*;
+#[cfg(not(target_arch = "wasm32"))]
+use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 
 use crate::game::components::camera::CameraRig;
 
@@ -23,17 +25,65 @@ impl Plugin for DebugPlugin {
         #[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
         app.add_systems(Startup, thread_probe::spawn)
             .add_systems(Update, thread_probe::report);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        if std::env::var("RENTEARTH_SCREENSHOT").is_ok() {
+            app.add_systems(Update, screenshot_when_settled);
+        }
     }
+}
+
+/// Frames to wait before capturing. Assets stream in over the first second or
+/// so, and the water needs some wave phase before it looks like anything, so a
+/// shot at frame zero compares two loading screens.
+#[cfg(not(target_arch = "wasm32"))]
+const SCREENSHOT_FRAME: u32 = 240;
+
+/// Save one frame and quit, so a shader change can be compared against the one
+/// before it rather than from memory:
+///
+/// ```text
+/// RENTEARTH_SCREENSHOT=/tmp/water.png cargo run --features water
+/// ```
+///
+/// Native only -- there is no disk to write to on the web.
+#[cfg(not(target_arch = "wasm32"))]
+fn screenshot_when_settled(
+    mut commands: Commands,
+    mut frame: Local<u32>,
+    mut taken: Local<bool>,
+    mut exit: MessageWriter<AppExit>,
+) {
+    *frame += 1;
+
+    if *taken {
+        // Not the frame the shot was requested on: the capture is observed a
+        // frame or two later, and exiting immediately truncates it.
+        if *frame > SCREENSHOT_FRAME + 30 {
+            exit.write(AppExit::Success);
+        }
+        return;
+    }
+
+    if *frame < SCREENSHOT_FRAME {
+        return;
+    }
+
+    let Ok(path) = std::env::var("RENTEARTH_SCREENSHOT") else {
+        return;
+    };
+
+    *taken = true;
+    commands
+        .spawn(Screenshot::primary_window())
+        .observe(save_to_disk(path));
 }
 
 /// Whether the browser worker pool is running work off the main thread.
 ///
-/// Worth one log line because the failure is invisible: a pool whose workers
-/// never started looks exactly like a pool with nothing to do, and the symptom
-/// downstream is a task that quietly never resolves. Counting workers is not
-/// enough either -- a worker can register and still be executing on the thread
-/// that spawned the work if the shared memory was not actually shared. So the
-/// probe compares the two thread ids and says which case it is.
+/// A pool whose workers never started looks exactly like one with nothing to
+/// do, so counting them is not enough -- the probe compares the thread that
+/// spawned the task with the one that ran it.
 #[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
 mod thread_probe {
     use bevy::prelude::*;
@@ -42,7 +92,6 @@ mod thread_probe {
     pub struct Report {
         spawned_on: std::thread::ThreadId,
         ran_on: std::thread::ThreadId,
-        workers: usize,
     }
 
     #[derive(Resource)]
@@ -51,14 +100,11 @@ mod thread_probe {
     pub fn spawn(mut commands: Commands) {
         let spawned_on = std::thread::current().id();
 
-        // No busy work on purpose. The question is where this runs, not how
-        // fast, and burning a worker for a visible interval on every player's
-        // machine would be a cost paid to learn nothing extra.
+        // No busy work: the question is where this runs, not how fast.
         let task = bevy_tasker::spawn(async move {
             Report {
                 spawned_on,
                 ran_on: std::thread::current().id(),
-                workers: bevy_tasker::worker_count(),
             }
         });
 
@@ -74,13 +120,14 @@ mod thread_probe {
         };
         probe.0 = None;
 
+        // Counted here, not inside the task: the first worker to reach the
+        // queue runs it, before the others have finished registering.
+        let workers = bevy_tasker::worker_count();
+
         if report.ran_on == report.spawned_on {
-            warn!(
-                "worker pool is not running tasks off the main thread ({} workers registered)",
-                report.workers
-            );
+            warn!("worker pool is not running tasks off the main thread ({workers} registered)");
         } else {
-            info!("worker pool live: {} workers", report.workers);
+            info!("worker pool live: {workers} workers");
         }
     }
 }
