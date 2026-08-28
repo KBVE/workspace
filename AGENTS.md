@@ -64,6 +64,21 @@ gh pr create --draft --base main --title "<conventional commit subject>"
 Open it as a draft and say so when you report back, with the URL. Marking it
 ready, merging, and closing are the user's calls.
 
+Once something merges, nothing local hears about it: the worktree stays on disk
+and `git worktree remove` would not have deleted the branch anyway. Clean up
+with
+
+```bash
+tools/worktree/prune.sh            # report only
+tools/worktree/prune.sh --apply    # actually remove
+```
+
+It removes worktrees whose branch has landed on `origin/main`, deletes their
+branches, and picks up `wt/*` branches whose worktree is already gone. A
+worktree with uncommitted changes is never touched. It asks `gh` whether the
+PR is MERGED before falling back to ancestry, because a squash merge rewrites
+the commits and ancestry alone would call the branch unmerged forever.
+
 `ci.yml` and `protobuf-ci.yml` both trigger on `pull_request`, so pushing the
 branch is what gets the work checked. `moon ci` decides what to run by
 comparing against the base branch, which is why the workflow checks out with
