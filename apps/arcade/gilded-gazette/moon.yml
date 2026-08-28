@@ -19,8 +19,16 @@ owners:
 # The one fact the project graph cannot answer: the itch page slug lives on
 # itch, not here. ITCH_DIST because this project's web build is a subdirectory
 # -- the vite root is not the project root.
+#
+# The channel is `html5`, not the `html` the other two games use. It is the
+# channel the standalone repository shipped to, and itch marks an upload
+# browser-playable per upload rather than per channel: pushing to a new channel
+# name added a second upload that the page offered as a zip download while
+# "Run game" went on serving the old one. Renaming it here is the whole fix --
+# on itch a channel is named by whoever pushes to it first, and this one was
+# named before this repository existed.
 env:
-  ITCH_TARGET: 'kbve/gilded-gazette:html'
+  ITCH_TARGET: 'kbve/gilded-gazette:html5'
   ITCH_DIST: 'vite/dist'
 
 fileGroups:
