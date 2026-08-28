@@ -684,13 +684,9 @@
         "alibi": {
           "heading": "Alibi",
           "paragraphs": [
-            "She says she did not leave her compartment after the dinner service, and that she heard nothing until the guard began knocking on doors."
+            "Whatever she says she was doing, she says it once and does not enlarge on it. Lady Beaumont has been asked three times now and has given the same length of answer each time, to the word."
           ],
-          "bullets": [
-            "Says she retired at nine",
-            "Says the corridor was lit when she last saw it",
-            "Says she has never met Dr. Weiss"
-          ]
+          "bullets": []
         },
         "what_the_guard_says": {
           "heading": "What the Guard Says",
@@ -813,13 +809,9 @@
         "alibi": {
           "heading": "Alibi",
           "paragraphs": [
-            "She was in her compartment and awake, and she is the only passenger who does not claim to have slept through anything."
+            "She answers plainly and at once, which the enquiry has found harder to sit with than hesitation would have been. A companion between positions has learned to be asked things."
           ],
-          "bullets": [
-            "Says she heard a door in the small hours",
-            "Says it was not her own",
-            "Says she did not look"
-          ]
+          "bullets": []
         },
         "what_she_heard": {
           "heading": "What She Heard",
@@ -948,15 +940,9 @@
         "alibi": {
           "heading": "Alibi",
           "paragraphs": [
-            "He was in the dining car from eight and sat on after the service closed, which the steward confirms without being asked, and which is the trouble with it.",
-            "colleague would have come"
+            "Whatever account he gives, the steward confirms it without being asked, and that is the trouble with it. A man known to the staff by name is a man whose evening comes with witnesses already prepared."
           ],
-          "bullets": [
-            "Says he dined at eight, as always",
-            "Says he waited for a colleague who did not come, and waited past any hour a",
-            "Says he was still at his table when the lamps went down",
-            "Says he noticed nothing unusual"
-          ]
+          "bullets": []
         },
         "the_appointment_book": {
           "heading": "The Appointment Book",
@@ -982,6 +968,138 @@
         }
       },
       "source": "shared/data/passengers/dupont.mdx"
+    },
+    {
+      "id": "halloran",
+      "name": "Seamus Halloran",
+      "listed": "Mr. Halloran",
+      "role": "Company engineer, riding on a pass",
+      "berth": "Guard's van, no berth",
+      "boarded": {
+        "at": "18:15",
+        "where": "Calais"
+      },
+      "location": "guard_van",
+      "traits": [
+        "travels on a pass and pays for nothing",
+        "carries a bag of tools he has not opened",
+        "was not expected aboard by anybody who keeps a list"
+      ],
+      "relationships": [
+        {
+          "who": "moreau",
+          "tie": "Signed him aboard on a pass and did not enter it in the register."
+        },
+        {
+          "who": "marchand",
+          "tie": "Has been told twice to keep away from the crate, and has been near it twice."
+        }
+      ],
+      "alibis": [
+        {
+          "says": [
+            "Says he was in the van with his bag from nine, where a pass puts a man",
+            "Says the guard knows he is aboard and signed nothing to say so",
+            "Says he did not go forward at all, having no reason to"
+          ],
+          "claims": [
+            {
+              "where": "guard_van",
+              "never": false,
+              "from": "21:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he stood between the cars listening to the coupling",
+            "Says there is a knock in it that will be somebody's derailment by Vienna",
+            "Says he was out there from ten and would have felt anybody pass"
+          ],
+          "claims": [
+            {
+              "where": "vestibule",
+              "never": false,
+              "from": "22:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he walked the corridor from half past eight checking the window frames",
+            "Says the company does not pay him to sit still on a pass",
+            "Says he was never once in the van, whatever the guard has written"
+          ],
+          "claims": [
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "20:30"
+            },
+            {
+              "where": "guard_van",
+              "never": true
+            }
+          ]
+        }
+      ],
+      "sightings": {
+        "guard_van": [
+          "Sitting on his own toolbag with his back against the crate.",
+          "In the van with the door pulled to, which is not how the guard leaves it."
+        ],
+        "vestibule": [
+          "Between the cars with his ear to the concertina wall, not moving.",
+          "Out in the noise where nobody stands unless they mean to."
+        ],
+        "corridor": [
+          "Running a thumb along a window frame and finding nothing wrong with it."
+        ],
+        "platform": [
+          "Boarding at Calais without a ticket and without being stopped."
+        ]
+      },
+      "lede": "A company engineer nobody sent for, riding on a pass that lets him aboard any train on the line and obliges him to explain himself on none of them.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Working clothes under a good coat that does not belong with them, and hands that have been cleaned recently and thoroughly enough to be remarked on."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "Whatever he says he was doing, it is company business, and company business is the one account aboard that cannot be checked by anybody riding as a passenger."
+          ],
+          "bullets": []
+        },
+        "the_toolbag": {
+          "heading": "The Toolbag",
+          "paragraphs": [
+            "He has carried it since Calais and has not opened it. A man who is aboard to work opens his bag; a man who is aboard to be seen carrying one does not."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "He is the only person aboard whose name is on no list -- not the manifest, not the register, not the reservation book. The pass is real. The company has no record of issuing it to anybody travelling tonight."
+          ],
+          "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "In the good coat rather than the working clothes, which is the wrong way round for a man who says he was working. The hands are clean.",
+            "The toolbag is beside him, and it is open, and there is nothing in it that a railwayman would carry."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/halloran.mdx"
     },
     {
       "id": "marchand",
@@ -1085,13 +1203,9 @@
         "alibi": {
           "heading": "Alibi",
           "paragraphs": [
-            "She was with the cargo, which is where her oath puts her, and which nobody can confirm because nobody else is allowed in there."
+            "Her account is whatever the oath permits her to give, and no part of it can be checked by anybody aboard. She offers it without impatience, as though the impossibility of confirming it were somebody else's difficulty."
           ],
-          "bullets": [
-            "Says she did not leave the guard's van at all, before eleven or after it",
-            "Says the crate was sealed at Calais and has not been opened since",
-            "Says she has never met Lady Beaumont"
-          ]
+          "bullets": []
         },
         "the_warrant": {
           "heading": "The Warrant",
@@ -1225,14 +1339,9 @@
         "alibi": {
           "heading": "Alibi",
           "paragraphs": [
-            "He was walking the train until the lamps went down, which is what he is for and which means he was everywhere and nowhere in particular, and in the van from ten, which is a room nobody else may enter."
+            "He gives his account the way he marks the register: completely, in order, and with one thing left out. Thirty years of being the man who noticed is thirty years of choosing what to say he noticed."
           ],
-          "bullets": [
-            "Says he turned the lamps down at ten, as the book requires",
-            "Says he was in the van from that hour, with the door locked",
-            "Says he saw no one in the corridor who had no business in it",
-            "Says the guard's van was locked, and that he has the only key"
-          ]
+          "bullets": []
         },
         "the_register": {
           "heading": "The Register",
@@ -1258,6 +1367,273 @@
         }
       },
       "source": "shared/data/passengers/moreau.mdx"
+    },
+    {
+      "id": "pryce",
+      "name": "Alun Pryce",
+      "listed": "The Steward",
+      "role": "Dining car steward, Calais to the border",
+      "berth": "Dining car, no berth",
+      "boarded": {
+        "at": "16:05",
+        "where": "Paris"
+      },
+      "location": "dining",
+      "traits": [
+        "remembers what every passenger drinks",
+        "confirms other people's evenings without being asked",
+        "is never once asked about his own"
+      ],
+      "relationships": [
+        {
+          "who": "dupont",
+          "tie": "Confirms his evenings without being asked, and has for eleven years."
+        },
+        {
+          "who": "moreau",
+          "tie": "Company men both, and the only two aboard who are working."
+        }
+      ],
+      "alibis": [
+        {
+          "says": [
+            "Says he was at the service end from eight until the last cover went out",
+            "Says he cleared, laid up for the morning, and did not sit down",
+            "Says he can account for every passenger who dined, and does"
+          ],
+          "claims": [
+            {
+              "where": "dining",
+              "never": false,
+              "from": "20:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says the car was empty by ten and he had the corridor to walk",
+            "Says he was carrying linen forward, which is a steward's work at that hour",
+            "Says he was never behind the service screen after the lamps went down"
+          ],
+          "claims": [
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "22:00"
+            },
+            {
+              "where": "dining",
+              "never": true
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says the stores are in the van and he was signing for the morning's bread",
+            "Says the guard let him in and the guard will say so",
+            "Says he was there past eleven and lost the hour entirely"
+          ],
+          "claims": [
+            {
+              "where": "guard_van",
+              "never": false,
+              "from": "23:00"
+            }
+          ]
+        }
+      ],
+      "sightings": {
+        "dining": [
+          "At the service end, watching the room rather than the covers.",
+          "Laying up for a breakfast this train will not be serving."
+        ],
+        "corridor": [
+          "Carrying linen forward with both arms, which is a reason to be anywhere.",
+          "Stopped outside a door with the linen, and not moving."
+        ],
+        "guard_van": [
+          "Signing the stores book in a hand that is not steady tonight."
+        ],
+        "platform": [
+          "Boarding with the crew an hour before anybody was let aboard."
+        ]
+      },
+      "lede": "The man who confirms everybody else's evening, and whose own nobody has thought to ask about.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "The company's white jacket, pressed this morning and still pressed, and the flat attentive face of somebody who has spent twenty years being spoken past."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "Whatever account he gives is the account of a man who was working, which is the one alibi aboard that explains being everywhere. He has not been pressed on it, because he is the one being asked about everybody else."
+          ],
+          "bullets": []
+        },
+        "what_he_pours": {
+          "heading": "What He Pours",
+          "paragraphs": [
+            "He remembers what every passenger drinks and volunteers it before he is asked, which has so far been taken for helpfulness. He has not once been asked what he himself had, and the answer is that the service brandy is three measures down."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "He is the only person aboard whose testimony is taken as corroboration rather than as evidence, and the difference has not been examined."
+          ],
+          "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "In the white jacket, pressed this morning and no longer pressed. The cloth over one arm is folded the way he folds it, which means he was working when it stopped.",
+            "Nobody thought to ask him anything all evening, and now there is a queue of questions with nowhere to go."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/pryce.mdx"
+    },
+    {
+      "id": "rennick",
+      "name": "Edward Rennick",
+      "listed": "Mr. Rennick",
+      "role": "Bank courier, London, will not take a berth",
+      "berth": "Berth reserved, not taken up",
+      "boarded": {
+        "at": "18:52",
+        "where": "Calais"
+      },
+      "location": "corridor",
+      "traits": [
+        "is chained to a case at the wrist",
+        "reserved a berth and has not been in it",
+        "will not sit with his back to a door"
+      ],
+      "relationships": [
+        {
+          "who": "marchand",
+          "tie": "Two people aboard escorting something, and each has priced the other's escort."
+        },
+        {
+          "who": "thompson",
+          "tie": "Was asked his business by him twice, and gave a different answer each time."
+        }
+      ],
+      "alibis": [
+        {
+          "says": [
+            "Says he was in the corridor from nine and stayed on his feet",
+            "Says a courier does not sleep on the leg that matters",
+            "Says he saw everybody who passed and can name most of them"
+          ],
+          "claims": [
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "21:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he took a table in the dining car where he could see both doors",
+            "Says he was there from ten and did not move from it",
+            "Says he was never in the corridor, where a man can be come at from two ends"
+          ],
+          "claims": [
+            {
+              "where": "dining",
+              "never": false,
+              "from": "22:00"
+            },
+            {
+              "where": "corridor",
+              "never": true
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says he stood in the vestibule from half past ten with his back to the wall",
+            "Says it is the only place aboard nobody can approach unheard",
+            "Says he did not take the berth he paid for and does not want it now"
+          ],
+          "claims": [
+            {
+              "where": "vestibule",
+              "never": false,
+              "from": "22:30"
+            }
+          ]
+        }
+      ],
+      "sightings": {
+        "corridor": [
+          "On his feet at the end of the car, facing the length of it.",
+          "Standing where two doors are in view and neither is behind him."
+        ],
+        "dining": [
+          "At the corner table with the case on the seat beside him, not on the floor.",
+          "Refusing the service and remaining at the table anyway."
+        ],
+        "vestibule": [
+          "Back to the concertina wall, where the approach is six feet and loud."
+        ],
+        "cabin": [
+          "At the door of berth 4, which is not the one he reserved."
+        ],
+        "platform": [
+          "Boarding last at Calais and standing aside to let the others go first."
+        ]
+      },
+      "lede": "A courier for a London bank, chained to a case at the wrist, who reserved a berth at Calais and has not once been in it.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "A plain suit that has been slept in and not slept in, a chain at the cuff, and the flat readiness of a man who has done this leg before and expects it to be the one."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "Whatever he says he was doing, he was doing it standing, awake, and where he could see a door. That is either a professional habit or the description of somebody who knew what was coming."
+          ],
+          "bullets": []
+        },
+        "the_case": {
+          "heading": "The Case",
+          "paragraphs": [
+            "Locked, chained, and never once set on the floor. He has been offered the guard's van for it twice, by two different people, and has refused both without appearing to consider it."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "He paid for a berth he has not used, which means there is a made-up bed aboard this train that nobody has been in and nobody has been watching."
+          ],
+          "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "The chain is still at the wrist and the case is still on the chain, which is the first thing anybody checked and the wrong thing to have found.",
+            "Whatever this was, it was not the case. He was facing whoever it was, the way he has faced every door since Calais."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/rennick.mdx"
     },
     {
       "id": "thompson",
@@ -1365,13 +1741,9 @@
         "alibi": {
           "heading": "Alibi",
           "paragraphs": [
-            "He dined early, retired early, and slept through it, which is what a man says when he has nothing to hide and also when he has."
+            "He offers his evening in more detail than was asked for, and offers it again if the conversation goes quiet. A man from Norwich has a great deal to say about where he has been."
           ],
-          "bullets": [
-            "Says he was asleep by ten",
-            "Says he heard the guard and nothing before it",
-            "Says he has never travelled this line before"
-          ]
+          "bullets": []
         },
         "the_question_he_asked": {
           "heading": "The Question He Asked",
@@ -1508,13 +1880,9 @@
         "alibi": {
           "heading": "Alibi",
           "paragraphs": [
-            "He says he went to his berth at half past nine and did not come out, and there is nobody at all to say whether that is true."
+            "He gives an account, and there is nobody at all to say whether it is true. He spoke to three people the whole journey and each says it was the only time."
           ],
-          "bullets": [
-            "Says he took no dinner and wanted none",
-            "Says he has never been in the dining car on this service",
-            "Says he did not hear the corridor, which is a yard from his door"
-          ]
+          "bullets": []
         },
         "the_berth": {
           "heading": "The Berth",
@@ -1660,13 +2028,9 @@
         "alibi": {
           "heading": "Alibi",
           "paragraphs": [
-            "He was walking the corridor because he could not sleep, and he offered his help because he is a doctor and that is what a doctor does."
+            "A physician's account, given precisely, with the times to the quarter hour and not one of them rounded. He has clearly thought about how it will sound, which is not the same as having invented it."
           ],
-          "bullets": [
-            "Says he slept badly and rose after midnight",
-            "Says he saw no one in the corridor",
-            "Says the lamps were already out when he passed"
-          ]
+          "bullets": []
         },
         "the_case": {
           "heading": "The Case",
@@ -1692,6 +2056,139 @@
         }
       },
       "source": "shared/data/passengers/weiss.mdx"
+    },
+    {
+      "id": "zsofia",
+      "name": "Zsófia Rédey",
+      "listed": "Mme Rédey",
+      "role": "Singer, engaged at Budapest, travelling without a sleeper",
+      "berth": "No berth taken",
+      "boarded": {
+        "at": "18:48",
+        "where": "Calais"
+      },
+      "location": "dining",
+      "traits": [
+        "travels with four trunks and no sleeper",
+        "is recognised by two passengers and acknowledged by neither",
+        "answers in whichever language the question was not asked in"
+      ],
+      "relationships": [
+        {
+          "who": "beaumont",
+          "tie": "Recognised her at Calais and was not recognised in return, which both noticed."
+        },
+        {
+          "who": "weiss",
+          "tie": "Consulted him about her throat before either had said their name."
+        }
+      ],
+      "alibis": [
+        {
+          "says": [
+            "Says she sat in the dining car all evening because there is nowhere else",
+            "Says she does not sleep on trains and did not attempt it",
+            "Says the steward will confirm she never left the table"
+          ],
+          "claims": [
+            {
+              "where": "dining",
+              "never": false,
+              "from": "21:00"
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says she stood between the cars because a voice needs air and the car had none",
+            "Says she was out there from half past ten and stayed out",
+            "Says she was not once in the dining car after the service closed"
+          ],
+          "claims": [
+            {
+              "where": "vestibule",
+              "never": false,
+              "from": "22:30"
+            },
+            {
+              "where": "dining",
+              "never": true
+            }
+          ]
+        },
+        {
+          "says": [
+            "Says she walked the corridor from eleven, back and forth, the way one does",
+            "Says she was working through a part and cannot do that sitting down",
+            "Says she passed the same doors a great many times and looked at none of them"
+          ],
+          "claims": [
+            {
+              "where": "corridor",
+              "never": false,
+              "from": "23:00"
+            }
+          ]
+        }
+      ],
+      "sightings": {
+        "dining": [
+          "At a table laid for two, with one cover cleared unused.",
+          "Singing under her breath in a language nobody at the next table has."
+        ],
+        "vestibule": [
+          "Between the cars with her head back against the wall, breathing.",
+          "Out in the noise, where a voice can be used and not heard."
+        ],
+        "corridor": [
+          "Walking the length of it and turning at the end without pausing.",
+          "Stopped at a window, watching the dark rather than anything in it."
+        ],
+        "platform": [
+          "Boarding late at Calais with more luggage than a berthless passenger needs."
+        ]
+      },
+      "lede": "Engaged at Budapest, travelling to it with four trunks and no berth, which is either economy or a decision to be somewhere she can be seen all night.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Travelling clothes chosen to be looked at, a scarf kept on indoors, and the particular stillness of somebody who has been taught to be still on a stage."
+          ],
+          "bullets": []
+        },
+        "alibi": {
+          "heading": "Alibi",
+          "paragraphs": [
+            "Whatever account she gives, it is an account of somebody with nowhere private to be, and a passenger with no berth cannot be alone anywhere aboard."
+          ],
+          "bullets": []
+        },
+        "the_trunks": {
+          "heading": "The Trunks",
+          "paragraphs": [
+            "Four, all in the van, all opened at Calais by a customs man who signed for three. She has asked the guard twice when the van is unlocked and been told twice that it is not."
+          ],
+          "bullets": []
+        },
+        "under_enquiry": {
+          "heading": "Under Enquiry",
+          "paragraphs": [
+            "She has no compartment, which means she has no door, which means she is the only passenger aboard whose whereabouts anybody could have observed all night. Nobody did."
+          ],
+          "bullets": []
+        },
+        "the_body": {
+          "heading": "The Body",
+          "paragraphs": [
+            "The scarf is off, which nobody aboard has seen before tonight, and it is not anywhere near her.",
+            "She was engaged at Budapest for a season beginning in eleven days, and the company there has been told to expect her, and has not yet been told anything else."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/passengers/zsofia.mdx"
     }
   ],
   "items": [
