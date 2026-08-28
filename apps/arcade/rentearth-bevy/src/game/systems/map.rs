@@ -169,7 +169,11 @@ pub fn spawn_map(
 fn wrap_tiles(
     spec: Res<MapSpec>,
     camera: Query<&CameraRig, Changed<CameraRig>>,
-    mut tiles: Query<(&BasePosition, &mut Transform), With<Tile>>,
+    // Filtered on `BasePosition` alone rather than on `Tile`. Carrying one is
+    // what it means to live in a wrapping world, and tiles are no longer the
+    // only things that do -- the tree clumps have to cross the seam with the
+    // ground they stand on.
+    mut wrapped: Query<(&BasePosition, &mut Transform)>,
 ) {
     // Only when the camera actually moved. A still camera leaves 10k
     // transforms untouched, which also means they stay out of Bevy's change
@@ -181,7 +185,7 @@ fn wrap_tiles(
     let width = spec.world_width();
     let depth = spec.world_depth();
 
-    for (base, mut transform) in &mut tiles {
+    for (base, mut transform) in &mut wrapped {
         // Round rather than floor: round puts the tile in the nearest copy,
         // floor would put it in the one below and leave a world-sized gap on
         // one side of the camera.

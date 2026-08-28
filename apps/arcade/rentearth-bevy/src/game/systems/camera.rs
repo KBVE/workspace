@@ -10,7 +10,11 @@ use crate::game::core::map::MapSpec;
 /// Tilt, as a fraction of the way from overhead to horizontal. About 40
 /// degrees down: shallow enough that column sides show, steep enough that near
 /// tiles do not hide the ones behind them.
-const CAMERA_PITCH: f32 = 0.72;
+///
+/// Public because it is not only the camera's business: the camera never yaws,
+/// so this angle is the whole of the projection anything upright has to be
+/// built against. The tree billboards read it to undo the foreshortening.
+pub const CAMERA_PITCH: f32 = 0.72;
 
 /// How far back the camera sits. Only affects clipping, not apparent size --
 /// the projection is orthographic -- but it has to clear the tallest terrain.

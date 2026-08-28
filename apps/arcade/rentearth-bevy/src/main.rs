@@ -27,6 +27,7 @@ use game::core::terrain::SEA_LEVEL;
 use game::systems::camera::CameraPlugin;
 use game::systems::debug::DebugPlugin;
 use game::systems::map::MapPlugin;
+use game::systems::trees::TreePlugin;
 use game::systems::ui::UiPlugin;
 
 // The animated surface when the key is present and the feature is on, the flat
@@ -110,7 +111,7 @@ fn main() {
             FrameTimeDiagnosticsPlugin::default(),
             LogDiagnosticsPlugin::default(),
         ))
-        .add_plugins((MapPlugin, CameraPlugin, DebugPlugin, UiPlugin))
+        .add_plugins((MapPlugin, CameraPlugin, DebugPlugin, UiPlugin, TreePlugin))
         .add_plugins(water_plugin())
         .run();
 }
