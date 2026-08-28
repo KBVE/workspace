@@ -78,6 +78,31 @@
   },
   "locations": [
     {
+      "id": "bath",
+      "name": "The Bath Car",
+      "carriage": 8,
+      "furnishings": [],
+      "lede": "A bath, a boiler, and a list on the door of the hours it may be had in, none of which are these hours.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Empty and cold. The boiler is out, the tap has been run recently enough to have left the basin wet, and nothing else in the room has been touched all night."
+          ],
+          "bullets": []
+        },
+        "why_it_matters": {
+          "heading": "Why It Matters",
+          "paragraphs": [
+            "Nobody has any business here between eleven and six, which makes it the only room aboard where being found at all is the whole of the answer."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/bath.mdx"
+    },
+    {
       "id": "cabin",
       "name": "The Sleeping Cabins",
       "carriage": 3,
@@ -420,6 +445,106 @@
       "source": "shared/data/locations/guard_van.mdx"
     },
     {
+      "id": "kitchen",
+      "name": "The Kitchen",
+      "carriage": 6,
+      "furnishings": [
+        {
+          "along": -6.4,
+          "across": 1.15,
+          "above": 0,
+          "facing": 0,
+          "prop": "crate",
+          "surfaceHeight": 0.55
+        },
+        {
+          "along": -5.6,
+          "across": 1.15,
+          "above": 0,
+          "facing": 0.35,
+          "prop": "crate",
+          "surfaceHeight": 0.55
+        },
+        {
+          "along": 6.9,
+          "across": 1.05,
+          "above": 0,
+          "facing": 1.5708,
+          "prop": "lockbox",
+          "surfaceHeight": 0.45
+        }
+      ],
+      "lede": "Four feet of working room between the stores and the range, and staff only, in theory.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Stores crated against one wall, the plate locked away against the other, and a range that has been out since the last cover went forward."
+          ],
+          "bullets": []
+        },
+        "why_it_matters": {
+          "heading": "Why It Matters",
+          "paragraphs": [
+            "Everything anybody ate or drank tonight came through here, and the door to it does not lock -- it fastens, which is a different thing that everybody aboard has been told is the same thing."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/kitchen.mdx"
+    },
+    {
+      "id": "mail",
+      "name": "The Mail Van",
+      "carriage": 7,
+      "furnishings": [
+        {
+          "along": 6.6,
+          "across": -1.15,
+          "above": 0,
+          "facing": 0,
+          "prop": "crate",
+          "surfaceHeight": 0.55
+        },
+        {
+          "along": -6.4,
+          "across": 1.15,
+          "above": 0,
+          "facing": 0,
+          "prop": "crate",
+          "surfaceHeight": 0.55
+        },
+        {
+          "along": 6.9,
+          "across": 1.05,
+          "above": 0,
+          "facing": 1.5708,
+          "prop": "lockbox",
+          "surfaceHeight": 0.45
+        }
+      ],
+      "lede": "Sealed at Calais under a different authority to the rest of the train, and carrying post for three countries.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Sacks in crates, a sorting shelf nobody has used since the border, and a seal on the far door that is a customs matter rather than a railway one."
+          ],
+          "bullets": []
+        },
+        "why_it_matters": {
+          "heading": "Why It Matters",
+          "paragraphs": [
+            "The one room aboard the guard has no key to. Whatever is in here was put in at Calais by somebody who does not work for this company, and will be taken out at Vienna by somebody else who does not."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/mail.mdx"
+    },
+    {
       "id": "platform",
       "name": "The Platform",
       "furnishings": [],
@@ -442,6 +567,109 @@
         }
       },
       "source": "shared/data/locations/platform.mdx"
+    },
+    {
+      "id": "salon",
+      "name": "The Salon Car",
+      "carriage": 5,
+      "furnishings": [
+        {
+          "along": -5.4,
+          "across": 1.1,
+          "above": 0,
+          "facing": 0,
+          "prop": "dining_table",
+          "surfaceHeight": 0.7525
+        },
+        {
+          "along": -4.74,
+          "across": 1.1,
+          "above": 0,
+          "facing": 1.5708,
+          "prop": "dining_chair",
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "along": -6.06,
+          "across": 1.1,
+          "above": 0,
+          "facing": -1.5708,
+          "prop": "dining_chair",
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "along": 1.8,
+          "across": -1.1,
+          "above": 0,
+          "facing": 0,
+          "prop": "dining_table",
+          "surfaceHeight": 0.7525
+        },
+        {
+          "along": 2.46,
+          "across": -1.1,
+          "above": 0,
+          "facing": 1.5708,
+          "prop": "dining_chair",
+          "seats": true,
+          "cushionHeight": 0.48
+        },
+        {
+          "along": 1.14,
+          "across": -1.1,
+          "above": 0,
+          "facing": -1.5708,
+          "prop": "dining_chair",
+          "seats": true,
+          "cushionHeight": 0.48
+        }
+      ],
+      "lede": "Where the company would like you to sit after dinner, and where nobody sits alone.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Two tables, four chairs, and a great deal of room between them that the company charges for. The lamps are turned up higher here than anywhere else aboard."
+          ],
+          "bullets": []
+        },
+        "why_it_matters": {
+          "heading": "Why It Matters",
+          "paragraphs": [
+            "It is the only room on the train designed to be sat in by people who did not arrive together, which makes it the only room where being seen with somebody means nothing at all."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/salon.mdx"
+    },
+    {
+      "id": "smoking",
+      "name": "The Smoking Room",
+      "carriage": 9,
+      "furnishings": [],
+      "lede": "Six seats, a window that opens, and the smell of every journey this carriage has made since it left the works.",
+      "body": [],
+      "sections": {
+        "appearance": {
+          "heading": "Appearance",
+          "paragraphs": [
+            "Dark, unlit, and unused tonight. The window is down two inches, which somebody did and nobody has undone."
+          ],
+          "bullets": []
+        },
+        "why_it_matters": {
+          "heading": "Why It Matters",
+          "paragraphs": [
+            "It is the far end of the train. Everything that happened aboard tonight happened between here and the guard's van, and nobody had a reason to come this far."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/locations/smoking.mdx"
     },
     {
       "id": "vestibule",
@@ -652,6 +880,10 @@
         }
       ],
       "sightings": {
+        "salon": [
+          "In the good chair with her back to the room, which is the one chair that has one.",
+          "Sitting where the lamps are turned up, and not reading."
+        ],
         "cabin": [
           "The lamp still burning, and the door not quite shut.",
           "Seated with her back to the window, gloves still on."
@@ -780,6 +1012,9 @@
         }
       ],
       "sightings": {
+        "salon": [
+          "On the edge of a chair not her own, waiting to be needed by somebody."
+        ],
         "cabin": [
           "Awake with the lamp out, which is not the same as asleep.",
           "Sitting up at the sound of a door that is not hers."
@@ -909,6 +1144,9 @@
         }
       ],
       "sightings": {
+        "salon": [
+          "Holding the room the way a commercial traveller holds a room, and selling nothing."
+        ],
         "dining": [
           "At the table he always takes, with a second glass poured and untouched.",
           "Turning the pages of an appointment book he does not appear to read."
@@ -1044,6 +1282,12 @@
         }
       ],
       "sightings": {
+        "mail": [
+          "In the mail van, which the guard cannot open, without having said how he did."
+        ],
+        "kitchen": [
+          "Behind the range with a lamp, looking at pipework that is not his to look at."
+        ],
         "guard_van": [
           "Sitting on his own toolbag with his back against the crate.",
           "In the van with the door pulled to, which is not how the guard leaves it."
@@ -1175,6 +1419,9 @@
         }
       ],
       "sightings": {
+        "mail": [
+          "Standing the length of the mail van from the seal, watching it and not approaching."
+        ],
         "guard_van": [
           "Seated with the crate, in the one room aboard nobody else may enter.",
           "Not dining, not reading, and not once looking away from the cargo."
@@ -1307,6 +1554,12 @@
         }
       ],
       "sightings": {
+        "mail": [
+          "At the mail van door with the wrong key in his hand, and no right one."
+        ],
+        "kitchen": [
+          "Fastening the kitchen door, which fastens and does not lock."
+        ],
         "corridor": [
           "Door to door as the light goes, the way he has ten thousand times.",
           "Turning the lamps down, and stopping at one door longer than the rest."
@@ -1443,6 +1696,14 @@
         }
       ],
       "sightings": {
+        "kitchen": [
+          "At the range with it long out, doing nothing that needs a range.",
+          "Counting the plate back into the lockbox, twice."
+        ],
+        "salon": [
+          "Carrying through to the salon and staying longer than the tray needed.",
+          "Turning the salon lamps up, which is done at nine and was done at eleven."
+        ],
         "dining": [
           "At the service end, watching the room rather than the covers.",
           "Laying up for a breakfast this train will not be serving."
@@ -1575,6 +1836,12 @@
         }
       ],
       "sightings": {
+        "mail": [
+          "At the sealed door of the mail van, not touching it, reading the seal."
+        ],
+        "salon": [
+          "In the corner seat with the case beside him and both doors in view."
+        ],
         "corridor": [
           "On his feet at the end of the car, facing the length of it.",
           "Standing where two doors are in view and neither is behind him."
@@ -1710,6 +1977,9 @@
         }
       ],
       "sightings": {
+        "salon": [
+          "Putting his question to a third person, who is also declining to answer it."
+        ],
         "cabin": [
           "The lamp out early, and the case with the forced lock pushed under the berth.",
           "Dressed, on the made bed, with his boots still on."
@@ -1849,6 +2119,9 @@
         }
       ],
       "sightings": {
+        "salon": [
+          "Standing at the back of the salon where the lamplight does not reach the wall."
+        ],
         "platform": [
           "Boarding at Paris among the through passengers, and noticed by nobody."
         ],
@@ -1996,6 +2269,9 @@
         }
       ],
       "sightings": {
+        "salon": [
+          "At the far table with the bag at his feet, watching the door rather than the room."
+        ],
         "corridor": [
           "At the far end, in the dark, fully dressed at an hour that wants explaining.",
           "Walking towards a sound rather than away from one."
@@ -2132,6 +2408,10 @@
         }
       ],
       "sightings": {
+        "salon": [
+          "Given the good chair by somebody, and not sitting in it.",
+          "Singing quietly to the window, which is the only audience she has had since Calais."
+        ],
         "dining": [
           "At a table laid for two, with one cover cleared unused.",
           "Singing under her breath in a language nobody at the next table has."
