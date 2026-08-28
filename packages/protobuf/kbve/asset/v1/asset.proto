@@ -67,6 +67,12 @@ message TradingRules {
   optional bool tradeable = 6;
   // Whether units of it are interchangeable and can be held as one balance.
   optional bool fungible = 7;
+
+  // Whether the venue's fee schedule skips this asset. Venues keep explicit
+  // exemption lists - the Grand Exchange does not tax tools or bonds - and an
+  // exemption is a property of the asset rather than of the schedule, so it
+  // cannot live on the venue with the rate.
+  optional bool fee_exempt = 8;
 }
 
 // One name an asset goes by, and the scheme that issued it.

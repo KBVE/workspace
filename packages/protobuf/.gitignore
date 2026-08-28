@@ -4,3 +4,8 @@ node_modules/
 
 # Derived from the schemas; distributed as a CI artifact, never committed.
 descriptor.binpb
+
+# Build output from the compile-check harnesses in verify/.
+verify/csharp/bin/
+verify/csharp/obj/
+verify/rust/target/
