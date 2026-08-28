@@ -54,6 +54,17 @@ tasks:
     toolchains: ['node']
     inputs: ['@group(sources)', '@group(configs)']
 
+  # Renders the tileset with every gid labelled on its tile. Picking a tile was
+  # archaeology before this -- the buildings came out blue and the town was
+  # fenced with sand pits, because the only way to see what a gid looked like
+  # was to put it in the game.
+  atlas:
+    command: 'node tools/atlas.mjs'
+    toolchains: ['node']
+    options:
+      cache: false
+      runInCI: false
+
   # Playwright ships no browser with the npm package. Declared as a task so the
   # e2e task can depend on it rather than every caller remembering to run it.
   # --with-deps installs the system libraries a headless Chromium needs on a

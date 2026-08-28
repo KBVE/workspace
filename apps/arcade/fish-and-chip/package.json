@@ -9,7 +9,8 @@
 		"preview": "vite preview",
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
-		"e2e": "playwright test"
+		"e2e": "playwright test",
+		"atlas": "node tools/atlas.mjs"
 	},
 	"dependencies": {
 		"@nanostores/persistent": "catalog:",
@@ -27,6 +28,7 @@
 		"@types/react-dom": "catalog:",
 		"@vitejs/plugin-react": "catalog:",
 		"jsdom": "catalog:",
+		"sharp": "catalog:",
 		"typescript": "catalog:",
 		"vite": "catalog:",
 		"vitest": "catalog:"

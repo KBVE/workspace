@@ -1,8 +1,9 @@
 import {
 	BUILDING,
 	DECOR,
+	PAVING,
+	PAVING_PRIMARY,
 	SAND,
-	SAND_PRIMARY,
 	SCATTER,
 	TILESET_COLUMNS,
 	WALL,
@@ -69,21 +70,12 @@ function rng(seed: number): () => number {
 
 const index = (x: number, y: number, width: number) => y * width + x;
 
-/** Wall gid for a position on the enclosure, picked by which edge it is on. */
-function wallAt(x: number, y: number, width: number, height: number): number {
-	const left = x === 0;
-	const right = x === width - 1;
-	const top = y === 0;
-	const bottom = y === height - 1;
-
-	if (top && left) return WALL.topLeft;
-	if (top && right) return WALL.topRight;
-	if (bottom && left) return WALL.bottomLeft;
-	if (bottom && right) return WALL.bottomRight;
-	if (top) return WALL.top;
-	if (bottom) return WALL.bottom;
-	if (left) return WALL.left;
-	return WALL.right;
+/**
+ * Wall gid for a position on the enclosure. The top course carries the trim, so
+ * the wall reads as facing out of the town rather than into it.
+ */
+function wallAt(y: number): number {
+	return y === 0 ? WALL.cap : WALL.body;
 }
 
 export function generateTown(options: TownOptions): TownMap {
@@ -103,17 +95,6 @@ export function generateTown(options: TownOptions): TownMap {
 	const buildings = new Array<number>(width * height).fill(0);
 	const objects = new Array<number>(width * height).fill(0);
 
-	for (let y = 0; y < height; y++) {
-		for (let x = 0; x < width; x++) {
-			const onEdge = x === 0 || y === 0 || x === width - 1 || y === height - 1;
-			ground[index(x, y, width)] = onEdge
-				? wallAt(x, y, width, height)
-				: random() < 0.07
-					? pick(SAND)
-					: SAND_PRIMARY;
-		}
-	}
-
 	// The street plan. Horizontal streets are what buildings face; the vertical
 	// ones connect them, so no block is a dead end.
 	const streetRows: number[] = [];
@@ -127,6 +108,22 @@ export function generateTown(options: TownOptions): TownMap {
 
 	const onStreet = (x: number, y: number) =>
 		streetRows.includes(y) || streetColumns.includes(x);
+
+	// Ground goes down after the streets are known, because what a tile is made
+	// of depends on whether a street runs over it: open desert is sand, and the
+	// streets are paved, which is what makes them visible as streets.
+	for (let y = 0; y < height; y++) {
+		for (let x = 0; x < width; x++) {
+			const onEdge = x === 0 || y === 0 || x === width - 1 || y === height - 1;
+			if (onEdge) {
+				ground[index(x, y, width)] = wallAt(y);
+			} else if (onStreet(x, y)) {
+				ground[index(x, y, width)] = random() < 0.12 ? pick(PAVING) : PAVING_PRIMARY;
+			} else {
+				ground[index(x, y, width)] = SAND[y % 2][x % 2];
+			}
+		}
+	}
 
 	const streets: Position[] = [];
 	for (let y = 1; y < height - 1; y++) {
@@ -226,13 +223,13 @@ export function generateTown(options: TownOptions): TownMap {
 
 	const landmarks = {} as Record<PointOfInterest, Position>;
 
-	const jetty = placeLandmark(DECOR.jetty);
+	const pit = placeLandmark(DECOR.sandPit);
 	const board = placeLandmark(DECOR.noticeBoard);
 	const grave = placeLandmark(DECOR.headstone);
-	if (!jetty || !board || !grave) {
+	if (!pit || !board || !grave) {
 		throw new Error(`Seed ${options.seed} left nowhere to put its landmarks.`);
 	}
-	landmarks.fishingPit = jetty;
+	landmarks.fishingPit = pit;
 	landmarks.sign = board;
 	landmarks.tombstone = grave;
 	landmarks.building = doors[0];

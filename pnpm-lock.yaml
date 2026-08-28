@@ -57,6 +57,9 @@ catalogs:
     react-dom:
       specifier: 19.2.8
       version: 19.2.8
+    sharp:
+      specifier: 0.35.4
+      version: 0.35.4
     typescript:
       specifier: 5.9.3
       version: 5.9.3
@@ -123,6 +126,9 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 30.0.1
+      sharp:
+        specifier: 'catalog:'
+        version: 0.35.4(@types/node@24.13.3)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -3536,8 +3542,7 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
-  '@img/colour@1.1.0':
-    optional: true
+  '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.35.4':
     optionalDependencies:
@@ -5603,7 +5608,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.35.4
       '@img/sharp-win32-x64': 0.35.4
       '@types/node': 24.13.3
-    optional: true
 
   shiki@4.4.3:
     dependencies:

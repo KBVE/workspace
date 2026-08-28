@@ -1,76 +1,76 @@
-// Tile ids for the desert tileset, read out of the hand-authored cloud_city.json
-// rather than guessed. Every number here was in use in that map, so the
-// generator composes pieces an artist already placed together.
+// Tile ids for the desert tileset.
 //
-// The tileset is 45 columns wide, which is why a vertical neighbour is +45 and
-// the nine-slice below reads as three consecutive rows.
+// Every id here was read off `moon run fish-and-chip:atlas` -- a labelled render
+// of the sheet -- rather than guessed or inherited from the authored map. The
+// guessing cost real mistakes: the buildings came out blue, the landmarks were
+// drawn with paving edge pieces, and the town was fenced with a ring of sand
+// pits, which is the art for the one thing the game is about.
+//
+// The tileset is 45 columns wide, so a vertical neighbour is +45 and a stamp's
+// rows read as consecutive runs.
 //
 // Ids are Tiled *gids*: 1-based, because 0 means "no tile in this layer".
 
 export const TILESET_COLUMNS = 45;
 
 /**
- * The wall enclosure, as a nine-slice. cloud_city.json fences its whole map
- * with exactly this set, so a generated map that reuses it is bounded the same
- * way the authored one is.
+ * Open desert. A 2x2 speckle pattern, laid by parity so it tiles seamlessly
+ * rather than looking like scattered grit.
+ */
+export const SAND = [
+	[227, 228],
+	[272, 273],
+] as const;
+
+/**
+ * Paved brick. What the streets are made of, and the only reason they are
+ * visible: the first street plan paved the whole map in this and left the
+ * streets as an idea that existed only in the code.
+ */
+export const PAVING = [368, 413, 369, 414] as const;
+export const PAVING_PRIMARY = PAVING[0];
+
+/**
+ * The town wall: sandstone, with a gold trim along its top course.
+ *
+ * The border used to be 47-49/92-94/137-139, which is not a wall at all. It is
+ * a sand pit -- the thing the fishing minigame is named after -- so every town
+ * was ringed with dozens of them.
  */
 export const WALL = {
-	topLeft: 47,
-	top: 48,
-	topRight: 49,
-	left: 92,
-	middle: 93,
-	right: 94,
-	bottomLeft: 137,
-	bottom: 138,
-	bottomRight: 139,
+	/** Top course, trim facing out. */
+	cap: 684,
+	/** Everything else. */
+	body: 729,
 } as const;
 
 /**
- * Walkable sand. 368 covers most of the authored map's floor and 413 is the
- * variant it speckles in most often.
- *
- * Deliberately short, and deliberately free of any gid in MARKERS. A wider set
- * read as scattered litter rather than ground texture, and reusing a marker gid
- * as floor made the fishing pit invisible -- it drew as one more speckle.
- */
-export const SAND = [368, 413] as const;
-export const SAND_PRIMARY = SAND[0];
-
-/**
  * A building is a 3-wide, 4-tall stamp whose bottom middle tile is a doorway.
- * The door is the only part of it that is not solid -- that is what makes a
- * building enterable rather than scenery.
+ * Column 33, row 9 of the sheet: the sandstone block. The authored map's 442
+ * lands on the blue block three columns to its right.
  */
 export const BUILDING = {
 	width: 3,
 	height: 4,
-	// Top-left gid; each row below it is +TILESET_COLUMNS.
-	//
-	// Column 33, row 9: the left edge of the sandstone block, measured off the
-	// tileset rather than estimated. Sandstone runs columns 33-35 and the blue
-	// block starts at 36, so 442 (the authored map's building) put two columns
-	// of blue in the middle of a desert, and 440 still caught one.
 	origin: 439,
 	/** Offset of the walkable doorway within the stamp. */
 	door: { x: 1, y: 3 },
 } as const;
 
-/** Kept for the collision set: every gid any decor stamp can place. */
-export const DECOR_GIDS = [
-	872, 873, 917, 918, 1052, 1097, 1102, 1103, 1147, 1148, 1106, 1107, 1151, 1152, 877, 922, 967,
-] as const;
-
 /**
- * Landmarks are built out of real objects rather than a recoloured floor tile.
- * The first attempt marked them with paving gids, which is what 453, 409, and
- * 407 are -- edge pieces of a plaza -- so a landmark looked like ground.
- *
- * Each stamp is rows of gids, top row first, and is placed on the object layer.
- * The player stands on the tile below the stamp, which is why nothing here is
- * more than two tiles tall: taller and the caption sits off screen.
+ * Landmarks, built out of real objects. Each stamp is rows of gids, top row
+ * first; the player stands on the tile below it.
  */
 export const DECOR = {
+	/**
+	 * The sand pit, and the whole point of the town: standing at its edge is
+	 * what starts the fishing minigame.
+	 */
+	sandPit: [
+		[47, 48, 49],
+		[92, 93, 94],
+		[137, 138, 139],
+	],
 	/** Wooden notice board. The credits sign. */
 	noticeBoard: [
 		[872, 873],
@@ -78,11 +78,6 @@ export const DECOR = {
 	],
 	/** Grey headstone. The grave. */
 	headstone: [[1052], [1097]],
-	/** Planks laid over the ground, read as a jetty. The fishing spot. */
-	jetty: [
-		[1102, 1103],
-		[1147, 1148],
-	],
 	/** Ornamental fountain, for the middle of a junction. */
 	fountain: [
 		[1106, 1107],
@@ -92,8 +87,8 @@ export const DECOR = {
 	lamp: [[877], [922], [967]],
 } as const;
 
-/** Loose scenery with no meaning: cacti and rocks. */
-export const SCATTER = [1066, 1111, 1109, 1103] as const;
+/** Loose scenery with no meaning: cacti and a stray crate. */
+export const SCATTER = [1066, 1111, 1109, 1057] as const;
 
 /**
  * Every gid the generator can place that the player cannot walk through.
@@ -101,8 +96,11 @@ export const SCATTER = [1066, 1111, 1109, 1103] as const;
  * set is what the emitted tilemap declares that property on.
  */
 export function collidableGids(): Set<number> {
-	const solid = new Set<number>(Object.values(WALL));
-	for (const gid of DECOR_GIDS) solid.add(gid);
+	const solid = new Set<number>([WALL.cap, WALL.body]);
+
+	for (const stamp of Object.values(DECOR)) {
+		for (const row of stamp) for (const gid of row) solid.add(gid);
+	}
 	for (const gid of SCATTER) solid.add(gid);
 
 	for (let row = 0; row < BUILDING.height; row++) {
