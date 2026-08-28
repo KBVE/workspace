@@ -22,8 +22,11 @@ What is already taken care of:
 
 - **git-crypt.** `tools/worktree/setup.sh` points the filters at the key by
   absolute path. Without it a worktree checkout dies on every encrypted path,
-  because git-crypt looks for its key in `.git/worktrees/<name>`. Re-run it
-  after `git-crypt unlock`, which rewrites those filters back.
+  because git-crypt looks for its key in `.git/worktrees/<name>`.
+  `git-crypt unlock` rewrites those filters back, so the post-checkout hook
+  re-applies them — unlock does a checkout, which is what fires the hook. It is
+  silent unless it actually changes something, and it stays out of the way of
+  `git-crypt lock`, which removes the key and the filters together.
 - **Cargo.** The post-checkout hook copy-on-write clones the main checkout's
   `target/`. A new worktree costs ~200M of real disk instead of 25G, and builds
   reuse every dependency. Each worktree owns its `target/` on purpose: cargo

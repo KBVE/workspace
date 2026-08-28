@@ -9,5 +9,6 @@ done
 # https://moonrepo.dev/docs/guides/vcs-hooks
 
 git lfs post-checkout "$ARG1" "$ARG2" "$ARG3"
+S="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/tools/worktree/setup.sh"; [ -x "$S" ] && bash "$S" --if-needed || true
 S="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/tools/worktree/seed-target.sh"; [ -x "$S" ] && bash "$S" || true
 

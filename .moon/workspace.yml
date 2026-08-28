@@ -49,6 +49,11 @@ vcs:
       - 'git lfs pre-push "$ARG1" "$ARG2"'
     post-checkout:
       - 'git lfs post-checkout "$ARG1" "$ARG2" "$ARG3"'
+      # Repairs the git-crypt filter config. `git-crypt unlock` rewrites it
+      # back to a form that cannot resolve a key from inside a worktree, and
+      # unlock does a checkout, so this fires on the way out of the very
+      # command that broke it. Silent unless it actually changes something.
+      - 'S="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/tools/worktree/setup.sh"; [ -x "$S" ] && bash "$S" --if-needed || true'
       # Warms a new worktree's Cargo target/ from the main checkout, so a
       # worktree created by something other than tools/worktree/add.sh -- an
       # agent's own isolation, a bare `git worktree add` -- is not born cold.
