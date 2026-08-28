@@ -12,11 +12,12 @@
   ],
   "homepage": "https://kbve.com/application/javascript/",
   "bugs": {
-    "url": "https://github.com/KBVE/kbve/issues"
+    "url": "https://github.com/KBVE/workspace/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/KBVE/kbve.git"
+    "url": "git+https://github.com/KBVE/workspace.git",
+    "directory": "packages/laser"
   },
   "author": "KBVE <hello@kbve.com>",
   "license": "MIT",
