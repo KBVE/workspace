@@ -3,6 +3,8 @@ syntax = "proto3";
 package kbve.asset.v1;
 
 import "google/protobuf/timestamp.proto";
+import "kbve/asset/v1/asset_crypto.proto";
+import "kbve/asset/v1/asset_session.proto";
 import "kbve/common/v1/decimal.proto";
 import "kbve/common/v1/registry.proto";
 import "kbve/type/v1/id.proto";
@@ -139,6 +141,18 @@ message Asset {
   // When the asset stopped trading: an item removed from a game, a company
   // delisted, a token abandoned.
   optional google.protobuf.Timestamp retired_at = 14;
+
+  // Present on a token, absent on everything else, and the counterpart to
+  // equity above.
+  optional TokenProfile crypto = 15;
+
+  // What this row is a market in, where the row is a pair rather than a thing.
+  //
+  // A crypto venue lists BTC-USD and BTC-EUR as separate instruments with
+  // separate prices, and they are the same asset priced two ways. Without this
+  // nothing can tell that, so a portfolio holding both double-counts the
+  // position and a chart switching between them reads as a move.
+  optional AssetRef base_asset = 16;
 }
 
 // What an asset costs at one moment.
@@ -169,6 +183,35 @@ message Quote {
 
   // Units traded over the period the venue reports.
   optional int64 volume = 11;
+
+  // Who said so. Two vendors disagree about the same instrument at the same
+  // instant more often than they agree exactly, and a series assembled from
+  // both without recording which is which cannot be reconciled afterwards.
+  optional string source = 12;
+
+  QuoteQuality quality = 13;
+  // How far behind real time this is. Equity data is commonly fifteen minutes
+  // delayed unless licensed otherwise, and presenting that as live is both a
+  // wrong number and a licensing problem.
+  optional int64 delay_seconds = 14;
+
+  // Whether the asset could actually be traded at this moment. A price quoted
+  // during a halt is the last one before the halt, and it is the price least
+  // likely to survive the resumption.
+  TradingStatus status = 15;
+}
+
+// How close to the market a quote is.
+enum QuoteQuality {
+  QUOTE_QUALITY_UNSPECIFIED = 0;
+  QUOTE_QUALITY_REALTIME = 1;
+  // Deliberately lagged by the venue or the vendor, typically fifteen minutes.
+  QUOTE_QUALITY_DELAYED = 2;
+  // The official close, not a live price.
+  QUOTE_QUALITY_END_OF_DAY = 3;
+  // A reference price rather than a tradeable one: a computed mid, a stale
+  // last, or a vendor's estimate for an instrument that has not traded.
+  QUOTE_QUALITY_INDICATIVE = 4;
 }
 
 // The period one candle covers.
