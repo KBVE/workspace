@@ -75,6 +75,22 @@
         }
       }
 
+      // The bundles are threaded, so they import a shared memory, and a shared
+      // WebAssembly.Memory cannot be constructed without cross-origin
+      // isolation. Checked before the fetch rather than after: the failure
+      // would otherwise arrive tens of megabytes later, as a constructor
+      // throwing somewhere inside the generated glue.
+      if (!self.crossOriginIsolated || typeof SharedArrayBuffer === 'undefined') {
+        status.className = 'failed';
+        status.innerHTML =
+          '<div>Rent Earth needs cross-origin isolation.</div>' +
+          '<div style="opacity: 0.6">This page is missing the COOP/COEP headers ' +
+          'that SharedArrayBuffer requires. On itch.io that is the ' +
+          '&ldquo;SharedArrayBuffer support&rdquo; option in the project&rsquo;s ' +
+          'embed settings.</div>';
+        throw new Error('rentearth: not cross-origin isolated');
+      }
+
       const backend = await pickBackend();
       detail.textContent = `first load fetches a large bundle (${backend})`;
 

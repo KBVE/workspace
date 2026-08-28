@@ -19,6 +19,69 @@ impl Plugin for DebugPlugin {
             app.add_systems(Update, seam_probe)
                 .add_systems(PostUpdate, catch_blank);
         }
+
+        #[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
+        app.add_systems(Startup, thread_probe::spawn)
+            .add_systems(Update, thread_probe::report);
+    }
+}
+
+/// Whether the browser worker pool is running work off the main thread.
+///
+/// Worth one log line because the failure is invisible: a pool whose workers
+/// never started looks exactly like a pool with nothing to do, and the symptom
+/// downstream is a task that quietly never resolves. Counting workers is not
+/// enough either -- a worker can register and still be executing on the thread
+/// that spawned the work if the shared memory was not actually shared. So the
+/// probe compares the two thread ids and says which case it is.
+#[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
+mod thread_probe {
+    use bevy::prelude::*;
+    use bevy::tasks::{Task, block_on, poll_once};
+
+    pub struct Report {
+        spawned_on: std::thread::ThreadId,
+        ran_on: std::thread::ThreadId,
+        workers: usize,
+    }
+
+    #[derive(Resource)]
+    pub struct Probe(Option<Task<Report>>);
+
+    pub fn spawn(mut commands: Commands) {
+        let spawned_on = std::thread::current().id();
+
+        // No busy work on purpose. The question is where this runs, not how
+        // fast, and burning a worker for a visible interval on every player's
+        // machine would be a cost paid to learn nothing extra.
+        let task = bevy_tasker::spawn(async move {
+            Report {
+                spawned_on,
+                ran_on: std::thread::current().id(),
+                workers: bevy_tasker::worker_count(),
+            }
+        });
+
+        commands.insert_resource(Probe(Some(task)));
+    }
+
+    pub fn report(mut probe: ResMut<Probe>) {
+        let Some(task) = probe.0.as_mut() else {
+            return;
+        };
+        let Some(report) = block_on(poll_once(task)) else {
+            return;
+        };
+        probe.0 = None;
+
+        if report.ran_on == report.spawned_on {
+            warn!(
+                "worker pool is not running tasks off the main thread ({} workers registered)",
+                report.workers
+            );
+        } else {
+            info!("worker pool live: {} workers", report.workers);
+        }
     }
 }
 

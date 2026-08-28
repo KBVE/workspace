@@ -49,7 +49,36 @@ fn asset_path() -> String {
     return concat!(env!("CARGO_MANIFEST_DIR"), "/assets").to_string();
 }
 
+/// The wasm-bindgen glue a pool worker has to instantiate.
+///
+/// It is named rather than discovered because the build ships two bundles from
+/// one directory -- WebGPU and WebGL2 -- and a worker must join the binary the
+/// main thread is already running, not the other one. The feature that decides
+/// the backend decides this too, so the two cannot drift apart.
+#[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
+const BUNDLE: &str = if cfg!(feature = "webgpu") {
+    "./rentearth-webgpu.js"
+} else {
+    "./rentearth-webgl2.js"
+};
+
 fn main() {
+    // Every pool thread instantiates this same module, and wasm-bindgen runs
+    // the start section -- this function -- on each one. Only the page's main
+    // thread builds an App; a worker returns here and its script then parks it
+    // on the shared queue.
+    #[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
+    {
+        if bevy_tasker::is_worker() {
+            return;
+        }
+
+        // Before the app, because `App::run` never returns on the web:
+        // wasm-bindgen unwinds it by throwing, so anything after it is
+        // unreachable.
+        bevy_tasker::start_workers("./worker.js", BUNDLE, None);
+    }
+
     App::new()
         .add_plugins(
             DefaultPlugins

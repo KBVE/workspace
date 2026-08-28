@@ -1,6 +1,7 @@
-# The 4X game. Rust and Bevy, targeting native for development and a
-# single-threaded WebGPU build in the browser for release, with a WebGL2
-# bundle beside it for browsers that cannot run the first.
+# The 4X game. Rust and Bevy, targeting native for development and a threaded
+# WebGPU build in the browser for release, with a WebGL2 bundle beside it for
+# browsers that cannot run the first. Both browser bundles need cross-origin
+# isolation on the page; see tools/build-web.sh.
 layer: 'application'
 language: 'rust'
 stack: 'frontend'
@@ -30,11 +31,13 @@ tasks:
       # placeholder water.
       - '~:assets'
       - '~:wasm-bindgen'
+      - '~:wasm-toolchain'
     inputs:
       - 'src/**/*'
       - 'assets/**/*'
       - 'web/**/*'
       - 'tools/build-web.sh'
+      - 'tools/wasm-toolchain.txt'
       - 'Cargo.toml'
       - '/Cargo.lock'
     outputs:
@@ -50,6 +53,28 @@ tasks:
       - '/Cargo.lock'
     options:
       cache: false
+
+  # The threaded browser build rebuilds the standard library with atomics, which
+  # is nightly-only. Installed here rather than in the release workflow for the
+  # same reason as wasm-bindgen: one project's need does not belong in a file
+  # every project shares.
+  wasm-toolchain:
+    command: 'bash ./tools/ensure-wasm-toolchain.sh'
+    inputs:
+      - 'tools/ensure-wasm-toolchain.sh'
+      - 'tools/wasm-toolchain.txt'
+    options:
+      cache: false
+
+  # Local only. The threaded bundles need cross-origin isolation, so the usual
+  # `python3 -m http.server` in dist/ reproduces a failure the deployment does
+  # not have.
+  serve-web:
+    command: 'bash ./tools/serve-web.sh'
+    deps:
+      - '~:build-web'
+    # Long-running and interactive: never cached, never run in CI.
+    preset: 'server'
 
   # Ships what build-web emits, not what `build` does: `build` stays native so
   # CI does not cross-compile two wasm binaries on every change.

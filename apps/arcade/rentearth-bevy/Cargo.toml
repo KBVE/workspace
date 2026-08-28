@@ -24,3 +24,9 @@ webgpu = ["bevy/webgpu"]
 
 [dependencies]
 bevy = "0.19.1"
+
+# The worker pool behind the browser build. Native builds do not need it: Bevy
+# already runs its schedule on a thread pool there, and this crate's desktop
+# path would only add a second one.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+bevy_tasker = { path = "../../../crates/bevy_tasker" }
