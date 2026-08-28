@@ -12,8 +12,15 @@ use bevy::prelude::*;
 pub struct CameraRig {
     /// Point on the ground plane the camera is centred on. Y is ignored.
     pub focus: Vec3,
-    /// Orthographic scale. Larger is further out.
+    /// Orthographic scale, as drawn this frame. Larger is further out.
+    ///
+    /// Eased toward `zoom_target` rather than set to it. While it is moving it
+    /// sits between two zoom levels and the tree atlas blends two mips, which
+    /// does not matter: nobody reads pixel art during a zoom, and it lands back
+    /// on a level the moment it settles.
     pub zoom: f32,
+    /// The zoom level being eased toward. Always one of [`Self::ZOOM_LEVELS`].
+    pub zoom_target: f32,
 }
 
 impl Default for CameraRig {
@@ -23,6 +30,7 @@ impl Default for CameraRig {
             // One of the levels, or the first scroll would snap rather than
             // step.
             zoom: 1.0,
+            zoom_target: 1.0,
         }
     }
 }
@@ -59,9 +67,12 @@ impl CameraRig {
     /// Works on the index rather than on the value so a notch is always one
     /// level, whatever the gaps between them happen to be.
     pub fn stepped(self, steps: i32) -> f32 {
+        // From the target, not from the current zoom. Scrolling again mid-ease
+        // should step from where the camera is going rather than from wherever
+        // the animation happens to have reached.
         let current = Self::ZOOM_LEVELS
             .iter()
-            .position(|z| (z - self.zoom).abs() < 1e-3)
+            .position(|z| (z - self.zoom_target).abs() < 1e-3)
             .unwrap_or(Self::ZOOM_LEVELS.len() / 2) as i32;
 
         let next = (current + steps).clamp(0, Self::ZOOM_LEVELS.len() as i32 - 1);

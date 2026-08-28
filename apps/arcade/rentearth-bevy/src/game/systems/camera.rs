@@ -1,7 +1,7 @@
 //! Camera: pan, zoom, and the east-west wrap.
 
 use bevy::camera::ScalingMode;
-use bevy::input::mouse::{MouseMotion, MouseWheel};
+use bevy::input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 
 use crate::game::components::camera::CameraRig;
@@ -25,10 +25,21 @@ const PAN_SPEED: f32 = 900.0;
 
 /// Scroll accumulated before the zoom moves a level.
 ///
-/// The levels are discrete now, so a notch cannot be a fraction of one. A
-/// trackpad emits a stream of small deltas where a wheel emits ones, and
-/// without a threshold the former crosses the whole range in a flick.
+/// The levels are discrete, so a notch cannot be a fraction of one.
 const ZOOM_THRESHOLD: f32 = 1.0;
+
+/// Pixels of trackpad scroll that count as one wheel notch.
+///
+/// A wheel reports a line per notch; a trackpad reports pixels, and tens of
+/// them per flick. Summing both as though they were the same unit sent a single
+/// two-finger swipe through every zoom level at once.
+const PIXELS_PER_NOTCH: f32 = 50.0;
+
+/// How quickly zoom closes on its target, per second.
+///
+/// Exponential rather than linear, so the step starts fast and settles, and so
+/// the rate does not depend on the frame time.
+const ZOOM_EASE: f32 = 14.0;
 
 pub struct CameraPlugin;
 
@@ -39,7 +50,15 @@ impl Plugin for CameraPlugin {
             // Order matters: move, then wrap the result, then derive the
             // transform from it. Deriving before wrapping would show one frame
             // of the camera outside the world every time it crosses the seam.
-            (pan_keyboard, pan_drag, zoom_scroll, wrap_focus, apply_rig).chain(),
+            (
+                pan_keyboard,
+                pan_drag,
+                zoom_scroll,
+                ease_zoom,
+                wrap_focus,
+                apply_rig,
+            )
+                .chain(),
         );
     }
 }
@@ -149,7 +168,12 @@ fn zoom_scroll(
     mut pending: Local<f32>,
     mut rigs: Query<&mut CameraRig>,
 ) {
-    *pending += wheel.read().map(|w| w.y).sum::<f32>();
+    for event in wheel.read() {
+        *pending += match event.unit {
+            MouseScrollUnit::Line => event.y,
+            MouseScrollUnit::Pixel => event.y / PIXELS_PER_NOTCH,
+        };
+    }
 
     let steps = (*pending / ZOOM_THRESHOLD).trunc();
     if steps == 0.0 {
@@ -160,7 +184,34 @@ fn zoom_scroll(
 
     for mut rig in &mut rigs {
         // Scrolling up zooms in, which is toward a smaller scale.
-        rig.zoom = rig.stepped(-steps as i32);
+        rig.zoom_target = rig.stepped(-steps as i32);
+    }
+}
+
+/// Move the drawn zoom toward the level that was asked for.
+///
+/// Snapping straight to the level is a hard doubling of everything on screen,
+/// which reads as a glitch rather than as a zoom. This eases instead, and lands
+/// exactly on the target rather than approaching it forever -- the zoom levels
+/// are chosen so the tree atlas samples a mip level exactly, and an eased value
+/// that stops a fraction short would miss it every time.
+fn ease_zoom(time: Res<Time>, mut rigs: Query<&mut CameraRig>) {
+    for mut rig in &mut rigs {
+        let target = rig.zoom_target;
+        let gap = target - rig.zoom;
+
+        if gap == 0.0 {
+            // Untouched, so the camera stays out of change detection and the
+            // tile wrap has nothing to do.
+            continue;
+        }
+
+        if gap.abs() < target * 1e-3 {
+            rig.zoom = target;
+            continue;
+        }
+
+        rig.zoom += gap * (1.0 - (-ZOOM_EASE * time.delta_secs()).exp());
     }
 }
 
