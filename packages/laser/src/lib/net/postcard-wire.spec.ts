@@ -3,6 +3,7 @@ import type { ClientMessage } from './protocol';
 import { PET_LEARN_EXPIRED, PET_LEARN_OFFER } from './protocol';
 import {
 	decodeCombat,
+	decodeCorpse,
 	decodeDuelPrompt,
 	decodeEquipped,
 	decodeFloorChange,
@@ -25,6 +26,7 @@ import {
 	decodeTrade,
 	encodeClientMessage,
 } from './postcard-wire';
+import { PostcardWriter, cobsDecode, cobsEncode } from './postcard';
 
 const hex = (b: Uint8Array) =>
 	Array.from(b)
@@ -647,5 +649,197 @@ describe('postcard Ephemeral payload decoder', () => {
 			ok: true,
 			reason: '',
 		});
+	});
+});
+
+describe('decodeServerEvent', () => {
+	/** Builds a COBS-framed server event the way the server does. */
+	const frame = (build: (w: PostcardWriter) => void): Uint8Array => {
+		const w = new PostcardWriter();
+		build(w);
+		return cobsEncode(w.bytes());
+	};
+
+	it('decodes a Welcome with its kind registry', () => {
+		const event = decodeServerEvent(
+			frame((w) => {
+				w.variant(0);
+				w.u32(7);
+				w.u16(3);
+				w.varU64(42n);
+				w.seqLen(2);
+				w.u16(1);
+				w.string('goblin');
+				w.u8(1);
+				w.u16(2);
+				w.string('chest');
+				w.u8(2);
+			}),
+		);
+
+		expect(event).toEqual({
+			Welcome: {
+				protocol: 7,
+				your_slot: 3,
+				seed: 42,
+				registry: [
+					{ kind: 1, ref: 'goblin', cat: 1 },
+					{ kind: 2, ref: 'chest', cat: 2 },
+				],
+			},
+		});
+	});
+
+	it('decodes a Snapshot with players and entity deltas', () => {
+		const event = decodeServerEvent(
+			frame((w) => {
+				w.variant(1);
+				w.u32(10); // tick
+				w.u32(1234); // server_time_ms
+				w.u32(9); // input_ack
+				w.seqLen(1);
+				w.u16(3); // slot
+				w.string('al');
+				w.bool(true); // connected
+				w.seqLen(1);
+				w.u32(55); // eid
+				w.u16(1); // kind
+				w.u16(3); // owner
+				w.i32(4); // tile.x
+				w.i32(5); // tile.y
+				w.variant(1); // facing: Up
+				w.u8(0); // sub
+				w.i32(128); // qx
+				w.i32(160); // qy
+				w.i16(-256); // qvx
+				w.i16(0); // qvy
+				w.u32(9); // input_ack
+				w.i32(8); // hp
+				w.i32(10); // max_hp
+				w.bool(false); // destroyed
+				w.i32(0); // z
+				w.seqLen(1);
+				w.variant(0); // status: Poison
+				w.u16(3); // remaining
+				w.u32(0); // piloting
+				for (let i = 0; i < 6; i++) w.i32(0); // mp/energy/stamina pairs
+				w.bool(true); // keyframe
+			}),
+		);
+
+		expect(event).toMatchObject({
+			Snapshot: {
+				tick: 10,
+				input_ack: 9,
+				keyframe: true,
+				players: [{ slot: 3, kbve_username: 'al', connected: true }],
+				entities: [
+					{
+						eid: 55,
+						tile: { x: 4, y: 5 },
+						facing: 'Up',
+						qvx: -256,
+						hp: 8,
+						effects: [{ kind: 'Poison', remaining: 3 }],
+					},
+				],
+			},
+		});
+	});
+
+	it('decodes an Ephemeral and hands its payload through as bytes', () => {
+		const event = decodeServerEvent(
+			frame((w) => {
+				w.variant(2);
+				w.u16(4); // kind
+				w.u16(0); // to
+				w.seqLen(3);
+				for (const b of [1, 2, 3]) w.u8(b);
+			}),
+		);
+
+		expect(event).toEqual({
+			Ephemeral: { kind: 4, to: 0, payload: [1, 2, 3] },
+		});
+	});
+
+	it('decodes a Reject with its reason', () => {
+		const event = decodeServerEvent(
+			frame((w) => {
+				w.variant(3);
+				w.string('bad token');
+			}),
+		);
+		expect(event).toEqual({ Reject: { reason: 'bad token' } });
+	});
+
+	// A variant this client has no case for means the server is ahead of it.
+	// Throwing is what lets GameClient report the mismatch rather than acting on
+	// a half-read frame whose remaining bytes now mean nothing.
+	it('throws on a variant it does not know', () => {
+		expect(() => decodeServerEvent(frame((w) => w.variant(99)))).toThrow(
+			/unknown ServerEvent variant 99/,
+		);
+	});
+});
+
+describe('decodeCorpse', () => {
+	it('decodes the corpse id and its item list', () => {
+		const w = new PostcardWriter();
+		w.u32(77);
+		w.seqLen(2);
+		w.string('sword');
+		w.u32(1);
+		w.string('gold');
+		w.u32(25);
+
+		expect(decodeCorpse([...w.bytes()])).toEqual({
+			corpse: 77,
+			items: [
+				['sword', 1],
+				['gold', 25],
+			],
+		});
+	});
+
+	it('decodes an empty corpse', () => {
+		const w = new PostcardWriter();
+		w.u32(1);
+		w.seqLen(0);
+		expect(decodeCorpse([...w.bytes()])).toEqual({ corpse: 1, items: [] });
+	});
+});
+
+describe('encodeClientMessage: inputs with no client method', () => {
+	// These variants exist on the wire and GameClient has no wrapper for them,
+	// so nothing else encodes one. A variant index that drifts from the server's
+	// enum is decoded as a different message entirely.
+	const encoded = (input: unknown) =>
+		cobsDecode(
+			encodeClientMessage({
+				Frame: { client_tick: 1, inputs: [input as never] },
+			}),
+		);
+
+	it.each([
+		['Step', { Step: { dir: 'Up' } }],
+		['MoveTo', { MoveTo: { tile: { x: 1, y: 2 } } }],
+		['EnterShip', { EnterShip: { ship: 5 } }],
+		['TradeAccept', 'TradeAccept'],
+		['TradeCancel', 'TradeCancel'],
+		[
+			'TradeOffer',
+			{ TradeOffer: { target: 2, items: [['gold', 5] as [string, number]] } },
+		],
+	])('encodes %s', (_name, input) => {
+		expect(encoded(input).length).toBeGreaterThan(0);
+	});
+
+	// An unrecognised unit variant is skipped rather than written as a wrong
+	// index, which the server would decode as some other command.
+	it('writes nothing for a unit variant it does not know', () => {
+		const known = encoded('TradeAccept');
+		const unknown = encoded('NotARealCommand');
+		expect(unknown.length).toBeLessThan(known.length);
 	});
 });
