@@ -1,9 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { FakeSocket } from './fake-socket.testing';
 import {
+	EPHEMERAL_BLACKJACK,
 	EPHEMERAL_COMBAT,
+	EPHEMERAL_CORPSE,
+	EPHEMERAL_DUEL_PROMPT,
+	EPHEMERAL_EQUIPPED,
+	EPHEMERAL_FLOOR,
 	EPHEMERAL_INVENTORY,
+	EPHEMERAL_ITEM_PLACED,
+	EPHEMERAL_ITEM_USED,
+	EPHEMERAL_PET_BATTLE_LOG,
+	EPHEMERAL_PET_BATTLE_STATE,
+	EPHEMERAL_PET_LEARN,
+	EPHEMERAL_PET_NOTICE,
+	EPHEMERAL_PET_ROSTER,
+	EPHEMERAL_PICKUP,
+	EPHEMERAL_PROJECTILE,
 	EPHEMERAL_SHOP,
+	EPHEMERAL_STATS,
 	PROTOCOL_VERSION,
 	type ClientMessage,
 } from './protocol';
@@ -16,22 +31,20 @@ import {
 // end to end; it is wrapped only so a test can read back the message that was
 // encoded rather than assert on bytes.
 const decodeServerEvent = vi.fn();
-const decodeInventory = vi.fn();
-const decodeCombat = vi.fn();
-const decodeShop = vi.fn();
 const encodeClientMessage = vi.fn();
+/** Every payload decoder, by export name, stubbed so a test can steer it. */
+const decoders: Record<string, ReturnType<typeof vi.fn>> = {};
 
 vi.mock('./postcard-wire', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('./postcard-wire')>();
 	encodeClientMessage.mockImplementation(actual.encodeClientMessage);
-	return {
-		...actual,
-		decodeServerEvent,
-		decodeInventory,
-		decodeCombat,
-		decodeShop,
-		encodeClientMessage,
-	};
+
+	const stubbed: Record<string, unknown> = { ...actual };
+	for (const name of Object.keys(actual)) {
+		if (name === 'decodeServerEvent' || !name.startsWith('decode')) continue;
+		stubbed[name] = decoders[name] = vi.fn();
+	}
+	return { ...stubbed, decodeServerEvent, encodeClientMessage };
 });
 
 const { GameClient } = await import('./game-client');
@@ -164,7 +177,7 @@ describe('GameClient', () => {
 			open();
 
 			const payload = new Uint8Array([1, 2, 3]);
-			decodeInventory.mockReturnValueOnce({ slots: [] });
+			decoders.decodeInventory.mockReturnValueOnce({ slots: [] });
 			deliver({
 				Ephemeral: { kind: EPHEMERAL_INVENTORY, payload },
 			});
@@ -173,7 +186,7 @@ describe('GameClient', () => {
 				kind: EPHEMERAL_INVENTORY,
 				payload,
 			});
-			expect(decodeInventory).toHaveBeenCalledWith(payload);
+			expect(decoders.decodeInventory).toHaveBeenCalledWith(payload);
 			expect(onInventory).toHaveBeenCalledWith({ slots: [] });
 		});
 
@@ -184,14 +197,14 @@ describe('GameClient', () => {
 			client.on('shop', onShop);
 			open();
 
-			decodeCombat.mockReturnValueOnce({ hit: true });
+			decoders.decodeCombat.mockReturnValueOnce({ hit: true });
 			deliver({ Ephemeral: { kind: EPHEMERAL_COMBAT, payload: new Uint8Array() } });
-			decodeShop.mockReturnValueOnce({ ok: true });
+			decoders.decodeShop.mockReturnValueOnce({ ok: true });
 			deliver({ Ephemeral: { kind: EPHEMERAL_SHOP, payload: new Uint8Array() } });
 
 			expect(onCombat).toHaveBeenCalledWith({ hit: true });
 			expect(onShop).toHaveBeenCalledWith({ ok: true });
-			expect(decodeShop).toHaveBeenCalledOnce();
+			expect(decoders.decodeShop).toHaveBeenCalledOnce();
 		});
 
 		// A decoder returns null for a payload it cannot make sense of. Emitting
@@ -201,11 +214,69 @@ describe('GameClient', () => {
 			client.on('inventory', onInventory);
 			open();
 
-			decodeInventory.mockReturnValueOnce(null);
+			decoders.decodeInventory.mockReturnValueOnce(null);
 			deliver({ Ephemeral: { kind: EPHEMERAL_INVENTORY, payload: new Uint8Array() } });
 
 			expect(onInventory).not.toHaveBeenCalled();
 		});
+
+
+		// Every ephemeral kind, its decoder and the event it becomes. The routing
+		// is one long else-if chain, so a kind wired to the wrong decoder -- or
+		// to a neighbour's event -- is a one-token mistake that typechecks. Two
+		// of the eighteen were covered before this; the chain is only as good as
+		// its least-used branch.
+		const routes: [string, number, string, string][] = [
+			['inventory', EPHEMERAL_INVENTORY, 'decodeInventory', 'inventory'],
+			['combat', EPHEMERAL_COMBAT, 'decodeCombat', 'combat'],
+			['projectile', EPHEMERAL_PROJECTILE, 'decodeProjectile', 'projectile'],
+			['floor change', EPHEMERAL_FLOOR, 'decodeFloorChange', 'floor'],
+			['pickup', EPHEMERAL_PICKUP, 'decodePickup', 'pickup'],
+			['corpse', EPHEMERAL_CORPSE, 'decodeCorpse', 'corpse'],
+			['item used', EPHEMERAL_ITEM_USED, 'decodeItemUsed', 'itemUsed'],
+			['item placed', EPHEMERAL_ITEM_PLACED, 'decodeItemPlaced', 'itemPlaced'],
+			['equipped', EPHEMERAL_EQUIPPED, 'decodeEquipped', 'equipped'],
+			['stats', EPHEMERAL_STATS, 'decodeStats', 'stats'],
+			['shop', EPHEMERAL_SHOP, 'decodeShop', 'shop'],
+			['blackjack', EPHEMERAL_BLACKJACK, 'decodeBlackjack', 'blackjackState'],
+			['pet battle replay', EPHEMERAL_PET_BATTLE_LOG, 'decodePetBattleReplay', 'petBattleReplay'],
+			['pet battle state', EPHEMERAL_PET_BATTLE_STATE, 'decodePetBattleState', 'petBattleState'],
+			['pet roster', EPHEMERAL_PET_ROSTER, 'decodePetRosterSync', 'petRoster'],
+			['pet notice', EPHEMERAL_PET_NOTICE, 'decodePetNotice', 'petNotice'],
+			['pet learn offer', EPHEMERAL_PET_LEARN, 'decodePetLearnOffer', 'petLearnOffer'],
+			['duel prompt', EPHEMERAL_DUEL_PROMPT, 'decodeDuelPrompt', 'duelPrompt'],
+		];
+
+		it.each(routes)(
+			'routes %s through its own decoder',
+			(_name, kind, decoder, event) => {
+				const onEvent = vi.fn();
+				client.on(event as 'inventory', onEvent);
+				open();
+
+				const payload = new Uint8Array([kind]);
+				const decoded = { marker: _name };
+				decoders[decoder].mockReturnValueOnce(decoded);
+				deliver({ Ephemeral: { kind, payload } });
+
+				expect(decoders[decoder]).toHaveBeenCalledWith(payload);
+				expect(onEvent).toHaveBeenCalledWith(decoded);
+			},
+		);
+
+		it.each(routes)(
+			'emits no %s event when its decoder rejects the payload',
+			(_name, kind, decoder, event) => {
+				const onEvent = vi.fn();
+				client.on(event as 'inventory', onEvent);
+				open();
+
+				decoders[decoder].mockReturnValueOnce(null);
+				deliver({ Ephemeral: { kind, payload: new Uint8Array() } });
+
+				expect(onEvent).not.toHaveBeenCalled();
+			},
+		);
 
 		it('ignores a kind it has no decoder for', () => {
 			open();
