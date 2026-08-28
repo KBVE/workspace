@@ -1,9 +1,18 @@
-"""KBVE - Core library for async HTTP and gRPC servers.
+"""KBVE - a toolbox, installed in pieces.
 
-Top-level names are resolved lazily (PEP 562) so importing a leaf subpackage
-(e.g. ``kbve.config``, ``kbve.utils``) does not drag in the server stack
-(pydantic/fastapi/uvicorn/grpc). ``from kbve import AppServer`` still works —
-the backing module loads on first attribute access.
+The base install is pydantic and PyYAML: enough for ``kbve.seo``,
+``kbve.models``, and the stdlib-only modules (``kbve.mdx``, ``kbve.svg``,
+``kbve.ai``, ``kbve.utils``, ``kbve.config``, ``kbve.tasks``).
+
+Two extras carry the heavy parts:
+
+    pip install 'kbve[server]'    # kbve.api, .grpc, .health, .proto, .server
+    pip install 'kbve[blender]'   # the image passes in kbve.blender
+
+Every name exported here belongs to the server stack and is resolved lazily
+(PEP 562), so ``import kbve`` costs nothing extra and importing a leaf
+subpackage does not drag the stack in. ``from kbve import AppServer`` works
+once ``[server]`` is installed, and says so when it is not.
 """
 
 from __future__ import annotations
@@ -41,7 +50,16 @@ def __getattr__(name: str):
     module = _LAZY.get(name)
     if module is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    value = getattr(importlib.import_module(module, __name__), name)
+    try:
+        value = getattr(importlib.import_module(module, __name__), name)
+    except ImportError as exc:
+        # Every name in _LAZY is part of the server stack, which is an extra.
+        # Without this the failure is "No module named 'fastapi'" from three
+        # frames down, which says nothing about how to fix it.
+        raise ImportError(
+            f"kbve.{name} needs the server stack, which is an optional "
+            f"install: pip install 'kbve[server]' (missing: {exc.name})"
+        ) from exc
     globals()[name] = value
     return value
 

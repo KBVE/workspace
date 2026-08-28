@@ -434,19 +434,21 @@ name = "kbve"
 version = "2.0.0"
 source = { editable = "." }
 dependencies = [
-    { name = "aiohttp" },
-    { name = "fastapi" },
-    { name = "grpcio" },
-    { name = "protobuf" },
     { name = "pydantic" },
     { name = "pyyaml" },
-    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.optional-dependencies]
 blender = [
     { name = "numpy" },
     { name = "pillow" },
+]
+server = [
+    { name = "aiohttp" },
+    { name = "fastapi" },
+    { name = "grpcio" },
+    { name = "protobuf" },
+    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.dev-dependencies]
@@ -465,17 +467,17 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", specifier = ">=3.9,<4.0" },
-    { name = "fastapi", specifier = ">=0.115,<1.0" },
-    { name = "grpcio", specifier = ">=1.62,<2.0" },
+    { name = "aiohttp", marker = "extra == 'server'", specifier = ">=3.9,<4.0" },
+    { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.115,<1.0" },
+    { name = "grpcio", marker = "extra == 'server'", specifier = ">=1.62,<2.0" },
     { name = "numpy", marker = "extra == 'blender'", specifier = ">=1.26,<3.0" },
     { name = "pillow", marker = "extra == 'blender'", specifier = ">=10.0,<12.0" },
-    { name = "protobuf", specifier = ">=4.25,<6.0" },
+    { name = "protobuf", marker = "extra == 'server'", specifier = ">=4.25,<6.0" },
     { name = "pydantic", specifier = ">=1.10,<3.0" },
     { name = "pyyaml", specifier = ">=6.0,<7.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32,<1.0" },
+    { name = "uvicorn", extras = ["standard"], marker = "extra == 'server'", specifier = ">=0.32,<1.0" },
 ]
-provides-extras = ["blender"]
+provides-extras = ["server", "blender"]
 
 [package.metadata.requires-dev]
 dev = [

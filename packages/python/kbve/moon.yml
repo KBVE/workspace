@@ -30,7 +30,10 @@ tasks:
   # interpreter and uv are pinned in .prototools instead, so these run as
   # system commands against proto-managed binaries.
   install:
-    command: 'uv sync --dev'
+    # --all-extras because the test suite imports every module, including the
+    # ones behind server and blender. A consumer that only wants kbve.seo
+    # installs neither, which is the point of the split.
+    command: 'uv sync --all-extras --dev'
     toolchains: ['system']
     inputs: ['@group(manifests)']
     options:

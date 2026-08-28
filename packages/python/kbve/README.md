@@ -5,8 +5,18 @@ API layer and complexity handler for async HTTP, WebSocket, gRPC, and broadcasti
 ## Installation
 
 ```bash
-pip install kbve
+pip install kbve              # 7.8M, 7 packages -- kbve.seo, .mdx, .svg, .ai, .models
+pip install 'kbve[server]'    # 61M, 30 packages -- kbve.server, .api, .grpc, .health, .proto
+pip install 'kbve[blender]'   # the Pillow/numpy image passes
 ```
+
+The base install is pydantic and PyYAML. The server stack used to be part of
+it, which meant auditing a static site for SEO installed a gRPC runtime and a
+web server -- 30 packages where seven do.
+
+Every name exported from `kbve/__init__.py` belongs to `[server]` and resolves
+lazily, so `import kbve` costs nothing extra and asking for `AppServer` without
+the extra names the extra rather than raising `No module named 'fastapi'`.
 
 ## Development
 

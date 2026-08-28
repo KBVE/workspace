@@ -5,17 +5,32 @@ description = "KBVE - API layer and complexity handler for async HTTP, WebSocket
 readme = "README.md"
 license = "LicenseRef-Proprietary"
 requires-python = ">=3.12,<3.14"
+# Deliberately small. Everything here is needed by kbve.models and kbve.seo,
+# which is the most any consumer gets without asking for more -- and what the
+# stdlib-only modules (kbve.mdx, kbve.svg, kbve.ai, kbve.utils, kbve.config,
+# kbve.tasks) cost to install.
+#
+# The server stack used to live here, so auditing a static site for SEO
+# installed a gRPC runtime and a web server: 30 packages and 60MB where six
+# and a few MB would do. That is the cost this split removes.
 dependencies = [
     "pydantic>=1.10,<3.0",
+    "pyyaml>=6.0,<7.0",
+]
+
+[project.optional-dependencies]
+# kbve.api, kbve.grpc, kbve.health, kbve.proto and kbve.server -- everything
+# `from kbve import AppServer` reaches. The top-level names are resolved
+# lazily, so `import kbve` still works without this; asking for one of them
+# without it raises with the extra named.
+server = [
     "aiohttp>=3.9,<4.0",
     "fastapi>=0.115,<1.0",
     "uvicorn[standard]>=0.32,<1.0",
     "grpcio>=1.62,<2.0",
     "protobuf>=4.25,<6.0",
-    "pyyaml>=6.0,<7.0",
 ]
 
-[project.optional-dependencies]
 # kbve.blender. Its four bakers import bpy and only ever run inside Blender,
 # which brings its own interpreter -- nothing to install for those. The image
 # passes either side of a bake -- pack_orm, sprite_postprocess, skin_variant --
@@ -47,6 +62,8 @@ kbve-seo-report = "kbve.seo.report:main"
 
 [dependency-groups]
 dev = [
+    # `moon run kbve-py:install` syncs --all-extras, so server and blender come
+    # in that way; these are the tools the tasks need on top.
     "autopep8==2.0.2",
     "flake8==6.0.0",
     "pytest==8.3.3",
