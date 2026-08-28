@@ -53,15 +53,29 @@ runs:
         # .lfsconfig from there only. Reading it back rather than hard-coding
         # the host means moving the blob store is a one-line change.
         url=$(git config -f .lfsconfig lfs.url)
-        host="${url%%/*}//$(echo "${url#*//}" | cut -d/ -f1)"
+        rest="${url#*//}"
+        host="${rest%%/*}"
 
-        # Same mechanism actions/checkout uses for GitHub, scoped to this host
-        # so no other remote sees the header. It stays in the local git config
-        # for the rest of the job, which is the point -- the fetch happens
-        # later, inside whichever moon task needs it.
-        auth=$(printf '%s:%s' "${FORGEJO_USER}" "${FORGEJO_TOKEN}" | base64 | tr -d '\n')
-        echo "::add-mask::$auth"
-        git config --local "http.${host}/.extraheader" "AUTHORIZATION: basic ${auth}"
+        # A credential helper, NOT http.<host>.extraheader.
+        #
+        # extraheader forces an Authorization header onto every request to the
+        # host. That is right for a plain git remote and wrong for LFS: the
+        # batch endpoint answers with a per-object download href carrying an
+        # Authorization header Forgejo minted itself, and git-lfs sends that
+        # one too. Forgejo gets two Authorization headers and answers 400,
+        # which git-lfs reports only as "Client error: <url>" -- once per
+        # object, with no status code, for every object in the fetch.
+        #
+        # Either header alone is a 200. It is the pair that fails, which is why
+        # this passes locally, where a developer's credential helper answers
+        # the batch call and forces nothing onto the download.
+        git config --local credential.helper store
+
+        # `git credential approve` writes through the helper and does its own
+        # escaping, so a token containing URL metacharacters cannot corrupt the
+        # store file the way a hand-built https://user:pass@host line can.
+        printf 'protocol=https\nhost=%s\nusername=%s\npassword=%s\n\n' \
+          "${host}" "${FORGEJO_USER}" "${FORGEJO_TOKEN}" | git credential approve
 
         echo "authenticated=true" >> "$GITHUB_OUTPUT"
-        echo "Configured a Git LFS credential for ${host}."
+        echo "Configured a Git LFS credential for https://${host}."
