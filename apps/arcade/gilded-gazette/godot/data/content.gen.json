@@ -137,7 +137,8 @@
           "across": 1.1,
           "above": 0,
           "facing": 0,
-          "prop": "dining_table"
+          "prop": "dining_table",
+          "surfaceHeight": 0.7525
         },
         {
           "along": -4.74,
@@ -162,7 +163,8 @@
           "across": 1.1,
           "above": 0,
           "facing": 0,
-          "prop": "dining_table"
+          "prop": "dining_table",
+          "surfaceHeight": 0.7525
         },
         {
           "along": -1.14,
@@ -187,7 +189,8 @@
           "across": 1.1,
           "above": 0,
           "facing": 0,
-          "prop": "dining_table"
+          "prop": "dining_table",
+          "surfaceHeight": 0.7525
         },
         {
           "along": 2.46,
@@ -212,7 +215,8 @@
           "across": 1.1,
           "above": 0,
           "facing": 0,
-          "prop": "dining_table"
+          "prop": "dining_table",
+          "surfaceHeight": 0.7525
         },
         {
           "along": 6.06,
@@ -237,7 +241,8 @@
           "across": -1.1,
           "above": 0,
           "facing": 0,
-          "prop": "dining_table"
+          "prop": "dining_table",
+          "surfaceHeight": 0.7525
         },
         {
           "along": -4.74,
@@ -262,7 +267,8 @@
           "across": -1.1,
           "above": 0,
           "facing": 0,
-          "prop": "dining_table"
+          "prop": "dining_table",
+          "surfaceHeight": 0.7525
         },
         {
           "along": -1.14,
@@ -287,7 +293,8 @@
           "across": -1.1,
           "above": 0,
           "facing": 0,
-          "prop": "dining_table"
+          "prop": "dining_table",
+          "surfaceHeight": 0.7525
         },
         {
           "along": 2.46,
@@ -312,7 +319,8 @@
           "across": -1.1,
           "above": 0,
           "facing": 0,
-          "prop": "dining_table"
+          "prop": "dining_table",
+          "surfaceHeight": 0.7525
         },
         {
           "along": 6.06,
@@ -363,28 +371,32 @@
           "across": 1.15,
           "above": 0,
           "facing": 0,
-          "prop": "crate"
+          "prop": "crate",
+          "surfaceHeight": 0.55
         },
         {
           "along": -5.6,
           "across": 1.15,
           "above": 0,
           "facing": 0.35,
-          "prop": "crate"
+          "prop": "crate",
+          "surfaceHeight": 0.55
         },
         {
           "along": 6.6,
           "across": -1.15,
           "above": 0,
           "facing": 0,
-          "prop": "crate"
+          "prop": "crate",
+          "surfaceHeight": 0.55
         },
         {
           "along": 6.9,
           "across": 1.05,
           "above": 0,
           "facing": 1.5708,
-          "prop": "lockbox"
+          "prop": "lockbox",
+          "surfaceHeight": 0.45
         }
       ],
       "lede": "Last car of the consist, and the only one with a door that opens onto nothing but weather.",
@@ -1578,14 +1590,7 @@
       "name": "Ornate Dagger",
       "kind": "weapon",
       "carried": false,
-      "location": "guard_van",
       "model": "ornate_dagger",
-      "found": {
-        "along": -7.2,
-        "across": 1.15,
-        "above": 0,
-        "facing": 0.6
-      },
       "reveals": [
         "the_blade_left_its_sheath_before_the_border",
         "somebody_walked_the_length_of_the_train_to_put_it_here"

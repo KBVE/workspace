@@ -111,11 +111,23 @@ const DOORWAY_HEIGHT := 2.44
 const WALL_HEIGHT := 3.5
 const SHELL_THICKNESS := 0.4
 
+## Across the carriage, for a thing left on the floor of a room with nothing to put it
+## on. Off the centreline, because the middle of the floor is the aisle and a weapon
+## lying in the aisle is a weapon everybody steps over without seeing.
+const FLOOR_RESTING_ACROSS := 0.95
+
+## A quarter turn, which lays a model's long axis down the train rather than across it.
+## The carriage is three metres wide and twenty long: everything loose aboard is left
+## pointing the way the train goes, because there is no room to leave it any other way.
+const LYING_ALONG_THE_TRAIN := PI * 0.5
+
 var _carriages: Array[Node3D] = []
 var _lampsets: Array[Node3D] = []
 var _shared: Dictionary = {}
 var _prop_meshes: Dictionary = {}
 var _item_meshes: Dictionary = {}
+var _placements: Dictionary = {}
+var _left: Dictionary = {}
 
 func _ready() -> void:
 	if carriage_scene == null:
@@ -285,17 +297,131 @@ func _scatter_items(carriage: Node3D, index: int) -> void:
 	room.name = "Items"
 	carriage.add_child(room)
 	for item: Dictionary in lying:
-		var mesh := _item_mesh(String(item.get("model", "")))
-		if mesh == null:
+		_lay(room, StringName(item.get("id", "item")), String(item.get("model", "")),
+			item.get("found", {}))
+
+
+## Puts one thing on the floor of [param room], or on whatever [param placement] says
+## it is standing on. Shared by the items the content authors and the weapon the night
+## draws, so both are subject to the same guarantees about where they end up.
+func _lay(room: Node3D, id: StringName, model: String, placement: Dictionary) -> void:
+	var mesh := _item_mesh(model)
+	if mesh == null:
+		return
+	var instance := MeshInstance3D.new()
+	instance.name = String(id)
+	instance.mesh = mesh
+	instance.position = _furnishing_offset(placement)
+	instance.rotation.y = float(placement.get("facing", 0.0))
+	_light_the_prop(instance)
+	room.add_child(instance)
+	_placements[id] = placement
+
+
+## Leaves the weapon the night drew in the room the night drew it in.
+##
+## Called by [Train] on every begin rather than once as the consist is built. The night
+## is drawn per run and redrawn on restart, and a weapon still lying where the last one
+## left it would be the only object in the carriage describing the previous evening.
+##
+## Anything already left is taken away first, so restarting does not accumulate a pile
+## of weapons in the rooms of nights nobody is playing any more.
+func leave_the_weapon(room: StringName, model: String, id: StringName) -> void:
+	take_the_weapon_away()
+	if room.is_empty() or model.is_empty():
+		return
+	var index := GameContent.carriage_locations().find(room)
+	if index < 0:
+		push_error("Consist: the night left the weapon in %s, which is not a room in the consist" % room)
+		return
+	var mesh := _item_mesh(model)
+	if mesh == null:
+		return
+	var items := _items_node(_carriages[index])
+	_lay(items, id, model, _resting_spot(index, _longest(mesh)))
+	_left = {"id": id, "carriage": index}
+
+
+func take_the_weapon_away() -> void:
+	if _left.is_empty():
+		return
+	var items: Node = _carriages[int(_left["carriage"])].get_node_or_null("Items")
+	if items != null:
+		var was: Node = items.get_node_or_null(String(_left["id"]))
+		if was != null:
+			items.remove_child(was)
+			was.queue_free()
+	_placements.erase(_left["id"])
+	_left = {}
+
+
+## Where a thing left in carriage [param index] ends up.
+##
+## On the first surface in the room it actually fits on, and on the floor otherwise. A
+## blade on the floor of the dining car reads as dropped; the same blade on the table
+## reads as put down, and put down is what happened -- somebody walked away from it.
+##
+## The fit is the whole of the rule, and it is not fussiness. A yard of sword on a
+## dining table for two overhangs it at both ends, which puts the point through the
+## chair beside it and the pommel through the carriage wall. Something that long was
+## left on the floor, because there is nowhere else in a wagon-lit to put it.
+##
+## Which props are surfaces is stamped onto the placement by gen-content out of the
+## library manifest, so a chair is never chosen -- it is somewhere to sit rather than
+## somewhere to leave a weapon -- and a table remodelled taller moves what stands on it.
+func _resting_spot(index: int, longest: float) -> Dictionary:
+	for placement: Dictionary in GameContent.furnishings_at(index):
+		if not placement.has("surfaceHeight"):
 			continue
-		var placement: Dictionary = item.get("found", {})
-		var instance := MeshInstance3D.new()
-		instance.name = String(item.get("id", "item"))
-		instance.mesh = mesh
-		instance.position = _furnishing_offset(placement)
-		instance.rotation.y = float(placement.get("facing", 0.0))
-		_light_the_prop(instance)
-		room.add_child(instance)
+		var prop: Mesh = _prop_library().get(StringName(placement.get("prop", "")))
+		if prop == null or _span(prop) < longest:
+			continue
+		return {
+			"along": placement.get("along", 0.0),
+			"across": placement.get("across", 0.0),
+			"above": placement["surfaceHeight"],
+			"facing": LYING_ALONG_THE_TRAIN,
+		}
+	return {
+		"along": 0.0,
+		"across": FLOOR_RESTING_ACROSS,
+		"above": 0.0,
+		"facing": LYING_ALONG_THE_TRAIN,
+	}
+
+
+## How much room a surface has to offer, which is its shorter side: a thing laid across
+## the short side of a table overhangs it whichever way round the table is turned.
+func _span(mesh: Mesh) -> float:
+	var box: AABB = mesh.get_aabb()
+	return minf(box.size.x, box.size.z)
+
+
+## How much room a thing needs, which is its longer side. The pair matters -- comparing
+## a sword's width against a table's width says a yard of steel fits on a table for two,
+## and what that produces is a sword through the chair at one end and the wall at the
+## other.
+func _longest(mesh: Mesh) -> float:
+	var box: AABB = mesh.get_aabb()
+	return maxf(box.size.x, box.size.z)
+
+
+## The node a carriage's loose things hang off, made on demand: a room with nothing
+## authored in it still gets a weapon when the night leaves one there.
+func _items_node(carriage: Node3D) -> Node3D:
+	var items: Node3D = carriage.get_node_or_null("Items")
+	if items == null:
+		items = Node3D.new()
+		items.name = "Items"
+		carriage.add_child(items)
+	return items
+
+
+## Where each thing the consist laid out was put, by id. The authored ones come out of
+## the content and the drawn one does not, so this is the one place that answers for
+## both -- a test asking where something ended up asks here rather than assuming.
+func placement_of(id: StringName) -> Dictionary:
+	return _placements.get(id, {})
 
 
 ## The mesh inside res://assets/items/[param model].glb, loaded once.

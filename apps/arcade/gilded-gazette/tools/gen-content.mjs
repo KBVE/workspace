@@ -318,6 +318,12 @@ for (const l of content.locations) {
     if (built.seats) {
       f.seats = true;
       f.cushionHeight = built.cushion_height;
+    } else {
+      // &surface -> what is not somewhere to sit is somewhere to put something down,
+      //          and how high its top is is the one thing the run needs to leave a
+      //          weapon on it rather than inside it. Measured by the prop compiler,
+      //          stamped here, so a table remodelled taller moves what stands on it.
+      f.surfaceHeight = built.size_metres[2];
     }
   }
 }

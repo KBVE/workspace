@@ -237,6 +237,13 @@ const furnishing = placement.extend({
   /** Stamped on by gen-content from the prop library; not authored per room. */
   seats: z.boolean().optional(),
   cushionHeight: z.number().optional(),
+  /**
+   * How high the top of this prop is, for a prop that is something to put a thing
+   * down on. Stamped from the library like the two above, and absent on a prop
+   * that is not a surface -- a chair is somewhere to sit rather than somewhere to
+   * leave a blade, and the run should not choose it.
+   */
+  surfaceHeight: z.number().optional(),
 });
 
 /**

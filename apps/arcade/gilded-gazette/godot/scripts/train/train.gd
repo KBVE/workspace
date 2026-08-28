@@ -429,8 +429,24 @@ func _begin() -> void:
 	_player.rotation.y = 0.0
 	_frame_the_shot()
 	GameBridge.set_player_flags(StateBits.PLAYER_ALIVE)
+	_leave_the_weapon()
 	Journal.record(StateBits.JournalKind.ENTERED, "player", "", LEVEL_NAME.to_lower())
 	_notify_level("start")
+
+
+## Puts the drawn weapon in the drawn room, which is the only evidence in the train
+## that says what it was done with and where. Everything else the player has to go on
+## is somebody's word; this is the one thing they can walk up to.
+##
+## Here rather than in [Consist], because the consist is built once and the night is
+## drawn per run: the weapon has to move when the night does.
+func _leave_the_weapon() -> void:
+	if Session.night == null:
+		_consist.take_the_weapon_away()
+		return
+	var weapon := Session.night.weapon_id
+	var model := str(GameContent.by_id("items", String(weapon)).get("model", ""))
+	_consist.leave_the_weapon(Session.night.scene, model, weapon)
 
 
 func _on_ui_restart(_event: GameEvent) -> void:
