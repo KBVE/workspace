@@ -73,7 +73,11 @@ jobs:
     needs: resolve
     if: contains(fromJSON(needs.resolve.outputs.tags), 'itch')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Sixty rather than thirty because a threaded wasm build rebuilds the
+    # standard library from source and rentearth ships two of them, which is
+    # around half an hour on a runner by itself. The ceiling is shared by every
+    # game here; it bounds a hung build rather than budgeting a healthy one.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

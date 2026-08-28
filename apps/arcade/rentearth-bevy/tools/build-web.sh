@@ -105,7 +105,10 @@ build() {
   echo "==> ${name}"
   # Cargo keys its target directory on the feature set, so these two do not
   # share artifacts and the second build is not incremental over the first.
-  RUSTFLAGS="${wasm_rustflags}" cargo "+${toolchain}" build --release --target "${target}" \
+  # `rustup run`, not `cargo +toolchain`: the `+` directive is understood by
+  # rustup's cargo proxy, and under moon `cargo` is the real binary proto
+  # installed, which rejects it with "no such command: `+nightly-...`".
+  RUSTFLAGS="${wasm_rustflags}" rustup run "${toolchain}" cargo build --release --target "${target}" \
     -Z build-std=std,panic_abort \
     "${water[@]}" "$@" \
     --manifest-path "${crate_dir}/Cargo.toml"
