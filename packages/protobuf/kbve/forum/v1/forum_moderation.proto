@@ -4,24 +4,9 @@ package kbve.forum.v1;
 
 import "google/protobuf/timestamp.proto";
 import "kbve/common/v1/extension.proto";
+import "kbve/common/v1/report_reason.proto";
 import "kbve/forum/v1/forum.proto";
 import "kbve/type/v1/id.proto";
-
-// Why something was reported. Orders the moderation queue and drives automatic
-// rules.
-enum ReportReason {
-  REPORT_REASON_UNSPECIFIED = 0;
-  REPORT_REASON_SPAM = 1;
-  REPORT_REASON_HARASSMENT = 2;
-  REPORT_REASON_NSFW = 3;
-  REPORT_REASON_VIOLENCE = 4;
-  REPORT_REASON_COPYRIGHT = 5;
-  REPORT_REASON_OFF_TOPIC = 6;
-  REPORT_REASON_SCAM = 7;
-  REPORT_REASON_MISINFO = 8;
-  REPORT_REASON_SELF_HARM = 9;
-  REPORT_REASON_OTHER = 99;
-}
 
 // What a moderator did. The log of these is append-only.
 enum ModerationActionKind {
@@ -72,7 +57,7 @@ message Report {
   kbve.type.v1.Uuid reporter_id = 2;
   ContentTargetKind target_kind = 3;
   kbve.type.v1.Uuid target_id = 4;
-  ReportReason reason = 5;
+  kbve.common.v1.ReportReason reason = 5;
   optional string reason_detail = 6;
   optional kbve.type.v1.Uuid resolved_by = 7;
   optional google.protobuf.Timestamp resolved_at = 8;
