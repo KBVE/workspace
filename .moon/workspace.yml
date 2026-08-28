@@ -56,3 +56,30 @@ hasher:
 
 pipeline:
   inheritColorsForPipedTasks: true
+
+experiments:
+  # Content-addressable store for task outputs. Required by the shared worktree
+  # cache below -- that feature shares CAS blobs, so without this there is
+  # nothing to share.
+  casOutputsCache: true
+
+cache:
+  # Share task outputs across git worktrees.
+  #
+  # A linked worktree gets its own .moon/cache, so without this every worktree
+  # an agent is given starts cold and re-runs builds whose outputs already sit
+  # on this machine. Only blobs and manifests are shared -- they are portable.
+  # Hashes, locks, and run states stay per-worktree, which is what keeps two
+  # worktrees from reading each other's task state.
+  #
+  # The shared store lives in the base checkout's .moon/cache, already ignored.
+  #
+  # This is the moon-side half of tools/worktree/add.sh: that script handles
+  # Cargo (own target/, copy-on-write seeded) and LFS (pointers, shared object
+  # store), and this handles every other toolchain's task outputs.
+  #
+  # Still prefixed unstable_ in moon 2.5. The unprefixed spelling already
+  # validates, so this becomes a rename to watch for rather than a rewrite.
+  # MOON_CACHE_SHARED_WORKTREE_CACHE overrides it per run;
+  # cache.cas.maxSize and cache.cas.verifyIntegrity tune the store itself.
+  unstable_sharedWorktreeCache: true
