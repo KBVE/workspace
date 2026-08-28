@@ -49,5 +49,21 @@ files = {f.name for f in dist.files or []}
 if "py.typed" not in files:
     raise SystemExit("py.typed is not packaged; the .pyi stubs are inert (PEP 561)")
 
-print(f"kbve {kbve.__version__}: {len(kbve.__all__)} exports, proto ok, py.typed ok")
+# A console script naming a function that does not exist installs cleanly and
+# fails the first time a user runs it. Loading each one turns that into a build
+# failure. .load() imports the module and resolves the attribute; it does not
+# call it, so no launcher goes looking for Blender here.
+scripts = [ep for ep in dist.entry_points if ep.group == "console_scripts"]
+if not scripts:
+    raise SystemExit("no console scripts in the wheel; expected the kbve-blender-* launchers")
+for ep in scripts:
+    try:
+        ep.load()
+    except Exception as exc:  # noqa: BLE001 - the name of the broken script matters
+        raise SystemExit(f"console script {ep.name} does not resolve: {exc}") from exc
+
+print(
+    f"kbve {kbve.__version__}: {len(kbve.__all__)} exports, "
+    f"{len(scripts)} scripts, proto ok, py.typed ok"
+)
 PY
