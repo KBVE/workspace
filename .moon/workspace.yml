@@ -46,6 +46,14 @@ vcs:
       - 'git lfs pre-push "$ARG1" "$ARG2"'
     post-checkout:
       - 'git lfs post-checkout "$ARG1" "$ARG2" "$ARG3"'
+      # Warms a new worktree's Cargo target/ from the main checkout, so a
+      # worktree created by something other than tools/worktree/add.sh -- an
+      # agent's own isolation, a bare `git worktree add` -- is not born cold.
+      # No-ops in the main checkout and whenever a target/ already exists.
+      # Resolved against the main checkout, not the new worktree: the worktree
+      # may sit at a commit that predates this script, and a relative path
+      # would then silently do nothing.
+      - 'S="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/tools/worktree/seed-target.sh"; [ -x "$S" ] && bash "$S" || true'
     post-commit:
       - 'git lfs post-commit'
     post-merge:

@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# Removes a worktree created by add.sh, and the branch if nothing is on it.
+# Removes a worktree created by add.sh, and its branch if nothing is on it.
 #
 # `git worktree remove` refuses a dirty tree, which is the behaviour worth
 # keeping -- a worktree an agent left work in should not vanish silently. Pass
 # --force to override, same as git.
+#
+# The worktree's target/ goes with it. Its blocks were shared with the main
+# checkout copy-on-write, so what this actually reclaims is whatever the
+# worktree rebuilt for itself, not the whole tree.
 #
 # Usage: rm.sh <name> [--force]
 set -euo pipefail
@@ -20,13 +24,6 @@ if [ ! -e "$dest" ]; then
   git worktree prune
   exit 1
 fi
-
-# The symlinked git-crypt key is a link, not a copy, so removing the worktree
-# cannot take the key with it. Dropped first anyway: `git worktree remove`
-# deletes the administrative directory, and leaving a dangling link into a
-# deleted path in the log is noise.
-wt_gitdir=$(git -C "$dest" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)
-[ -n "$wt_gitdir" ] && [ -L "$wt_gitdir/git-crypt" ] && rm -f "$wt_gitdir/git-crypt"
 
 git worktree remove ${force:+--force} "$dest"
 git worktree prune
