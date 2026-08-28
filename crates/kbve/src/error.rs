@@ -163,7 +163,7 @@ mod tests {
         let error: ApiError = holy::FieldError {
             field: "username",
             rule: "username",
-            message: "must be 8 to 255 letters and digits",
+            message: "must be 6 to 255 letters and digits",
         }
         .into();
         assert_eq!(error.status(), StatusCode::BAD_REQUEST);

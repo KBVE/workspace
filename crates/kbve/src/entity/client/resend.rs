@@ -66,12 +66,19 @@ pub async fn resend_email(
     // Sanitization
     match body.sanitize() {
         Ok(_) => (),
-        Err(e) => {
+        Err(errors) => {
+            // holy reports every field that failed, so they are joined rather
+            // than the first one being picked.
+            let message = errors
+                .iter()
+                .map(|error| error.to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
             return create_custom_response(
                 StatusCode::BAD_REQUEST,
                 "x-kbve",
                 "resend_validation_failed",
-                &e,
+                &message,
             );
         }
     }

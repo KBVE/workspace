@@ -19,8 +19,6 @@ use crate::schema::profile;
 //			*ValidationBuilder
 // use crate::utils::sanitization::{ ValidationBuilder };
 
-use jedi::ValidatorBuilder;
-
 //			*Captcha
 use crate::utils::captcha::verify_token_via_hcaptcha;
 
@@ -73,56 +71,19 @@ pub struct AuthVerificationSchema {
     pub hash: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, holy::Sanitize)]
 pub struct RecoverUserSchema {
+    // `no_html` is what ValidatorBuilder::clean_or_fail did: reject anything
+    // ammonia would have rewritten, rather than silently rewriting it.
+    #[holy(validate = "no_html,email")]
     pub email: String,
+    #[holy(validate = "no_html,service")]
     pub service: String,
+    #[holy(validate = "captcha_token")]
     pub captcha: String,
 }
 
 impl RecoverUserSchema {
-    pub fn sanitize(&mut self) -> Result<(), String> {
-        // Initialize and configure the validator for the email
-        let email_result = ValidatorBuilder::<String, String>::new()
-            .clean_or_fail()
-            .email()
-            .validate(self.email.clone()); // Clone `&str` to `String`
-
-        match email_result {
-            Ok(_) => (),
-            Err(errors) => {
-                return Err(format!("Email validation error: {}", errors.join(", ")));
-            }
-        }
-
-        // Initialize and configure the validator for the service
-        let service_result = ValidatorBuilder::<String, String>::new()
-            .clean_or_fail()
-            .service()
-            .validate(self.service.clone()); // Clone `&str` to `String`
-
-        match service_result {
-            Ok(_) => (),
-            Err(errors) => {
-                return Err(format!("Service validation error: {}", errors.join(", ")));
-            }
-        }
-
-        // Initialize and configure the validator for the captcha
-        let captcha_result = ValidatorBuilder::<String, String>::new()
-            .captcha_token()
-            .validate(self.captcha.clone()); // Clone `&str` to `String`
-
-        match captcha_result {
-            Ok(_) => (),
-            Err(errors) => {
-                return Err(format!("Captcha validation error: {}", errors.join(", ")));
-            }
-        }
-
-        Ok(())
-    }
-
     pub async fn captcha_verify(&self) -> Result<bool, String> {
         verify_token_via_hcaptcha(&self.captcha)
             .await
@@ -130,42 +91,15 @@ impl RecoverUserSchema {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, holy::Sanitize)]
 pub struct PasswordRecoveryRequestSchema {
+    #[holy(validate = "no_html,email")]
     pub email: String,
+    // Deliberately unchecked here: a password is not a shape, and the rules
+    // for one live in utility::validate_password.
     pub password: String,
+    #[holy(validate = "no_html,service")]
     pub token: String,
-}
-
-impl PasswordRecoveryRequestSchema {
-    pub fn sanitize(&mut self) -> Result<(), String> {
-        let email_result = ValidatorBuilder::<String, String>::new()
-            .clean_or_fail()
-            .email()
-            .validate(self.email.clone());
-
-        match email_result {
-            Ok(_) => (),
-            Err(errors) => {
-                return Err(format!("Email validation error: {}", errors.join(", ")));
-            }
-        }
-
-        // Initialize and configure the validator for the token
-        let token_result = ValidatorBuilder::<String, String>::new()
-            .clean_or_fail()
-            .service()
-            .validate(self.token.clone());
-
-        match token_result {
-            Ok(_) => (),
-            Err(errors) => {
-                return Err(format!("Token validation error: {}", errors.join(", ")));
-            }
-        }
-
-        Ok(())
-    }
 }
 
 /**

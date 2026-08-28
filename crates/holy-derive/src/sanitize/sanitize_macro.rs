@@ -101,6 +101,7 @@ const VALIDATE_RULES: &[&str] = &[
     "email",
     "github_url",
     "hex_code",
+    "no_html",
     "non_empty",
     "service",
     "ulid",

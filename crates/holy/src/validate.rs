@@ -41,8 +41,20 @@ impl core::error::Error for FieldError {}
 pub static EMAIL: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$").unwrap());
 
+/// Six, not eight.
+///
+/// Three copies of this rule existed and they disagreed: `kbve`'s
+/// `utility::sanitize_username` required six, `jedi`'s regex and this crate's
+/// first draft required eight. Six is the one that has been issuing usernames,
+/// so it is the one that describes the accounts that exist.
+///
+/// Taking eight would not have tightened a policy, it would have locked people
+/// out: `auth_jwt_profile` validates the username carried in the JWT claim, so
+/// every existing six or seven character account would fail on every profile
+/// fetch. A minimum length can only be raised for registrations, never
+/// retroactively for authentication.
 pub static USERNAME: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9]{8,255}$").unwrap());
+    LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9]{6,255}$").unwrap());
 
 pub static ULID: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)^[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26}$").unwrap());
@@ -85,7 +97,7 @@ pub fn check(rule: &'static str, field: &'static str, value: &str) -> Option<Fie
         "email" => (EMAIL.is_match(value), "not a valid email address"),
         "username" => (
             USERNAME.is_match(value),
-            "must be 8 to 255 letters and digits",
+            "must be 6 to 255 letters and digits",
         ),
         "ulid" => (ULID.is_match(value), "not a valid ULID"),
         "service" => (
@@ -101,6 +113,20 @@ pub fn check(rule: &'static str, field: &'static str, value: &str) -> Option<Fie
             "not a Discord widget URL",
         ),
         "non_empty" => (!value.trim().is_empty(), "must not be empty"),
+        // Rejects what `ammonia::clean` would have altered, without the HTML
+        // parser. The rule this replaces cleaned a value and rejected it if
+        // the output differed, which drags html5ever into every crate that
+        // wants to check a username -- including this one, and so into
+        // erust's wasm GUI build.
+        //
+        // Compared over a sample set, ammonia alters a string exactly when it
+        // holds one of these three characters, and leaves unicode, quotes,
+        // apostrophes, newlines and tabs alone. kbve has a test asserting the
+        // two still agree, since that is an equivalence and not a definition.
+        "no_html" => (
+            !value.contains(['<', '>', '&']),
+            "must not contain HTML or markup characters",
+        ),
         other => panic!("holy: unknown validate rule '{other}' reached the runtime"),
     };
 
@@ -124,11 +150,18 @@ mod tests {
         assert!(check("email", "email", "user@example.com").is_none());
         assert!(check("email", "email", "not-an-email").is_some());
 
-        assert!(check("username", "username", "abcdefgh").is_none());
+        assert!(check("username", "username", "abcdef").is_none());
         assert!(check("username", "username", "short").is_some());
+        // Non-ASCII and punctuation are out, whatever the length.
+        assert!(check("username", "username", "hello world").is_some());
 
         assert!(check("non_empty", "bio", " x ").is_none());
         assert!(check("non_empty", "bio", "   ").is_some());
+
+        assert!(check("no_html", "bio", "plain text, caf\u{e9}, it's").is_none());
+        assert!(check("no_html", "bio", "<script>alert(1)</script>").is_some());
+        assert!(check("no_html", "bio", "5 < 6").is_some());
+        assert!(check("no_html", "bio", "a & b").is_some());
     }
 
     #[test]
