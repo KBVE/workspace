@@ -27,7 +27,7 @@ point, so installing `@kbve/laser` for its ECS pulls in neither Phaser nor three
 
 - `react` >= 18.0.0
 - `phaser` >= 4.2.0 _(optional — `@kbve/laser/phaser`)_
-- `@phaserjs/rapier-connector` >= 1.0.0 _(optional — `@kbve/laser/phaser`)_
+- `@phaserjs/rapier-connector` >= 1.0.0 _(optional — `@kbve/laser/rapier`)_
 - `three` >= 0.160.0 _(optional — `@kbve/laser/r3f`)_
 - `@react-three/fiber` >= 9.0.0 _(optional — `@kbve/laser/r3f`)_
 - `@react-three/drei` >= 10.0.0 _(optional — `@kbve/laser/r3f`)_
@@ -63,6 +63,10 @@ import { laserEvents, LaserEventBus } from '@kbve/laser';
 // Phaser bindings. Needs phaser installed.
 import { PhaserGame, usePhaserEvent } from '@kbve/laser/phaser';
 
+// Physics. Needs @phaserjs/rapier-connector installed. Separate from the
+// Phaser entry because the connector is 1.5MB and most games never simulate.
+import { createRapierPhysics } from '@kbve/laser/rapier';
+
 // React Three Fiber bindings. Needs three and @react-three/fiber installed.
 import { Stage, useGameLoop } from '@kbve/laser/r3f';
 ```
@@ -72,7 +76,8 @@ import { Stage, useGameLoop } from '@kbve/laser/r3f';
 | `@kbve/laser` | event bus, ECS helpers, determinism, netcode, spatial and tile utilities |
 | `@kbve/laser/ecs` | the bitECS component and store layer on its own |
 | `@kbve/laser/mecs` | `SharedArrayBuffer` views, for a worker or WASM boundary |
-| `@kbve/laser/phaser` | `PhaserGame`, hooks, player controller, object pooling, rapier |
+| `@kbve/laser/phaser` | `PhaserGame`, hooks, player controller, object pooling |
+| `@kbve/laser/rapier` | the Rapier physics connector |
 | `@kbve/laser/r3f` | `Stage`, `useGameLoop`, the POM material |
 
 ### Support

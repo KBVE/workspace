@@ -29,7 +29,8 @@ const ALLOWED: Record<string, readonly string[]> = {
 	'index.ts': ['bitecs', 'fastnoise-lite'],
 	'ecs.ts': ['bitecs'],
 	'mecs.ts': [],
-	'phaser.ts': ['phaser', '@phaserjs/rapier-connector'],
+	'phaser.ts': ['phaser'],
+	'rapier.ts': ['@phaserjs/rapier-connector'],
 	'r3f.ts': ['three', '@react-three/fiber', '@react-three/drei'],
 };
 

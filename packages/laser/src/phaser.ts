@@ -56,4 +56,6 @@ export {
 	createBirdAnimation,
 } from './lib/phaser/monsters/bird';
 
-export { RAPIER, createRapierPhysics } from './lib/physics/rapier';
+// Rapier lives at `@kbve/laser/rapier`, not here: re-exporting it from this
+// barrel put 1.5MB of physics engine in front of anyone who only wanted
+// PhaserGame.

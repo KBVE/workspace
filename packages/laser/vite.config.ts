@@ -39,6 +39,7 @@ export default defineConfig({
         ecs: path.resolve(__dirname, 'src/ecs.ts'),
         mecs: path.resolve(__dirname, 'src/mecs.ts'),
         phaser: path.resolve(__dirname, 'src/phaser.ts'),
+        rapier: path.resolve(__dirname, 'src/rapier.ts'),
         r3f: path.resolve(__dirname, 'src/r3f.ts'),
       },
       fileName: (format, entryName) =>
