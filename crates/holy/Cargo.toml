@@ -1,6 +1,6 @@
 [package]
 name = "holy"
-description = "Proc-macro helpers: getters, setters, sanitisation and fuzzing derives."
+description = "Struct-level text cleaning: sanitise and validate fields where they are declared."
 version = "0.2.2"
 authors = ["kbve", "h0lybyte"]
 homepage = "https://kbve.com/"
@@ -10,13 +10,8 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
-[lib]
-proc-macro = true
-
 [dependencies]
-syn = { workspace = true, features = ["full"] }
-quote = { workspace = true }
-proc-macro2 = { workspace = true }
+holy-derive = { version = "0.2.2", path = "../holy-derive" }
 
 [dev-dependencies]
 # Compile-fail tests: the .stderr fixtures in tests/fail record exact rustc

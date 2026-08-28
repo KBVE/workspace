@@ -5259,11 +5259,18 @@ dependencies = [
 name = "holy"
 version = "0.2.2"
 dependencies = [
+ "holy-derive",
+ "rand 0.10.2",
+ "trybuild",
+]
+
+[[package]]
+name = "holy-derive"
+version = "0.2.2"
+dependencies = [
  "proc-macro2",
  "quote",
- "rand 0.10.2",
  "syn 3.0.4",
- "trybuild",
 ]
 
 [[package]]

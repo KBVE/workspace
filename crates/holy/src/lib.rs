@@ -1,39 +1,18 @@
-use proc_macro::TokenStream;
-use syn::{DeriveInput, parse_macro_input};
-
-mod fuzz;
-mod getter;
-mod observer;
-mod sanitize;
-mod setter;
-mod utils;
-
-#[proc_macro_derive(Getters, attributes(holy))]
-pub fn getters_derive(input: TokenStream) -> TokenStream {
-    let ast = parse_macro_input!(input as DeriveInput);
-    getter::impl_getters_macro(&ast).unwrap_or_else(|e| e.to_compile_error().into())
-}
-
-#[proc_macro_derive(Observer, attributes(holy))]
-pub fn observer_derive(input: TokenStream) -> TokenStream {
-    let ast = parse_macro_input!(input as DeriveInput);
-    observer::impl_observer_macro(&ast).unwrap_or_else(|e| e.to_compile_error().into())
-}
-
-#[proc_macro_derive(Sanitize, attributes(holy))]
-pub fn sanitize_derive(input: TokenStream) -> TokenStream {
-    let ast = parse_macro_input!(input as DeriveInput);
-    sanitize::impl_sanitize_macro(&ast).unwrap_or_else(|e| e.to_compile_error().into())
-}
-
-#[proc_macro_derive(Setters, attributes(holy))]
-pub fn setters_derive(input: TokenStream) -> TokenStream {
-    let ast = parse_macro_input!(input as DeriveInput);
-    setter::impl_setters_macro(&ast).unwrap_or_else(|e| e.to_compile_error().into())
-}
-
-#[proc_macro_derive(Fuzz, attributes(holy))]
-pub fn fuzz_derive(input: TokenStream) -> TokenStream {
-    let ast = parse_macro_input!(input as DeriveInput);
-    fuzz::impl_fuzz_macro(&ast).unwrap_or_else(|e| e.to_compile_error().into())
-}
+//! Struct-level text cleaning.
+//!
+//! The point of this crate is that a cleaning rule lives next to the field it
+//! applies to, rather than at each call site that happens to remember it:
+//!
+//! ```ignore
+//! #[derive(Sanitize)]
+//! struct Registration {
+//!     #[holy(sanitize = "trim,lowercase")]
+//!     username: String,
+//! }
+//! ```
+//!
+//! This is the facade. The derives come from `holy-derive`, and the code they
+//! generate calls back into this crate. A proc-macro crate can export macros
+//! and nothing else, which is why the two are separate -- the same split
+//! `serde` and `thiserror` use.
+pub use holy_derive::{Fuzz, Getters, Observer, Sanitize, Setters};
