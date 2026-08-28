@@ -105,6 +105,44 @@ export const passenger = z.object({
   timeline: z
     .array(z.object({ at: clock, where: locationId, note: z.string().min(1) }))
     .default([]),
+  /**
+   * The same statements the `## Alibi` bullets make, in the form a generator can
+   * respect. Constraints, not prose: the words are already written next door, and
+   * the pair is the point -- one is what he says, this is what it would mean.
+   *
+   * &honest -> a run places everybody consistently with their OWN claims and then
+   *           breaks exactly one, for the culprit. Without that the generator makes
+   *           liars of people at random, several passengers contradict themselves
+   *           for no reason, and contradiction stops identifying anybody.
+   * &positional -> only claims about where somebody was. "Says she has never met
+   *           Dr. Weiss" is a claim about a person and stays prose; nothing can
+   *           place a passenger to satisfy it.
+   */
+  claims: z
+    .array(
+      z
+        .object({
+          where: locationId,
+          /** Denies ever having been there, for the whole journey. */
+          never: z.boolean().default(false),
+          from: clock.optional(),
+          until: clock.optional(),
+        })
+        .refine((c) => !(c.never && (c.from || c.until)), {
+          message: 'a never claim covers the whole journey, so it takes no from/until',
+        }),
+    )
+    .default([]),
+  /**
+   * What it looks like to find this passenger in a given room, and -- because a
+   * passenger can only be put somewhere there is a line for them -- which rooms
+   * they can be in at all. The guard's van is locked; two people have a line for it.
+   *
+   * &authored -> drawn from, never composed. A room's worth of lines is written by
+   *           hand so that a generated night still reads like somebody wrote it,
+   *           which a template never does.
+   */
+  sightings: z.record(locationId, z.array(z.string().min(1)).min(1)).default({}),
   ...prose,
 });
 

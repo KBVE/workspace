@@ -606,6 +606,42 @@
           "note": "Door heard to close. Lamp still burning at one."
         }
       ],
+      "claims": [
+        {
+          "where": "cabin",
+          "never": false,
+          "from": "21:00"
+        },
+        {
+          "where": "corridor",
+          "never": false,
+          "until": "22:15"
+        },
+        {
+          "where": "guard_van",
+          "never": true
+        }
+      ],
+      "sightings": {
+        "cabin": [
+          "The lamp still burning, and the door not quite shut.",
+          "Seated with her back to the window, gloves still on."
+        ],
+        "corridor": [
+          "Walking the length of the car, slowly, as though the walk were the point.",
+          "Standing at a window with nothing outside it but rain."
+        ],
+        "dining": [
+          "At a table laid for two, with the second place cleared away unused.",
+          "Taking nothing, and taking a long time over it."
+        ],
+        "guard_van": [
+          "Beside a trunk with no label, which she does not touch and does not leave."
+        ],
+        "platform": [
+          "Boarding ahead of the general call, past a porter who is not thanked."
+        ]
+      },
       "lede": "Travelling without a maid, which the conductor notes and does not explain.",
       "body": [],
       "sections": {
@@ -685,6 +721,30 @@
           "note": "Awake, and certain of the hour."
         }
       ],
+      "claims": [
+        {
+          "where": "cabin",
+          "never": false,
+          "from": "22:00"
+        }
+      ],
+      "sightings": {
+        "cabin": [
+          "Awake with the lamp out, which is not the same as asleep.",
+          "Sitting up at the sound of a door that is not hers."
+        ],
+        "corridor": [
+          "Fetching water, and taking the long way back past the berths.",
+          "Standing aside for someone, and watching which door they take."
+        ],
+        "dining": [
+          "At the end table, eating quickly, dressed to be looked past.",
+          "Waiting to be spoken to by somebody who does not."
+        ],
+        "platform": [
+          "Boarding alone with a case borrowed from someone taller."
+        ]
+      },
       "lede": "A companion by profession, returning to an employer she will not name.",
       "body": [],
       "sections": {
@@ -764,6 +824,33 @@
           "note": "Waits for an appointment nobody sees him keep."
         }
       ],
+      "claims": [
+        {
+          "where": "dining",
+          "never": false,
+          "from": "20:00",
+          "until": "22:00"
+        }
+      ],
+      "sightings": {
+        "dining": [
+          "At the table he always takes, with a second glass poured and untouched.",
+          "Turning the pages of an appointment book he does not appear to read."
+        ],
+        "corridor": [
+          "Standing where he can see the dining car door without being in it.",
+          "Walking back from the far end with nothing to have gone there for."
+        ],
+        "cabin": [
+          "The case he never opens, open, and closed again before the door is."
+        ],
+        "vestibule": [
+          "Between the cars in the noise, checking his watch against the carriage clock."
+        ],
+        "platform": [
+          "First of the through passengers, greeted by the guard by name."
+        ]
+      },
       "lede": "The only passenger aboard since Paris, and the only one the guard greets by name.",
       "body": [],
       "sections": {
@@ -852,6 +939,29 @@
           "note": "Retires, still dressed, with the door unlocked behind her."
         }
       ],
+      "claims": [
+        {
+          "where": "guard_van",
+          "never": false,
+          "until": "23:00"
+        }
+      ],
+      "sightings": {
+        "guard_van": [
+          "Seated with the crate, in the one room aboard nobody else may enter.",
+          "Not dining, not reading, and not once looking away from the cargo."
+        ],
+        "corridor": [
+          "Walking it once, slowly, looking at doors rather than at people.",
+          "Mail showing at the wrist where the travelling cloak has fallen open."
+        ],
+        "cabin": [
+          "Still dressed, with the door unlocked behind her, which is not carelessness."
+        ],
+        "platform": [
+          "Behind a crate that takes four men to lift, and is signed for without reading."
+        ]
+      },
       "lede": "An order that has not existed on any map since the crusades, travelling first class with a crate nobody is permitted to open.",
       "body": [],
       "sections": {
@@ -945,6 +1055,33 @@
           "note": "Where he sits between walks, with the register and the strongbox."
         }
       ],
+      "claims": [
+        {
+          "where": "guard_van",
+          "never": false,
+          "from": "01:30"
+        }
+      ],
+      "sightings": {
+        "corridor": [
+          "Door to door as the light goes, the way he has ten thousand times.",
+          "Turning the lamps down, and stopping at one door longer than the rest."
+        ],
+        "dining": [
+          "Standing at the service end, watching the room rather than the meal.",
+          "Marking the register against a table he has already counted twice."
+        ],
+        "guard_van": [
+          "Between walks, with the register open and the strongbox behind him.",
+          "Sitting with the door locked, which he says is where the key stays."
+        ],
+        "vestibule": [
+          "Between the cars where the noise is, listening to it rather than through it."
+        ],
+        "platform": [
+          "Taking the register and handing up the last of the luggage himself."
+        ]
+      },
       "lede": "Thirty years of this corridor, and the only man aboard who is paid to notice everything.",
       "body": [],
       "sections": {
@@ -1024,6 +1161,36 @@
           "note": "Retires early and is not seen again before the alarm."
         }
       ],
+      "claims": [
+        {
+          "where": "cabin",
+          "never": false,
+          "from": "22:00"
+        },
+        {
+          "where": "vestibule",
+          "never": true
+        }
+      ],
+      "sightings": {
+        "cabin": [
+          "The lamp out early, and the case with the forced lock pushed under the berth.",
+          "Dressed, on the made bed, with his boots still on."
+        ],
+        "dining": [
+          "Dining before the service properly opens, alone, facing the door.",
+          "Describing his business to a steward who did not ask."
+        ],
+        "corridor": [
+          "Walking as though he has counted the doors and would rather not be seen doing it."
+        ],
+        "vestibule": [
+          "At the door between the cars, looking at the ground going past."
+        ],
+        "platform": [
+          "Boarding with one case and no trunk, and no porter needed."
+        ]
+      },
       "lede": "A grain factor from Norwich, travelling on business he describes twice and differently.",
       "body": [],
       "sections": {
@@ -1116,6 +1283,26 @@
           "note": "Berth 7. The door Miss Carrow hears close, and hears close again."
         }
       ],
+      "claims": [],
+      "sightings": {
+        "platform": [
+          "Boarding at Paris among the through passengers, and noticed by nobody."
+        ],
+        "corridor": [
+          "Standing outside a door without knocking at it.",
+          "Passing the length of the car once, and not coming back that way."
+        ],
+        "vestibule": [
+          "Between the cars, where the noise covers whatever is being said.",
+          "Waiting, in the one place aboard where waiting is not remarked on."
+        ],
+        "dining": [
+          "At the door of the dining car at the half hour, not going in."
+        ],
+        "cabin": [
+          "Berth 7, made up for one, with the window latch turned the wrong way."
+        ]
+      },
       "lede": "The passenger nobody has mentioned, in the berth between Mr. Thompson's and the one on the player's ticket.",
       "body": [],
       "sections": {
@@ -1195,6 +1382,38 @@
           "note": "Found at the far end, in the dark, fully dressed."
         }
       ],
+      "claims": [
+        {
+          "where": "cabin",
+          "never": false,
+          "until": "00:00"
+        },
+        {
+          "where": "corridor",
+          "never": false,
+          "from": "00:00"
+        }
+      ],
+      "sightings": {
+        "corridor": [
+          "At the far end, in the dark, fully dressed at an hour that wants explaining.",
+          "Walking towards a sound rather than away from one."
+        ],
+        "dining": [
+          "Taking coffee he does not drink, at the table nearest the passage.",
+          "Leaving when the man at the next table leaves."
+        ],
+        "cabin": [
+          "The case open on the berth, and closed at the sound of the handle.",
+          "Awake with the lamp lit, and the door watched rather than the window."
+        ],
+        "vestibule": [
+          "Between the cars, cleaning his spectacles in the one place nobody passes."
+        ],
+        "platform": [
+          "Boarding last, after the general call, carrying the case himself."
+        ]
+      },
       "lede": "A physician, he says, of Vienna, though his case holds instruments no physician carries.",
       "body": [],
       "sections": {

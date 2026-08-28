@@ -48,6 +48,14 @@ export interface Passenger extends Prose {
   relationships: { who: string; tie: string }[];
 
   timeline: { at: string; where: LocationId; note: string }[];
+  /**
+   * The same statements the `## Alibi` bullets make, in the form a run can respect.
+   * A night places everybody consistently with their own claims and breaks exactly
+   * one, for the culprit.
+   */
+  claims: { where: LocationId; never: boolean; from?: string; until?: string }[];
+  /** What finding them in a room looks like, and so which rooms they can be in. */
+  sightings: Partial<Record<LocationId, string[]>>;
 }
 
 export interface Item extends Prose {

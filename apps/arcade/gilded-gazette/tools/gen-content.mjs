@@ -216,6 +216,27 @@ const requireLocation = (where, field, id) => {
 for (const p of content.passengers) {
   requireLocation(p.source, 'location', p.location);
   for (const step of p.timeline ?? []) requireLocation(p.source, 'timeline.where', step.where);
+  for (const claim of p.claims ?? []) requireLocation(p.source, 'claims.where', claim.where);
+  for (const where of Object.keys(p.sightings ?? {})) {
+    requireLocation(p.source, 'sightings', where);
+  }
+}
+
+// &placeable -> sightings are also the set of rooms a generated night may put
+//          somebody in, so a passenger with none cannot be placed anywhere and
+//          would simply be missing from the train all evening.
+for (const p of content.passengers) {
+  const rooms = Object.keys(p.sightings ?? {});
+  if (rooms.length === 0) continue;
+  const claimed = new Set((p.claims ?? []).filter((c) => !c.never).map((c) => c.where));
+  for (const where of claimed) {
+    if (!rooms.includes(where)) {
+      throw new Error(
+        `${p.source}: claims to have been in "${where}" but has no sightings line for it,`
+        + ' so an honest run could not place them where their own alibi puts them',
+      );
+    }
+  }
 }
 for (const it of content.items) {
   if (it.location) requireLocation(it.source, 'location', it.location);
