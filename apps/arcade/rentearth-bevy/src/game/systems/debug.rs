@@ -67,6 +67,15 @@ const CAPTURE_SIZE: (u32, u32) = (1280, 720);
 #[derive(Resource)]
 struct CaptureTarget(Handle<Image>);
 
+/// An image to capture in place of the window's own.
+///
+/// Anything that draws into its own target and wants to be photographed
+/// inserts this. It exists so the harness does not have to name what that
+/// thing is -- the museum is encrypted out of a keyless build, and a debug
+/// module that referred to it by path would not compile without the key.
+#[derive(Resource)]
+pub struct CaptureOverride(pub Handle<Image>);
+
 /// Point the camera at an offscreen image instead of at the window.
 ///
 /// Capturing the window reads the window's own surface, and macOS hands back a
@@ -140,7 +149,7 @@ fn screenshot_when_settled(
     mut frame: Local<u32>,
     mut taken: Local<bool>,
     mut rigs: Query<&mut CameraRig>,
-    museum: Option<Res<crate::game::systems::museum::MuseumView>>,
+    override_target: Option<Res<CaptureOverride>>,
     mut exit: MessageWriter<AppExit>,
 ) {
     *frame += 1;
@@ -176,13 +185,10 @@ fn screenshot_when_settled(
         return;
     };
 
-    // The museum's own image when it is the thing being looked at. Its panel
-    // is interface, and interface does not reach an offscreen capture -- so
-    // capturing the window with the museum open gets a picture of the map with
-    // the museum invisibly in front of it.
-    let image = match (&museum, std::env::var("RENTEARTH_MUSEUM").is_ok()) {
-        (Some(museum), true) => museum.0.clone(),
-        _ => target.0.clone(),
+    // Whatever asked to be captured instead, if anything did.
+    let image = match &override_target {
+        Some(other) => other.0.clone(),
+        None => target.0.clone(),
     };
 
     *taken = true;
