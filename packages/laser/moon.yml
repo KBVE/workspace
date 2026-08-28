@@ -1,0 +1,70 @@
+# @kbve/laser: the Phaser + React Three Fiber integration layer. Ported from
+# the Nx workspace, where it was two projects -- `laser` and `laser-e2e`. An Nx
+# executor binds to a project, so the app the e2e specs drive had to be one of
+# its own, and `laser:e2e` was a stub that shelled out to `nx e2e laser-e2e`.
+# Moon has no executors: playwright boots the fixture itself through its
+# `webServer`, so the split bought nothing and the fixture lives under
+# e2e/fixture/ inside the package it tests.
+#
+# Publishing is not wired up yet. `build` emits the bundle and the .d.ts files
+# into dist/, which is the shape npm expects, but nothing pushes it -- version
+# lives in package.json and the release path is still to be decided.
+layer: 'library'
+language: 'typescript'
+stack: 'frontend'
+
+owners:
+  defaultOwner: '@h0lybyte'
+
+fileGroups:
+  sources:
+    - 'src/**/*'
+  configs:
+    - 'vite.config.ts'
+    - 'tsconfig*.json'
+    - 'package.json'
+
+tasks:
+  build:
+    command: 'vite build'
+    toolchains: ['node']
+    inputs: ['@group(sources)', '@group(configs)']
+    outputs: ['dist']
+
+  test:
+    command: 'vitest run'
+    toolchains: ['node']
+    inputs: ['@group(sources)', '@group(configs)']
+
+  check:
+    command: 'tsc --noEmit'
+    toolchains: ['node']
+    inputs: ['@group(sources)', '@group(configs)', 'e2e/**/*', 'playwright.config.ts']
+
+  # Playwright ships no browser with the npm package. Declared as a task so e2e
+  # can depend on it rather than every caller remembering to run it.
+  # --with-deps installs the system libraries a headless Chromium needs on a
+  # Linux runner, and is a no-op on macOS.
+  e2e-browser:
+    command: 'playwright install --with-deps chromium'
+    toolchains: ['node']
+    options:
+      cache: false
+
+  # Mounts PhaserGame and the R3F Stage in a real browser. The unit tests run
+  # under jsdom, which has no WebGL, so this is the only check that proves
+  # either renderer starts.
+  #
+  # No dependency on `build`: the fixture aliases laser to source, the same way
+  # every consumer in the Nx workspace took it, so a bundling change cannot
+  # silently decide what these tests see.
+  e2e:
+    command: 'playwright test'
+    toolchains: ['node']
+    deps:
+      - '~:e2e-browser'
+    inputs:
+      - '@group(sources)'
+      - '@group(configs)'
+      - 'e2e/**/*'
+      - 'playwright.config.ts'

@@ -33,6 +33,9 @@ playwright-report/
 blob-report/
 .artifacts/
 .last-run.json
+# vitest --coverage. No task passes that flag, so it only appears after an ad
+# hoc run -- which is exactly when it goes unnoticed.
+coverage/
 
 # --- moon ---------------------------------------------------------------
 .moon/cache

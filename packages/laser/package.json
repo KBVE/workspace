@@ -1,0 +1,117 @@
+{
+  "name": "@kbve/laser",
+  "version": "0.2.0",
+  "description": "Phaser + React Three Fiber integration layer for React 19",
+  "keywords": [
+    "phaser",
+    "react",
+    "r3f",
+    "react-three-fiber",
+    "gamedev",
+    "three.js"
+  ],
+  "homepage": "https://kbve.com/application/javascript/",
+  "bugs": {
+    "url": "https://github.com/KBVE/kbve/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KBVE/kbve.git"
+  },
+  "author": "KBVE <hello@kbve.com>",
+  "license": "MIT",
+  "type": "module",
+  "main": "./laser.es.js",
+  "module": "./laser.es.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./laser.es.js",
+      "types": "./index.d.ts"
+    },
+    "./ecs": {
+      "import": "./ecs.es.js",
+      "types": "./ecs.d.ts"
+    },
+    "./mecs": {
+      "import": "./mecs.es.js",
+      "types": "./mecs.d.ts"
+    },
+    "./phaser": {
+      "import": "./phaser.es.js",
+      "types": "./phaser.d.ts"
+    },
+    "./r3f": {
+      "import": "./r3f.es.js",
+      "types": "./r3f.d.ts"
+    }
+  },
+  "files": [
+    "*.es.js",
+    "laser.es.js",
+    "index.d.ts",
+    "**/*.d.ts",
+    "*.md"
+  ],
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "phaser": ">=4.1.0",
+    "three": ">=0.160.0",
+    "@react-three/fiber": ">=9.0.0",
+    "@react-three/drei": ">=10.0.0",
+    "bitecs": ">=0.4.0",
+    "@phaserjs/rapier-connector": ">=1.0.0",
+    "fastnoise-lite": ">=1.1.0"
+  },
+  "peerDependenciesMeta": {
+    "phaser": {
+      "optional": true
+    },
+    "three": {
+      "optional": true
+    },
+    "@react-three/fiber": {
+      "optional": true
+    },
+    "@react-three/drei": {
+      "optional": true
+    },
+    "bitecs": {
+      "optional": true
+    },
+    "@phaserjs/rapier-connector": {
+      "optional": true
+    },
+    "fastnoise-lite": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@phaserjs/rapier-connector": "catalog:",
+    "@playwright/test": "catalog:",
+    "@react-three/drei": "catalog:",
+    "@react-three/fiber": "catalog:",
+    "@testing-library/dom": "catalog:",
+    "@testing-library/react": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/three": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "bitecs": "catalog:",
+    "fastnoise-lite": "catalog:",
+    "jsdom": "catalog:",
+    "phaser": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "three": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  // Self-contained. The Nx original extended a workspace tsconfig.base.json
+  // whose only real job was the `@kbve/laser` path alias; pnpm's workspace
+  // link resolves that here, so there is nothing left to inherit.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node", "vite/client", "vitest/globals"],
+    // The e2e fixture imports laser the way a consumer does. The alias is
+    // declared here rather than in a tsconfig of its own so `check` covers the
+    // fixture with the same settings as the library; the matching runtime
+    // alias is in e2e/fixture/vite.config.ts.
+    "paths": {
+      "@kbve/laser": ["./src/index.ts"],
+      "@kbve/laser/*": ["./src/*.ts"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "e2e/**/*.ts",
+    "e2e/**/*.tsx",
+    "vite.config.ts",
+    "playwright.config.ts"
+  ]
+}
