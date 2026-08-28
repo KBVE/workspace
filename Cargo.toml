@@ -109,6 +109,12 @@ web-sys = "0.3"
 # the lockfile. An exact pin would put two of them in the graph.
 wasm-bindgen = "0.2"
 
+# Brought over with embeddb. duckdb is a caret on 1, so it already floats to
+# the newest 1.x; turso's 0.8 is a prerelease cargo will not select, which is
+# why 0.7.2 is current rather than stale.
+duckdb = { version = "1", features = ["bundled"] }
+turso = "0.7.2"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1
