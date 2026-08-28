@@ -19,7 +19,9 @@ pub struct CameraRig {
     /// does not matter: nobody reads pixel art during a zoom, and it lands back
     /// on a level the moment it settles.
     pub zoom: f32,
-    /// The zoom level being eased toward. Always one of [`Self::ZOOM_LEVELS`].
+    /// The level being eased toward once scrolling stops. Always one of
+    /// [`Self::ZOOM_LEVELS`], and equal to `zoom` while the wheel is moving --
+    /// there is nothing to settle toward until it stops.
     pub zoom_target: f32,
 }
 
@@ -70,20 +72,25 @@ impl CameraRig {
     /// the ratio back between levels; 1x and 2x both work.
     pub const ZOOM_LEVELS: [f32; 5] = [0.25, 0.5, 1.0, 2.0, 4.0];
 
-    /// The level `steps` away from the current one.
-    ///
-    /// Works on the index rather than on the value so a notch is always one
-    /// level, whatever the gaps between them happen to be.
-    pub fn stepped(self, steps: i32) -> f32 {
-        // From the target, not from the current zoom. Scrolling again mid-ease
-        // should step from where the camera is going rather than from wherever
-        // the animation happens to have reached.
-        let current = Self::ZOOM_LEVELS
-            .iter()
-            .position(|z| (z - self.zoom_target).abs() < 1e-3)
-            .unwrap_or(Self::ZOOM_LEVELS.len() / 2) as i32;
+    /// Closest and furthest zoom, which are the ends of the ladder.
+    pub const MIN_ZOOM: f32 = Self::ZOOM_LEVELS[0];
+    pub const MAX_ZOOM: f32 = Self::ZOOM_LEVELS[Self::ZOOM_LEVELS.len() - 1];
 
-        let next = (current + steps).clamp(0, Self::ZOOM_LEVELS.len() as i32 - 1);
-        Self::ZOOM_LEVELS[next as usize]
+    /// The level nearest the current zoom, measured in ratio rather than in
+    /// difference.
+    ///
+    /// The levels double, so 3.0 is much nearer 4.0 than the arithmetic gap to
+    /// 2.0 suggests -- it is a quarter of the way there in ratio and two thirds
+    /// in difference. Comparing logs picks the one it actually looks closest to.
+    pub fn nearest_level(self) -> f32 {
+        Self::ZOOM_LEVELS
+            .iter()
+            .copied()
+            .min_by(|a, b| {
+                let da = (a / self.zoom).ln().abs();
+                let db = (b / self.zoom).ln().abs();
+                da.total_cmp(&db)
+            })
+            .unwrap_or(self.zoom)
     }
 }

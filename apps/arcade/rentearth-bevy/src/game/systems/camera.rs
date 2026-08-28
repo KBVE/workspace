@@ -23,29 +23,34 @@ const CAMERA_DISTANCE: f32 = 1400.0;
 /// World units per second at zoom 1.0, panning by keyboard.
 const PAN_SPEED: f32 = 900.0;
 
-/// Scroll accumulated before the zoom moves a level.
+/// Zoom change per wheel notch, as a multiplier.
 ///
-/// The levels are discrete, so a notch cannot be a fraction of one.
-const ZOOM_THRESHOLD: f32 = 1.0;
+/// Multiplicative so a notch alters the view by the same proportion wherever
+/// you are. Additive zoom crawls when far out and lurches when close.
+const ZOOM_PER_NOTCH: f32 = 1.12;
 
 /// Pixels of scroll that count as one wheel notch.
 ///
 /// A wheel reports a line per notch; a trackpad -- and plenty of mice on macOS,
-/// which is what makes this matter -- reports pixels instead. Summing both as
-/// though they were the same unit sent a single swipe through every zoom level
-/// at once, and dividing them too hard made a real wheel feel like it was
-/// ignoring half its clicks.
+/// which is what makes this matter -- reports pixels instead. Treating both as
+/// the same unit sends a single swipe through the whole range at once.
 ///
-/// If the zoom ever feels wrong on a new device, the `debug!` in `zoom_scroll`
+/// If the zoom ever feels wrong on a new device, the `debug!` in `zoom_control`
 /// says which unit it is sending and how much of it, which beats guessing at
 /// this number twice.
 const PIXELS_PER_NOTCH: f32 = 12.0;
 
-/// How quickly zoom closes on its target, per second.
+/// Quiet time before the zoom settles onto a level.
 ///
-/// Exponential rather than linear, so the step starts fast and settles, and so
-/// the rate does not depend on the frame time.
-const ZOOM_EASE: f32 = 20.0;
+/// Long enough to span the gap between notches of a turning wheel, so settling
+/// happens when you stop rather than between clicks.
+const ZOOM_SETTLE_DELAY: f32 = 0.14;
+
+/// How quickly zoom closes on the level it is settling to, per second.
+///
+/// Exponential rather than linear, so the move starts fast and eases out, and
+/// so the rate does not depend on the frame time.
+const ZOOM_EASE: f32 = 16.0;
 
 pub struct CameraPlugin;
 
@@ -59,8 +64,7 @@ impl Plugin for CameraPlugin {
             (
                 pan_keyboard,
                 pan_drag,
-                zoom_scroll,
-                ease_zoom,
+                zoom_control,
                 wrap_focus,
                 apply_rig,
             )
@@ -169,50 +173,70 @@ fn pan_drag(
     }
 }
 
-fn zoom_scroll(
+/// Zoom on the wheel, then settle onto a level once the wheel stops.
+///
+/// Continuous while you are scrolling and discrete when you are not, which is
+/// the only way to have both. The zoom levels exist because the tree atlas is
+/// pixel art and only samples a mip level exactly at a power of two -- but
+/// stepping between them directly is a hard doubling of everything on screen,
+/// and no amount of easing makes a ladder feel like a wheel. So the wheel drives
+/// the zoom smoothly wherever it likes, and a moment after it stops the zoom
+/// glides to the nearest level and locks there.
+///
+/// The cost is that the trees are slightly soft while the view is moving, which
+/// is when nobody is looking closely at them, and sharp again by the time
+/// anyone is.
+fn zoom_control(
+    time: Res<Time>,
     mut wheel: MessageReader<MouseWheel>,
-    mut pending: Local<f32>,
+    mut idle: Local<f32>,
     mut rigs: Query<&mut CameraRig>,
 ) {
+    let mut notches = 0.0;
     for event in wheel.read() {
         debug!("scroll {:?} y {}", event.unit, event.y);
-        *pending += match event.unit {
+        notches += match event.unit {
             MouseScrollUnit::Line => event.y,
             MouseScrollUnit::Pixel => event.y / PIXELS_PER_NOTCH,
         };
     }
 
-    let steps = (*pending / ZOOM_THRESHOLD).trunc();
-    if steps == 0.0 {
+    if notches != 0.0 {
+        *idle = 0.0;
+
+        for mut rig in &mut rigs {
+            // Scrolling up zooms in, which is toward a smaller scale.
+            let zoom = rig.zoom * ZOOM_PER_NOTCH.powf(-notches);
+            rig.zoom = zoom.clamp(CameraRig::MIN_ZOOM, CameraRig::MAX_ZOOM);
+            // Nothing to settle toward while the wheel is still turning.
+            rig.zoom_target = rig.zoom;
+        }
+
         return;
     }
-    // Keep the remainder, or a slow scroll never accumulates enough to move.
-    *pending -= steps * ZOOM_THRESHOLD;
 
-    for mut rig in &mut rigs {
-        // Scrolling up zooms in, which is toward a smaller scale.
-        rig.zoom_target = rig.stepped(-steps as i32);
+    *idle += time.delta_secs();
+    if *idle < ZOOM_SETTLE_DELAY {
+        return;
     }
-}
 
-/// Move the drawn zoom toward the level that was asked for.
-///
-/// Snapping straight to the level is a hard doubling of everything on screen,
-/// which reads as a glitch rather than as a zoom. This eases instead, and lands
-/// exactly on the target rather than approaching it forever -- the zoom levels
-/// are chosen so the tree atlas samples a mip level exactly, and an eased value
-/// that stops a fraction short would miss it every time.
-fn ease_zoom(time: Res<Time>, mut rigs: Query<&mut CameraRig>) {
     for mut rig in &mut rigs {
+        if rig.zoom_target == rig.zoom {
+            rig.zoom_target = rig.nearest_level();
+        }
+
         let target = rig.zoom_target;
         let gap = target - rig.zoom;
 
         if gap == 0.0 {
-            // Untouched, so the camera stays out of change detection and the
-            // tile wrap has nothing to do.
+            // Left untouched, so the camera stays out of change detection and
+            // the tile wrap has nothing to do.
             continue;
         }
 
+        // Landing exactly on it rather than approaching forever: the levels are
+        // chosen so the atlas samples a mip exactly, and a value that stopped a
+        // fraction short would miss it every time.
         if gap.abs() < target * 1e-3 {
             rig.zoom = target;
             continue;
