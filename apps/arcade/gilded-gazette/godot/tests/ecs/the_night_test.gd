@@ -7,6 +7,11 @@ extends GdUnitTestSuite
 
 const SEEDS := 200
 
+## More than [constant SEEDS], because these count how often each of seven names comes
+## up rather than asserting a rule about one night: at 200 the counts are noisy enough
+## that an even draw looks uneven.
+const FAIRNESS_SEEDS := 700
+
 
 func _night(seed_value: int) -> TheNight:
 	var rng := RandomNumberGenerator.new()
@@ -122,3 +127,48 @@ func test_the_answer_is_not_the_same_every_run() -> void:
 	assert_int(drawn.size()).override_failure_message(
 		"every seed accused the same person, which is not a draw"
 	).is_greater(2)
+
+
+## Everybody the dossier calls a suspect has to be somebody the answer can actually
+## be. A name on that list who can never have done it is a name the player crosses
+## off by playing enough runs rather than by deducing anything, and the list stops
+## being information the moment one entry on it is decoration.
+##
+## This is a real failure the content had: the culprit must be catchable in a lie,
+## so a passenger whose alibi ends before the murder can happen has nothing to
+## contradict and was drawn zero times in two thousand.
+func test_every_suspect_can_be_the_answer() -> void:
+	var seen := {}
+	for s in FAIRNESS_SEEDS:
+		seen[_night(s).culprit_id] = int(seen.get(_night(s).culprit_id, 0)) + 1
+	for id: StringName in _content():
+		if _content()[id].get("victim", false):
+			continue
+		assert_int(int(seen.get(id, 0))).override_failure_message(
+			"%s was never the culprit in %d draws, so the dossier lists them as a "
+			% [id, FAIRNESS_SEEDS] + "suspect the run can never make good on"
+		).is_greater(0)
+
+
+## And no suspect is a long shot. Drawn once in two thousand is drawable in the same
+## sense a lottery is winnable; what it produces in play is a cast the experienced
+## player stops considering, which is the deduction being replaced by a memorised
+## bias. The floor is deliberately loose -- the draw is uniform over whoever the
+## murder hour leaves catchable, and that set moves with the hour, so this is here
+## to catch a suspect falling off it rather than to police the shape.
+func test_no_suspect_is_a_long_shot() -> void:
+	var seen := {}
+	var suspects := 0
+	for id: StringName in _content():
+		if not _content()[id].get("victim", false):
+			suspects += 1
+	for s in FAIRNESS_SEEDS:
+		var who := _night(s).culprit_id
+		seen[who] = int(seen.get(who, 0)) + 1
+	var even := float(FAIRNESS_SEEDS) / float(suspects)
+	for id: StringName in seen:
+		assert_float(float(seen[id])).override_failure_message(
+			"%s came up %d times in %d draws against an even share of %.0f, so the "
+			% [id, seen[id], FAIRNESS_SEEDS, even] + "answer is one of the others in "
+			+ "all but name"
+		).is_greater(even * 0.4)

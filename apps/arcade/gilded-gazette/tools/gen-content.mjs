@@ -194,9 +194,10 @@ if (victims.length !== 1) {
     + (victims.length ? ` (${victims.map((p) => p.id).join(', ')})` : ''),
   );
 }
-if (victims[0].suspect) {
-  throw new Error(`${victims[0].source}: the victim cannot also be a suspect`);
-}
+// &suspect -> everybody aboard who is not the body. TheNight draws its culprit from
+//          exactly this set, so deriving it here is what keeps the dossier's list and
+//          the list the answer can come from the same list.
+for (const p of content.passengers) p.suspect = !p.victim;
 
 /**
  * &vocab -> the locations collection IS the location vocabulary, so every place

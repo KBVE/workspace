@@ -81,7 +81,14 @@ export const passenger = z.object({
   boarded: z.object({ at: clock, where: z.string().min(1) }),
   /** Where they are found when nothing else has moved them. */
   location: locationId,
-  suspect: z.boolean().default(false),
+  /**
+   * &derived -> stamped on by gen-content, not authored. The night draws its culprit
+   *          from everybody aboard who is not the body, so a suspect is exactly that
+   *          and authoring it separately only creates a second answer that can drift
+   *          from the first -- which it had: three passengers were marked while the
+   *          draw was picking from seven.
+   */
+  suspect: z.boolean().optional(),
   /**
    * The one this is all about. A victim is a passenger and not a collection of
    * their own: they bought a ticket, they have a berth, and their evening runs

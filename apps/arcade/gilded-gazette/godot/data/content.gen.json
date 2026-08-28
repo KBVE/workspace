@@ -572,7 +572,6 @@
         "where": "Calais"
       },
       "location": "cabin",
-      "suspect": true,
       "victim": false,
       "traits": [
         "imperious",
@@ -656,7 +655,8 @@
           "bullets": []
         }
       },
-      "source": "shared/data/passengers/beaumont.mdx"
+      "source": "shared/data/passengers/beaumont.mdx",
+      "suspect": true
     },
     {
       "id": "carrow",
@@ -669,7 +669,6 @@
         "where": "Calais"
       },
       "location": "cabin",
-      "suspect": false,
       "victim": false,
       "traits": [
         "a light sleeper by trade",
@@ -742,7 +741,8 @@
           "bullets": []
         }
       },
-      "source": "shared/data/passengers/carrow.mdx"
+      "source": "shared/data/passengers/carrow.mdx",
+      "suspect": true
     },
     {
       "id": "dupont",
@@ -755,7 +755,6 @@
         "where": "Paris"
       },
       "location": "dining",
-      "suspect": false,
       "victim": false,
       "traits": [
         "known to the guard by name",
@@ -772,8 +771,7 @@
         {
           "where": "dining",
           "never": false,
-          "from": "20:00",
-          "until": "22:00"
+          "from": "20:00"
         }
       ],
       "sightings": {
@@ -808,11 +806,13 @@
         "alibi": {
           "heading": "Alibi",
           "paragraphs": [
-            "He was in the dining car until the service closed, which the steward confirms without being asked, and which is the trouble with it."
+            "He was in the dining car from eight and sat on after the service closed, which the steward confirms without being asked, and which is the trouble with it.",
+            "colleague would have come"
           ],
           "bullets": [
             "Says he dined at eight, as always",
-            "Says he waited for a colleague who did not come",
+            "Says he waited for a colleague who did not come, and waited past any hour a",
+            "Says he was still at his table when the lamps went down",
             "Says he noticed nothing unusual"
           ]
         },
@@ -831,7 +831,8 @@
           "bullets": []
         }
       },
-      "source": "shared/data/passengers/dupont.mdx"
+      "source": "shared/data/passengers/dupont.mdx",
+      "suspect": true
     },
     {
       "id": "marchand",
@@ -844,7 +845,6 @@
         "where": "Calais"
       },
       "location": "guard_van",
-      "suspect": true,
       "victim": false,
       "traits": [
         "travels armoured under a travelling cloak",
@@ -864,8 +864,7 @@
       "claims": [
         {
           "where": "guard_van",
-          "never": false,
-          "until": "23:00"
+          "never": false
         }
       ],
       "sightings": {
@@ -900,7 +899,7 @@
             "She was with the cargo, which is where her oath puts her, and which nobody can confirm because nobody else is allowed in there."
           ],
           "bullets": [
-            "Says she did not leave the guard's van before eleven",
+            "Says she did not leave the guard's van at all, before eleven or after it",
             "Says the crate was sealed at Calais and has not been opened since",
             "Says she has never met Lady Beaumont"
           ]
@@ -920,7 +919,8 @@
           "bullets": []
         }
       },
-      "source": "shared/data/passengers/marchand.mdx"
+      "source": "shared/data/passengers/marchand.mdx",
+      "suspect": true
     },
     {
       "id": "moreau",
@@ -933,7 +933,6 @@
         "where": "Paris"
       },
       "location": "corridor",
-      "suspect": false,
       "victim": false,
       "traits": [
         "holds a key to every door on the train",
@@ -954,7 +953,7 @@
         {
           "where": "guard_van",
           "never": false,
-          "from": "01:30"
+          "from": "22:00"
         }
       ],
       "sightings": {
@@ -990,10 +989,11 @@
         "alibi": {
           "heading": "Alibi",
           "paragraphs": [
-            "He was walking the train, which is what he is for, and which means he was everywhere and nowhere in particular."
+            "He was walking the train until the lamps went down, which is what he is for and which means he was everywhere and nowhere in particular, and in the van from ten, which is a room nobody else may enter."
           ],
           "bullets": [
-            "Says he turned the lamps down at a quarter past ten, as the book requires",
+            "Says he turned the lamps down at ten, as the book requires",
+            "Says he was in the van from that hour, with the door locked",
             "Says he saw no one in the corridor who had no business in it",
             "Says the guard's van was locked, and that he has the only key"
           ]
@@ -1013,7 +1013,8 @@
           "bullets": []
         }
       },
-      "source": "shared/data/passengers/moreau.mdx"
+      "source": "shared/data/passengers/moreau.mdx",
+      "suspect": true
     },
     {
       "id": "thompson",
@@ -1026,7 +1027,6 @@
         "where": "Calais"
       },
       "location": "dining",
-      "suspect": false,
       "victim": false,
       "traits": [
         "describes his business twice and differently",
@@ -1105,7 +1105,8 @@
           "bullets": []
         }
       },
-      "source": "shared/data/passengers/thompson.mdx"
+      "source": "shared/data/passengers/thompson.mdx",
+      "suspect": true
     },
     {
       "id": "vasek",
@@ -1118,7 +1119,6 @@
         "where": "Paris"
       },
       "location": "cabin",
-      "suspect": false,
       "victim": true,
       "traits": [
         "boarded at Paris and was written down at Calais",
@@ -1191,7 +1191,8 @@
           "bullets": []
         }
       },
-      "source": "shared/data/passengers/vasek.mdx"
+      "source": "shared/data/passengers/vasek.mdx",
+      "suspect": false
     },
     {
       "id": "weiss",
@@ -1204,7 +1205,6 @@
         "where": "Calais"
       },
       "location": "corridor",
-      "suspect": true,
       "victim": false,
       "traits": [
         "offers help before it is asked for",
@@ -1289,7 +1289,8 @@
           "bullets": []
         }
       },
-      "source": "shared/data/passengers/weiss.mdx"
+      "source": "shared/data/passengers/weiss.mdx",
+      "suspect": true
     }
   ],
   "items": [
