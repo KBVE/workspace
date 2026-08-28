@@ -12,6 +12,7 @@ use bevy::light::NotShadowCaster;
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 
+use crate::game::components::camera::CameraRig;
 use crate::game::components::tile::BasePosition;
 use crate::game::core::hex::HEX_SIZE;
 use crate::game::core::map::MapSpec;
@@ -33,11 +34,15 @@ const CLUMP_VARIANTS: usize = 6;
 
 /// World height of a full atlas cell.
 ///
+/// Not a free choice: it sets how many atlas texels land on a screen pixel, and
+/// so whether the mip chain is sampled at a level or between two. See
+/// `CameraRig::ZOOM_LEVELS`, which is picked against this number.
+///
 /// Not of a tree: sprites are bottom-aligned inside a cell they do not all
 /// fill, so a spruce occupying half its cell draws half as tall as a pine
 /// filling one. That is the point -- the pack's own proportions decide how the
 /// biomes compare, rather than a number per biome here.
-const TREE_HEIGHT: f32 = 30.0;
+const TREE_HEIGHT: f32 = 36.0;
 
 /// Canopy width as a fraction of height. The atlas cell's own proportions --
 /// the quad has to match the sprite or the trees come out stretched.
@@ -319,6 +324,11 @@ fn add_mipmaps(atlas: Option<ResMut<TreeAtlas>>, mut images: ResMut<Assets<Image
     let Some(data) = image.data.as_ref() else {
         return;
     };
+
+    // One mip level per zoom level, which is not a coincidence: the levels are
+    // chosen so each one samples the next mip exactly. See
+    // `CameraRig::ZOOM_LEVELS`.
+    debug_assert_eq!(MIP_LEVELS as usize, CameraRig::ZOOM_LEVELS.len());
 
     let width = image.texture_descriptor.size.width;
     let height = image.texture_descriptor.size.height;

@@ -20,25 +20,39 @@ impl Default for CameraRig {
     fn default() -> Self {
         Self {
             focus: Vec3::ZERO,
+            // One of the levels, or the first scroll would snap rather than
+            // step.
             zoom: 1.0,
         }
     }
 }
 
 impl CameraRig {
-    /// The zoom levels, in orthographic scale.
+    /// World units per logical screen pixel, at each zoom level.
     ///
-    /// Discrete, and each one twice the last. Continuous zoom put the tree
-    /// sprites at an arbitrary fraction of their texel size, which is the worst
-    /// case for a mip chain: the sampler sits between two levels and blends
-    /// both, so the pixel art is soft at every zoom and never crisp at any of
-    /// them. Powers of two land on a level exactly.
+    /// Chosen so the tree atlas lands on a mip level exactly rather than
+    /// between two. A tree's apparent height on screen is `TREE_HEIGHT` world
+    /// units -- the quad is built `1/cos(pitch)` taller than that and the
+    /// camera's tilt takes the difference straight back out -- so it covers
+    /// `TREE_HEIGHT / zoom` logical pixels, and the atlas's 144-texel cell is
+    /// drawn at `144 * zoom / (TREE_HEIGHT * scale_factor)` texels per physical
+    /// pixel. At `TREE_HEIGHT = 36` on a 2x display that is `2 * zoom`, so
+    /// these four levels give 1, 2, 4 and 8 -- one per level of the mip chain,
+    /// which is why there are four of each.
     ///
-    /// Below the first, single tiles fill the screen. Above the last, the map
-    /// is smaller than the window and the wrap looks broken rather than
-    /// seamless.
-    pub const ZOOM_LEVELS: [f32; 4] = [0.25, 0.5, 1.0, 2.0];
-
+    /// Powers of two are the whole point. At any other ratio the sampler sits
+    /// between two mip levels and blends both, and the pixel art is soft at
+    /// every zoom and crisp at none of them. An earlier version of this used
+    /// four arbitrary levels and bought nothing: the ratio was a constant 3,
+    /// so every level blended 58/42 rather than landing anywhere.
+    ///
+    /// The cost is that zoom is now tied to the window: a bigger window shows
+    /// more map rather than showing it larger. That is the usual bargain for
+    /// pixel art, and it is what makes the alignment hold at all -- the ratio
+    /// depends on the window's pixel height, so nothing that ignores the window
+    /// can be aligned to it. A fractional display scale (1.5x, say) would put
+    /// the ratio back between levels; 1x and 2x both work.
+    pub const ZOOM_LEVELS: [f32; 4] = [0.5, 1.0, 2.0, 4.0];
 
     /// The level `steps` away from the current one.
     ///

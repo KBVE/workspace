@@ -52,8 +52,15 @@ const SCREENSHOT_FRAME: u32 = 240;
 
 /// Size of a captured frame. Fixed rather than taken from the window, so two
 /// shots can be compared pixel for pixel whatever the window happened to be.
+///
+/// Bevy's default window, and deliberately so. The projection scales against
+/// the target's logical size, so a capture of a different size frames a
+/// different amount of world at the same zoom -- and a screenshot that is not a
+/// picture of what is on screen is worse than no screenshot. Matching the
+/// window here is what lets `RENTEARTH_CAMERA` take the zoom you would actually
+/// be looking at.
 #[cfg(not(target_arch = "wasm32"))]
-const CAPTURE_SIZE: (u32, u32) = (2560, 1440);
+const CAPTURE_SIZE: (u32, u32) = (1280, 720);
 
 /// Where a captured frame is rendered.
 #[cfg(not(target_arch = "wasm32"))]
@@ -99,6 +106,8 @@ fn render_to_image(
             .entity(camera)
             .insert(RenderTarget::Image(ImageRenderTarget {
                 handle: handle.clone(),
+                // 1, and it has to be: anything else and the capture comes back
+                // empty. Framing is matched by sizing the image above instead.
                 scale_factor: 1.0,
             }));
     }

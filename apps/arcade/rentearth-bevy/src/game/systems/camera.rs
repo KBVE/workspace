@@ -51,9 +51,11 @@ pub fn spawn_camera(mut commands: Commands, spec: Res<MapSpec>) {
     commands.spawn((
         Camera3d::default(),
         Projection::from(OrthographicProjection {
-            scaling_mode: ScalingMode::FixedVertical {
-                viewport_height: 900.0,
-            },
+            // Against the window rather than a fixed world height, which is
+            // what makes `zoom` mean "world units per logical pixel" and lets
+            // the zoom levels be chosen to land on mip levels. See
+            // `CameraRig::ZOOM_LEVELS`.
+            scaling_mode: ScalingMode::WindowSize,
             // The camera sits far back to clear the terrain, so the far plane
             // has to reach past it or the map is clipped away entirely.
             far: CAMERA_DISTANCE * 4.0,
@@ -114,7 +116,7 @@ fn pan_keyboard(keys: Res<ButtonInput<KeyCode>>, time: Res<Time>, mut rigs: Quer
 fn pan_drag(
     buttons: Res<ButtonInput<MouseButton>>,
     mut motion: MessageReader<MouseMotion>,
-    mut rigs: Query<(&mut CameraRig, &Projection)>,
+    mut rigs: Query<&mut CameraRig>,
 ) {
     if !buttons.any_pressed([MouseButton::Middle, MouseButton::Right]) {
         // Drain, or the next drag replays everything that happened while the
@@ -128,13 +130,13 @@ fn pan_drag(
         return;
     }
 
-    for (mut rig, projection) in &mut rigs {
-        // Pixels to world units. Orthographic height maps to the viewport, so
-        // this only depends on zoom, not on distance.
-        let Projection::Orthographic(ortho) = projection else {
-            continue;
-        };
-        let units_per_pixel = ortho.area.height() / 900.0;
+    for mut rig in &mut rigs {
+        // Pixels to world units, which under `ScalingMode::WindowSize` is just
+        // the zoom -- and `MouseMotion` is in logical pixels, the same ones it
+        // is measured in. The old form divided the projection height by a
+        // hardcoded 900, so dragging tracked the pointer only on a window that
+        // happened to be that tall.
+        let units_per_pixel = rig.zoom;
         rig.focus.x -= delta.x * units_per_pixel;
         // Screen-vertical drag moves the focus along the ground, which is
         // foreshortened by the tilt, so undo that or dragging feels sticky.
