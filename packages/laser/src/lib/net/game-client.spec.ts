@@ -240,6 +240,74 @@ describe('GameClient', () => {
 		});
 	});
 
+
+	// The command surface: forty-odd one-line wrappers, each turning a call into
+	// one input inside one frame. Individually trivial and collectively the bulk
+	// of the class, and the failure mode is a wrong key or a wrong field name --
+	// which typechecks, ships, and is rejected silently by the server. Driving
+	// them from a table keeps the check honest without forty near-identical
+	// tests.
+	describe('commands', () => {
+		const cases: [string, (c: typeof client) => void, unknown][] = [
+			['action', (c) => c.action(7, 42), { Action: { id: 7, target: 42 } }],
+			['action with no target', (c) => c.action(7, null), { Action: { id: 7, target: null } }],
+			['heartbeat', (c) => c.heartbeat(), { Heartbeat: { client_tick: 0 } }],
+			['useItem', (c) => c.useItem('potion'), { UseItem: { item_ref: 'potion' } }],
+			['simPetBattle', (c) => c.simPetBattle(), 'SimPetBattle'],
+			['petTurn', (c) => c.petTurn(1, 2), { PetTurn: { action: 1, arg: 2 } }],
+			['setActivePet', (c) => c.setActivePet(3), { SetActivePet: { idx: 3 } }],
+			['releasePet', (c) => c.releasePet(3), { ReleasePet: { idx: 3 } }],
+			['renamePet', (c) => c.renamePet(1, 'Rex'), { RenamePet: { idx: 1, name: 'Rex' } }],
+			['usePetElixir', (c) => c.usePetElixir(2), { UsePetElixir: { idx: 2 } }],
+			['healPets', (c) => c.healPets(88), { HealPets: { npc: 88 } }],
+			['evolvePet', (c) => c.evolvePet(1, 'stone'), { EvolvePet: { idx: 1, item_ref: 'stone' } }],
+			['respondLearnMove', (c) => c.respondLearnMove('p1', 2), { RespondLearnMove: { pet_id: 'p1', slot: 2 } }],
+			['respondLearnMove declining', (c) => c.respondLearnMove('p1', null), { RespondLearnMove: { pet_id: 'p1', slot: null } }],
+			['castSpell', (c) => c.castSpell('fire', 9), { CastSpell: { spell_ref: 'fire', target: 9 } }],
+			['dropItem', (c) => c.dropItem('rock', 2), { DropItem: { item_ref: 'rock', qty: 2 } }],
+			['moveItem', (c) => c.moveItem(1, 4), { MoveItem: { from: 1, to: 4 } }],
+			['equipItem', (c) => c.equipItem('sword'), { EquipItem: { item_ref: 'sword' } }],
+			['enterShip', (c) => c.enterShip(12), { EnterShip: { ship: 12 } }],
+			['exitShip', (c) => c.exitShip(), 'ExitShip'],
+			['launchSpace', (c) => c.launchSpace(), 'LaunchSpace'],
+			['returnSpace', (c) => c.returnSpace(), 'ReturnSpace'],
+			['placeItem', (c) => c.placeItem('crate', { x: 1, y: 2 }, 3), { PlaceItem: { item_ref: 'crate', tile: { x: 1, y: 2 }, rot: 3 } }],
+			['placeItem with default rotation', (c) => c.placeItem('crate', { x: 1, y: 2 }), { PlaceItem: { item_ref: 'crate', tile: { x: 1, y: 2 }, rot: 0 } }],
+			['openCorpse', (c) => c.openCorpse(5), { OpenCorpse: { corpse: 5 } }],
+			['challengeNpc', (c) => c.challengeNpc(6), { ChallengeNpc: { npc: 6 } }],
+			['duelChallenge', (c) => c.duelChallenge(7), { DuelChallenge: { target: 7 } }],
+			['duelRespond', (c) => c.duelRespond(true), { DuelRespond: { accept: true } }],
+			['takeFromCorpse', (c) => c.takeFromCorpse(5, 1), { TakeFromCorpse: { corpse: 5, slot: 1 } }],
+			['pickupObject', (c) => c.pickupObject({ x: 3, y: 4 }), { PickupObject: { tile: { x: 3, y: 4 } } }],
+			['fell', (c) => c.fell({ x: 3, y: 4 }), { Fell: { tile: { x: 3, y: 4 } } }],
+			['buyItem', (c) => c.buyItem(2, 'axe', 1), { BuyItem: { npc: 2, item_ref: 'axe', qty: 1 } }],
+			['sellItem', (c) => c.sellItem(2, 'axe', 1), { SellItem: { npc: 2, item_ref: 'axe', qty: 1 } }],
+			['joinTable', (c) => c.joinTable('bj-1'), { JoinTable: { table_ref: 'bj-1' } }],
+			['leaveTable', (c) => c.leaveTable(), 'LeaveTable'],
+			['placeBet', (c) => c.placeBet(50), { PlaceBet: { amount: 50 } }],
+			['bjAction', (c) => c.bjAction('Hit'), { BjAction: { kind: 'Hit' } }],
+			['insure', (c) => c.insure(25), { Insure: { amount: 25 } }],
+			['face', (c) => c.face('Up'), { Face: { facing: 'Up' } }],
+		];
+
+		it.each(cases)('%s sends its input', (_name, call, expected) => {
+			open();
+			call(client);
+
+			const frames = sentMessages()
+				.map((m) => (m as { Frame?: { inputs: unknown[] } }).Frame)
+				.filter(Boolean);
+			expect(frames).toHaveLength(1);
+			expect(frames[0]!.inputs).toEqual([expected]);
+		});
+
+		it.each(cases)('%s is dropped while the socket is closed', (_name, call) => {
+			client.connect();
+			call(client);
+			expect(sentMessages()).toEqual([]);
+		});
+	});
+
 	describe('move reconciliation', () => {
 		it('hands back a rising sequence number per move', () => {
 			open();
