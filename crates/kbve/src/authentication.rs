@@ -4,6 +4,7 @@
 //  ?   [crate]
 
 use crate::db::Pool;
+use crate::error::{ApiError, FieldContext};
 use crate::models::{Profile, User};
 use crate::runes::{
     AuthPlayerRegisterSchema, AuthVerificationSchema, GLOBAL, LoginUserSchema, TokenRune,
@@ -30,7 +31,7 @@ use axum::{
     extract::{Extension, Path, Request, State},
     http::{StatusCode, header},
     middleware::Next,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
 };
 
 //	?	[Argon2]
@@ -485,25 +486,24 @@ pub async fn auth_jwt_profile(
     Extension(pool): Extension<Arc<Pool>>,
     // Extract JWT token data (assuming `jsonwebtoken::TokenData<TokenRune>` is a valid type)
     Extension(privatedata): Extension<jsonwebtoken::TokenData<TokenRune>>,
-) -> impl IntoResponse {
-    // Get a mutable connection from the pool
-    let mut conn = spellbook_pool!(pool);
-    // Sanitize and validate the username, ULID, and email from the JWT token data
-    let clean_username = spellbook_username!(&privatedata.claims.username);
-    let clean_ulid_string = spellbook_ulid!(&privatedata.claims.userid);
-    let clean_email = spellbook_email!(&privatedata.claims.email);
+) -> Result<Response, ApiError> {
+    let mut conn = pool
+        .get()
+        .map_err(|_| ApiError::Unavailable("database pool"))?;
 
-    let clean_ulid_bytes = match crate::utility::convert_ulid_string_to_bytes(clean_ulid_string) {
-        Ok(bytes) => bytes,
-        Err(error_message) => {
-            // Handle the error, e.g., return an appropriate response
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({ "error": error_message })),
-            )
-                .into_response();
-        }
-    };
+    // Sanitize and validate the username, ULID, and email from the JWT token
+    // data. `?` rather than the spellbook macros: the macros hid a `return`
+    // behind what looked like an ordinary call, and answered a malformed field
+    // with 401 -- which tells a client to retry with credentials it already
+    // sent.
+    let clean_username =
+        crate::utility::sanitize_username(&privatedata.claims.username).field("username")?;
+    let clean_ulid_string =
+        crate::utility::sanitizie_ulid(&privatedata.claims.userid).field("ulid")?;
+    let clean_email = crate::utility::sanitize_email(&privatedata.claims.email).field("email")?;
+
+    let clean_ulid_bytes =
+        crate::utility::convert_ulid_string_to_bytes(clean_ulid_string).field("ulid")?;
 
     // Attempt to retrieve the user and their profile from the database
     match users::table
@@ -512,36 +512,22 @@ pub async fn auth_jwt_profile(
         .select((users::all_columns, profile::all_columns))
         .first::<(User, Profile)>(&mut conn)
     {
-        Ok((user, profile)) => {
-            // If successful, return a JSON response with user and profile data
-            (
-                StatusCode::OK,
-                Json(serde_json::json!({"status": "complete",
-                    "user": user,
-                    "profile": profile,
-                    "email": clean_email,
-                    "ulid": clean_ulid_string,
-                    "username": clean_username,
-                })),
-            )
-                .into_response()
-        }
-        Err(diesel::NotFound) => {
-            // If the user is not found, return an Unauthorized response with an error message
-            (
-                axum::http::StatusCode::UNAUTHORIZED,
-                axum::Json(serde_json::json!({"error": "username_not_found"})),
-            )
-                .into_response()
-        }
-        Err(_) => {
-            // For any other database error, return an Unauthorized response with a generic error message
-            (
-                axum::http::StatusCode::UNAUTHORIZED,
-                axum::Json(serde_json::json!({"error": "database_error"})),
-            )
-                .into_response()
-        }
+        Ok((user, profile)) => Ok((
+            StatusCode::OK,
+            Json(serde_json::json!({"status": "complete",
+                "user": user,
+                "profile": profile,
+                "email": clean_email,
+                "ulid": clean_ulid_string,
+                "username": clean_username,
+            })),
+        )
+            .into_response()),
+        // 404, not 401. The caller authenticated fine; the row is missing.
+        Err(diesel::NotFound) => Err(ApiError::NotFound("user")),
+        // 500, not 401. A broken query is not an authentication problem, and
+        // reporting it as one hides outages from whatever counts 401s.
+        Err(_) => Err(ApiError::Database),
     }
 }
 

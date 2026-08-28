@@ -3,6 +3,10 @@
 #[cfg(feature = "legacy-sync-db")]
 pub mod authentication;
 pub mod db;
+
+// One error type for handlers, replacing the spellbook macros that answered
+// every failure with 401.
+pub mod error;
 #[cfg(feature = "legacy-sync-db")]
 pub mod guild;
 #[cfg(feature = "legacy-sync-db")]
