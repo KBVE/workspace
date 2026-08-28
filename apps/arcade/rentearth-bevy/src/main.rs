@@ -29,6 +29,7 @@ use game::systems::debug::DebugPlugin;
 use game::systems::map::MapPlugin;
 use game::systems::trees::TreePlugin;
 use game::systems::ui::UiPlugin;
+use game::systems::units::UnitPlugin;
 
 // The animated surface when the key is present and the feature is on, the flat
 // fallback otherwise. Same plugin shape either way, so `main` does not branch.
@@ -123,7 +124,14 @@ fn main() {
             FrameTimeDiagnosticsPlugin::default(),
             LogDiagnosticsPlugin::default(),
         ))
-        .add_plugins((MapPlugin, CameraPlugin, DebugPlugin, UiPlugin, TreePlugin))
+        .add_plugins((
+            MapPlugin,
+            CameraPlugin,
+            DebugPlugin,
+            UiPlugin,
+            TreePlugin,
+            UnitPlugin,
+        ))
         .add_plugins(water_plugin())
         .run();
 }
