@@ -40,6 +40,9 @@ carries real modelling.
   `string id` field is not acceptable in new schemas.
 - Timestamps use `google.protobuf.Timestamp`. Do not define your own.
 - Removed fields are always `reserved`, both the number and the name.
+- File basenames are unique across the module. The C# generator flattens its
+  output and names each file after the proto's basename, so two files sharing
+  one basename collide even in different packages.
 
 ## Local development
 

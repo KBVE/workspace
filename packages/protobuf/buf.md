@@ -23,4 +23,7 @@ own.
 - Identifiers use `kbve.type.v1.Ulid` / `Uuid`, never a bare `string id`.
 - Timestamps use `google.protobuf.Timestamp`.
 - Removed fields are `reserved`, both number and name.
+- File basenames are unique across the module. The C# generator flattens its
+  output and names each file after the proto's basename, so two files sharing
+  one basename collide even in different packages.
 - Content registries embed `kbve.common.v1.RegistryMeta` as field 1.

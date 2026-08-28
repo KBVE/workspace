@@ -4,8 +4,8 @@ package kbve.npc.v1;
 
 import "kbve/common/v1/element.proto";
 import "kbve/common/v1/equip_slot.proto";
-import "kbve/common/v1/rarity.proto";
 import "kbve/common/v1/extension.proto";
+import "kbve/common/v1/rarity.proto";
 import "kbve/common/v1/registry.proto";
 import "kbve/type/v1/id.proto";
 
