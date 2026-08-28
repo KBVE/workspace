@@ -56,3 +56,12 @@ tasks:
     deps: ['~:install']
     inputs: ['@group(sources)', '@group(manifests)', 'README.md']
     outputs: ['dist']
+
+  # The gate a release has to clear. `test` runs against an editable install of
+  # the source tree, which is the one arrangement where every path resolves --
+  # it cannot see a module the wheel failed to package.
+  verify:
+    command: 'bash tools/verify-wheel.sh'
+    toolchains: ['system']
+    deps: ['~:build']
+    inputs: ['@group(sources)', '@group(manifests)', 'tools/verify-wheel.sh']

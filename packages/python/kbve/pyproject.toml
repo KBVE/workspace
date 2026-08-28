@@ -35,6 +35,12 @@ dev = [
     "httpx>=0.27,<1.0",
 ]
 
+# The package is fully annotated and ships .pyi stubs for the generated proto
+# modules. Without py.typed beside them PEP 561 says a type checker must ignore
+# the lot, so the stubs would be dead weight in the wheel.
+[tool.hatch.build.targets.wheel]
+packages = ["kbve"]
+
 [tool.coverage.run]
 branch = true
 source = [ "kbve" ]
