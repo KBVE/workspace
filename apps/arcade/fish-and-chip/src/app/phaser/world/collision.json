@@ -1,5 +1,5 @@
 {
-	"source": "public/game/cloud_city.json tileset \"Cloud City\"",
+	"source": "tools/source/cloud_city.json tileset \"Cloud City\"",
 	"solid": [
 		47,
 		48,

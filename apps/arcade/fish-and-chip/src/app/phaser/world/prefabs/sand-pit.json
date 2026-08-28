@@ -5,7 +5,7 @@
 	],
 	"width": 3,
 	"height": 3,
-	"source": "public/game/cloud_city.json at 2,11",
+	"source": "tools/source/cloud_city.json at 2,11",
 	"anchors": {
 		"stand": {
 			"x": 1,

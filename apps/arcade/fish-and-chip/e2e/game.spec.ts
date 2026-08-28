@@ -17,9 +17,11 @@ const ASSET_KEYS = {
 		'tiles',
 		'player',
 	],
-	audio: ['music', 'type'],
-	tilemaps: ['cloud-city-map'],
+	audio: ['type'],
 };
+
+/** Loaded after the menu is up rather than before it. See Preloader.startMusic. */
+const DEFERRED_AUDIO_KEYS = ['music'];
 
 type Failure = { url: string; reason: string };
 
@@ -84,12 +86,28 @@ test.describe('fish and chip', () => {
 			return {
 				textures: keys.textures.filter((key) => !game.textures.exists(key)),
 				audio: keys.audio.filter((key) => !game.cache.audio.exists(key)),
-				tilemaps: keys.tilemaps.filter((key) => !game.cache.tilemap.exists(key)),
+				// No tilemap is preloaded any more: the town is generated and
+				// registered in the cache by TownScene. Anything here means the
+				// authored map crept back into the boot payload.
+				tilemaps: game.cache.tilemap.getKeys(),
 			};
 		}, ASSET_KEYS);
 
 		expect(loaded).not.toBeNull();
 		expect(loaded).toEqual({ textures: [], audio: [], tilemaps: [] });
+
+		// The music is not in the boot payload, but it still has to turn up.
+		await expect
+			.poll(
+				() =>
+					page.evaluate(
+						(keys) =>
+							keys.filter((key) => !window.__FISHCHIP_GAME__?.cache.audio.exists(key)),
+						DEFERRED_AUDIO_KEYS,
+					),
+				{ timeout: 60_000 },
+			)
+			.toEqual([]);
 	});
 
 	test('starts the town when the menu button is clicked', async ({ page }) => {

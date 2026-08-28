@@ -16,7 +16,8 @@ export class Preloader extends Scene {
     preload() {
         this.load.image('mainBg', 'game/main_bg.webp'); // Ensure you have a correct path to your logo image
         this.load.image('scroll', 'game/scroll.webp');
-        this.load.audio('music', 'game/bg.ogg');
+        // bg.ogg is not here: see startMusic(). It is 1.1MB, over half the
+        // boot payload, and nothing on the title screen needs it to draw.
         this.load.image('creditsBg', 'game/credits_bg.png');
         this.load.audio('type', 'game/type.mp3');
         this.load.spritesheet('fishing', 'game/animate.png', { frameWidth: 800, frameHeight: 600 });
@@ -26,10 +27,10 @@ export class Preloader extends Scene {
 
         //  Cloud TileSet -> cloud_tileset.png
         this.load.image("tiles", "game/desert_tileset_1.png");
-        this.load.tilemapTiledJSON(
-            "cloud-city-map",
-            "game/cloud_city.json",
-        );
+        // The authored map itself is not loaded. TownScene generates its own
+        // and registers it in the tilemap cache, so shipping cloud_city.json
+        // meant downloading 352KB on every boot to never read it. It lives in
+        // tools/source now, where the prefab and collision extractors read it.
         // /assets/img/fishchip/characters_filter.png
         this.load.spritesheet("player", "game/chip_charactersheet_warmer.png", {
             frameWidth: 52,
@@ -39,9 +40,7 @@ export class Preloader extends Scene {
     }
 
     create() {
-        if (!this.sound.get('music')?.isPlaying) {
-            this.sound.add('music', { loop: true, volume: 0.1 }).play();
-        }
+        this.startMusic();
         this.add.image(480, 480, 'mainBg').setScale(0.1);
 
         this.mainMenuButtonImage = this.add.image(480, 480, 'scroll').setAlpha(0.9).setScale(0.7, 0.2).setInteractive({ useHandCursor: true });
@@ -52,5 +51,30 @@ export class Preloader extends Scene {
         this.mainMenuButtonText.on('pointerdown', () => {
             this.scene.start('TownScene');
         }, this);
+    }
+
+    /**
+     * Fetches the music after the menu is on screen, then plays it.
+     *
+     * The track is the single largest asset in the game, and preloading it put
+     * it in front of the title screen: every player waited on a megabyte of
+     * ogg to see a button. A second load pass costs nothing on screen -- the
+     * music simply arrives a moment later -- and the scene is already
+     * interactive while it downloads.
+     */
+    private startMusic() {
+        if (this.sound.get('music')?.isPlaying) return;
+        if (this.cache.audio.exists('music')) {
+            this.sound.add('music', { loop: true, volume: 0.1 }).play();
+            return;
+        }
+
+        this.load.audio('music', 'game/bg.ogg');
+        this.load.once('complete', () => {
+            // The scene can be gone by the time a slow download lands.
+            if (!this.scene.isActive() || this.sound.get('music')?.isPlaying) return;
+            this.sound.add('music', { loop: true, volume: 0.1 }).play();
+        });
+        this.load.start();
     }
 }

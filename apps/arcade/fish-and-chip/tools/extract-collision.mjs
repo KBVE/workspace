@@ -13,7 +13,7 @@ for (let i = 2; i < process.argv.length; i += 2) {
 	args.set(process.argv[i].replace(/^--/, ''), process.argv[i + 1]);
 }
 
-const mapPath = args.get('map') ?? 'public/game/cloud_city.json';
+const mapPath = args.get('map') ?? 'tools/source/cloud_city.json';
 const out = args.get('out') ?? 'src/app/phaser/world/collision.json';
 
 const map = JSON.parse(await readFile(mapPath, 'utf8'));

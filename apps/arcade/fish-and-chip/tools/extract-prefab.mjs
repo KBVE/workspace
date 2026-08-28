@@ -1,7 +1,7 @@
 // Lifts a rectangle of an authored Tiled map into a prefab the generator can
 // stamp.
 //
-//   node tools/extract-prefab.mjs --map public/game/cloud_city.json \
+//   node tools/extract-prefab.mjs --map tools/source/cloud_city.json \
 //     --rect 9,0,9,7 --name building --anchor door=4,6
 //
 // The point is to stop retyping art. Every tile mistake so far came from
@@ -15,7 +15,7 @@ for (let i = 2; i < process.argv.length; i += 2) {
 	args.set(process.argv[i].replace(/^--/, ''), process.argv[i + 1]);
 }
 
-const mapPath = args.get('map') ?? 'public/game/cloud_city.json';
+const mapPath = args.get('map') ?? 'tools/source/cloud_city.json';
 const name = args.get('name');
 const rect = args.get('rect');
 if (!name || !rect) {

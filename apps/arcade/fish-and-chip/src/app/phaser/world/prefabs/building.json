@@ -5,7 +5,7 @@
 	],
 	"width": 9,
 	"height": 7,
-	"source": "public/game/cloud_city.json at 9,0",
+	"source": "tools/source/cloud_city.json at 9,0",
 	"anchors": {
 		"door": {
 			"x": 4,

@@ -1,6 +1,6 @@
 // Renders a Tiled map to a PNG, so a map can be looked at without a browser.
 //
-//   node tools/render-map.mjs --map public/game/cloud_city.json --out map.png
+//   node tools/render-map.mjs --map tools/source/cloud_city.json --out map.png
 //
 // Blits tiles into one raw RGBA buffer rather than compositing a few thousand
 // sharp operations, which is the difference between instant and a coffee.
@@ -13,7 +13,7 @@ for (let i = 2; i < process.argv.length; i += 2) {
 	args.set(process.argv[i].replace(/^--/, ''), process.argv[i + 1]);
 }
 
-const mapPath = args.get('map') ?? 'public/game/cloud_city.json';
+const mapPath = args.get('map') ?? 'tools/source/cloud_city.json';
 const tilesetPath = args.get('tileset') ?? 'public/game/desert_tileset_1.png';
 const out = args.get('out') ?? 'e2e/.artifacts/map.png';
 const scale = Number(args.get('scale') ?? 3);
