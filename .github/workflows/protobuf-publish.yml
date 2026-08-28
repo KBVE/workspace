@@ -75,6 +75,10 @@ jobs:
           input: packages/protobuf
           token: ${{ secrets.BUF_TOKEN }}
           push: true
-          # Labels the commit on the registry so a consumer can pin to an exact
-          # published state rather than tracking the module head.
-          push_labels: ${{ github.sha }}
+          # The module is created on the first successful push, and the default
+          # is private. A private module is capped at 100 types, which this one
+          # passed long ago -- the push fails with "private repositories are
+          # limited to 100 types", which reads as a permissions problem and is
+          # really a visibility one. These schemas are public by decision, so
+          # say so at creation; the setting has no effect afterwards.
+          push_create_visibility: public
