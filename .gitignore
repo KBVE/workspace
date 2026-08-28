@@ -38,6 +38,14 @@ blob-report/
 .moon/cache
 .moon/docker
 
+# --- worktrees -----------------------------------------------------------
+# tools/worktree/add.sh writes this into each worktree to point Cargo at the
+# main checkout's target/. It names an absolute path on one machine, so it is
+# per-worktree state, not configuration. The main checkout has no .cargo/ at
+# all -- the directory is allowlisted in the pre-commit hook because a worktree
+# is a place someone commits from.
+.cargo/config.toml
+
 # --- editor / os --------------------------------------------------------
 .idea/
 .DS_Store

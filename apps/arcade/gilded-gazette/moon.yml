@@ -45,16 +45,18 @@ tasks:
       - 'vite/package-lock.json'
       - 'vite/package.json'
 
-  # The engine and, just as importantly, its web export templates. Exporting
-  # without them does not fail loudly: Godot reports a missing template and
-  # writes nothing, so the vite build that follows finds an empty public/godot
-  # and ships a page with no game in it.
-  godot:
-    command: 'bash ./tools/ensure-godot.sh'
+  # The web export templates. proto pins the editor itself (.prototools) and
+  # moon installs it; the templates unpack outside proto's tool directory, so
+  # they need a fetch of their own -- see .proto/plugins/godot.toml.
+  #
+  # Exporting without them does not fail loudly: Godot reports a missing
+  # template and writes nothing, so the vite build that follows finds an empty
+  # public/godot and ships a page with no game in it.
+  export-templates:
+    command: 'bash ./tools/ensure-export-templates.sh'
     inputs:
-      - 'tools/ensure-godot.sh'
-      - '.godot-version'
-      - 'godot/project.godot'
+      - 'tools/ensure-export-templates.sh'
+      - '/.prototools'
     options:
       cache: false
 
@@ -78,6 +80,15 @@ tasks:
       - '@group(generators)'
       - 'godot/scripts/ecs/**/*.gd'
       - 'vite/src/**/*'
+
+  # Vite against whatever is already in public/godot. Rebuilding the export as
+  # well is `npm --prefix vite run dev:full`, which is a minute-plus and not
+  # what you want when the change is in React.
+  dev:
+    command: 'npm --prefix vite run dev'
+    deps:
+      - '~:install'
+    preset: 'server'
 
   typecheck:
     command: 'npm --prefix vite run typecheck'
@@ -109,9 +120,9 @@ tasks:
   # installed, and the character art has to be smudged from Forgejo first (see
   # the repo-root .lfsconfig). Neither used to be true of a bare CI runner, so
   # these were opted out of `moon ci` -- which meant nothing ever checked that
-  # the game builds. Both are tasks now: `godot` installs the engine, and
-  # `assets` comes from the 'lfs' tag. A runner needs no more than a Forgejo
-  # credential.
+  # the game builds. Both are tasks now: `export-templates` completes what
+  # proto's editor pin cannot, and `assets` comes from the 'lfs' tag. A runner
+  # needs no more than a Forgejo credential.
   build-shell:
     command: 'npm --prefix vite run build:shell'
     deps:
@@ -134,7 +145,7 @@ tasks:
       cache: false
     deps:
       - '~:install'
-      - '~:godot'
+      - '~:export-templates'
       - '~:assets'
       - '~:build-shell'
     outputs:
@@ -146,7 +157,7 @@ tasks:
       cache: false
     deps:
       - '~:install'
-      - '~:godot'
+      - '~:export-templates'
 
   # Playwright ships no browser with the npm package. A task so that e2e can
   # depend on it rather than every caller remembering.

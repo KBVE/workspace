@@ -1,0 +1,7 @@
+# The Godot web export lands here, and the repository-root dist/ rule does not
+# reach it -- so without this a blanket `git add` commits 75MB of build output.
+# The directory itself is tracked, because vite copies public/ verbatim and the
+# build writes into it rather than creating it.
+*
+!.gitkeep
+!.gitignore
