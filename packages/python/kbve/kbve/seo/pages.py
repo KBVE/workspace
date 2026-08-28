@@ -65,6 +65,10 @@ def find_content_dir(explicit: str | os.PathLike[str] | None = None,
         "pass --content <dir> to choose one")
 
 
+def _url(collection: str, slug: str) -> str:
+    return f"/{collection}/{slug}/"
+
+
 def split_frontmatter(text: str) -> tuple[object, str]:
     """Return (raw_frontmatter, body). The frontmatter is not yet validated."""
     match = _FRONTMATTER.match(text)
@@ -109,6 +113,8 @@ def iter_pages(content_dir: str | os.PathLike[str],
                 yield Page(
                     collection=collection or "content",
                     slug="/".join([*parts[1:], Path(name).stem]),
+                    url=_url(collection or "content",
+                             "/".join([*parts[1:], Path(name).stem])),
                     path=str(path),
                     frontmatter=Frontmatter(),
                     body=body,
@@ -120,9 +126,11 @@ def iter_pages(content_dir: str | os.PathLike[str],
                 continue
 
             frontmatter, findings = Frontmatter.parse(raw)
+            slug = "/".join([*parts[1:], Path(name).stem])
             yield Page(
                 collection=collection or "content",
-                slug="/".join([*parts[1:], Path(name).stem]),
+                slug=slug,
+                url=_url(collection or "content", slug),
                 path=str(path),
                 frontmatter=frontmatter,
                 body=body,

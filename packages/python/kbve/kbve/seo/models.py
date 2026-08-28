@@ -26,6 +26,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 Severity = Literal["error", "warn", "info"]
 
+# Where a page was read from. The same rules run over both, because both
+# produce the same shape -- but a handful of checks only mean something on one
+# side, and this is what lets a rule say so.
+Origin = Literal["source", "build"]
+
+SOURCE: Origin = "source"
+BUILD: Origin = "build"
+
 ERROR: Severity = "error"
 WARN: Severity = "warn"
 INFO: Severity = "info"
@@ -65,6 +73,17 @@ class SeoProfile(BaseModel):
     desc_max: int = 160
     body_min_chars: int = 0
 
+    # What the layout wraps a frontmatter title in, e.g. "{title} — RentEarth".
+    # Source mode measures the bare title otherwise, which under-counts every
+    # page on the site by the length of the suffix -- rentearth.com's About
+    # page is 5 characters of frontmatter and 17 of rendered <title>.
+    #
+    # An approximation, and only used in source mode: a layout may vary the
+    # template per page (rentearth.com drops the suffix when the title already
+    # is the site name), which a single string cannot express. Build mode does
+    # not use it, because there the rendered title is the title.
+    title_template: str | None = None
+
     # Universal expectations.
     require_title: bool = True
     require_description: bool = True
@@ -78,6 +97,13 @@ class SeoProfile(BaseModel):
     require_sem: bool = False
     require_social_image: bool = False
     require_software_jsonld: bool = False
+
+    @field_validator("title_template")
+    @classmethod
+    def _template_has_a_slot(cls, v: str | None) -> str | None:
+        if v is not None and "{title}" not in v:
+            raise ValueError('title_template must contain "{title}"')
+        return v
 
     @field_validator("title_max")
     @classmethod
@@ -186,15 +212,27 @@ class Frontmatter(BaseModel):
 
 
 class Page(BaseModel):
-    """One content file, parsed."""
+    """One page, from either a content file or a rendered HTML file.
+
+    `frontmatter` holds the authored fields in source mode and the equivalent
+    rendered metadata in build mode -- the <title>, the description meta, the
+    canonical link. Filling the same model from both is what lets one rule set
+    cover both: a title too long for the SERP is the same finding whether it
+    was measured before or after the layout wrapped it.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     collection: str
     slug: str
     path: str
+    # The URL a reader sees. Each loader knows it; the audit used to rebuild it
+    # from collection and slug, which is right for source and wrong for a built
+    # tree -- dist/index.html is served at / and was being keyed as /index/.
+    url: str
     frontmatter: Frontmatter
     body: str
+    origin: Origin = SOURCE
     # Findings raised while parsing, before any rule ran.
     parse_findings: tuple[Finding, ...] = ()
 

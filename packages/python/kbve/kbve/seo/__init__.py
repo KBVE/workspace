@@ -21,7 +21,8 @@ descend, images with alt text.
 # Exported as audit_content, not audit: `from kbve.seo import audit`
 # would otherwise be ambiguous with the kbve.seo.audit module that
 # holds it, and which of the two you got would depend on import order.
-from .audit import audit_content  # noqa: F401
+from .audit import audit_build, audit_content, audit_pages  # noqa: F401
+from .html import iter_built_pages, parse_html  # noqa: F401
 from .config import ProfileError, find_config, load_profiles  # noqa: F401
 from .models import (AuditResult, Finding, Frontmatter, Page,  # noqa: F401
                      ProfileSet, SeoProfile)
@@ -29,7 +30,9 @@ from .pages import find_content_dir, iter_pages  # noqa: F401
 from .rules import RULES, build_ctx  # noqa: F401
 
 __all__ = [
+    "audit_build",
     "audit_content",
+    "audit_pages",
     "AuditResult",
     "Finding",
     "Frontmatter",
@@ -41,6 +44,8 @@ __all__ = [
     "build_ctx",
     "find_config",
     "find_content_dir",
+    "iter_built_pages",
     "iter_pages",
+    "parse_html",
     "load_profiles",
 ]

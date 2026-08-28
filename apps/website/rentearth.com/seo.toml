@@ -1,0 +1,15 @@
+# SEO thresholds for this site, read by `kbve-seo-audit` (kbve.seo).
+#
+# Source mode audits src/content and runs without a build, so it cannot see
+# what Base.astro computes. This is the site telling it:
+
+[default]
+# Base.astro:55 -- `${title} — ${site.name}` unless the title already is the
+# site name. The exception is the home page only, and stating the common case
+# beats measuring every other page 12 characters short. `--dist` needs none of
+# this: there the rendered <title> is the answer.
+title_template = "{title} — RentEarth"
+
+# The floor is what a search result needs to be worth clicking, and 70 is the
+# generic advice. Left at the default deliberately: /about/ sits at 64 and is
+# a real backlog item, not a threshold to move out of the way.

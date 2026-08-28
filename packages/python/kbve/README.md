@@ -28,13 +28,41 @@ Python and uv are pinned in the workspace `.prototools`; `moon run kbve-py:insta
 Static frontmatter and MDX analysis of any Astro content collection. No build,
 no browser, no network — so it runs in CI on the files a site is authored from.
 
+Two modes over one rule set:
+
 ```bash
+# source: the .mdx an author edits. No build, no browser, runs on one changed file.
 kbve-seo-audit  --content apps/website/rentearth.com/src/content
-kbve-seo-report --content apps/website/rentearth.com/src/content --rule desc-length
+
+# build: the HTML that ships. Sees what the layout computed.
+kbve-seo-audit  --dist    apps/website/rentearth.com/dist
+kbve-seo-report --dist    apps/website/rentearth.com/dist --rule desc-length
 ```
+
+Neither replaces the other. Source findings name a file you can open, and are
+cheap enough to run per pull request — but they cannot see the wrapped title,
+the fallback description or the derived canonical, and they only cover pages
+that *are* content files (`/` and `/404/` are routes, not collection entries).
+Build findings are what search engines get, and cost a build to produce.
+
+The one thing source mode cannot infer, the site states in its `seo.toml`:
+
+```toml
+[default]
+title_template = "{title} — RentEarth"
+```
+
+Without it, a site that suffixes its titles has every page measured short by
+the length of the suffix. `--dist` ignores the setting, because there the
+rendered `<title>` already is the answer.
 
 Exit status is the contract: `0` clean, `1` error-severity findings, `2` the
 tool could not run. A bad path is never a failing site.
+
+Rules that describe an authoring convention (`tags`, `sem`, `draft`, JSON-LD
+`source_path`) run only over source; rendered HTML has no counterpart for them.
+Rules about the search result skip a `noindex` page entirely — it will never
+appear in one.
 
 Thresholds and per-collection switches live in a `seo.toml` the site owns,
 found automatically beside the content or at the project root:

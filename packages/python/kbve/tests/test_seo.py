@@ -31,8 +31,8 @@ def page(body: str = "", **frontmatter):
     """A Page built straight from values, bypassing the filesystem."""
     from kbve.seo.models import Page
     fm, _ = Frontmatter.parse(frontmatter)
-    return Page(collection="pages", slug="p", path="/tmp/p.mdx",
-                frontmatter=fm, body=body)
+    return Page(collection="pages", slug="p", url="/pages/p/",
+                path="/tmp/p.mdx", frontmatter=fm, body=body)
 
 
 # ── Frontmatter ──────────────────────────────────────────────────────
@@ -294,7 +294,8 @@ def test_duplicate_titles_are_an_error():
 def test_broken_relative_link_is_an_error(tmp_path):
     from kbve.seo.models import Page
     fm, _ = Frontmatter.parse({"title": "T"})
-    p = Page(collection="docs", slug="a", path=str(tmp_path / "a.mdx"),
+    p = Page(collection="docs", slug="a", url="/docs/a/",
+             path=str(tmp_path / "a.mdx"),
              frontmatter=fm, body="see [there](./gone.mdx)\n")
     ctx = {"titles": {}, "descs": {}, "files": {(tmp_path / "a.mdx").resolve()}}
     assert run(R.rule_internal_links, p, ctx)[0].rule == "internal-link"
@@ -304,7 +305,8 @@ def test_relative_link_to_a_real_page_passes(tmp_path):
     from kbve.seo.models import Page
     target = write(tmp_path / "b.mdx", "---\ntitle: B\n---\n")
     fm, _ = Frontmatter.parse({"title": "T"})
-    p = Page(collection="docs", slug="a", path=str(tmp_path / "a.mdx"),
+    p = Page(collection="docs", slug="a", url="/docs/a/",
+             path=str(tmp_path / "a.mdx"),
              frontmatter=fm, body="see [there](./b.mdx)\n")
     ctx = {"titles": {}, "descs": {}, "files": {target.resolve()}}
     assert run(R.rule_internal_links, p, ctx) == []
@@ -314,7 +316,8 @@ def test_site_absolute_links_are_left_alone(tmp_path):
     """Mapping /about/ to a file needs the site's routing; guessing is worse."""
     from kbve.seo.models import Page
     fm, _ = Frontmatter.parse({"title": "T"})
-    p = Page(collection="docs", slug="a", path=str(tmp_path / "a.mdx"),
+    p = Page(collection="docs", slug="a", url="/docs/a/",
+             path=str(tmp_path / "a.mdx"),
              frontmatter=fm, body="see [there](/about/)\n")
     ctx = {"titles": {}, "descs": {}, "files": set()}
     assert run(R.rule_internal_links, p, ctx) == []
@@ -513,3 +516,215 @@ def test_report_cli_is_read_only_about_a_bad_path(monkeypatch, tmp_path, capsys)
     from kbve.seo import report as report_mod
     assert _cli(monkeypatch, report_mod,
                 ["--content", str(tmp_path / "nope")]) == 2
+
+
+# ── build mode ───────────────────────────────────────────────────────
+#
+# Source mode audits what an author edits; build mode audits what ships. The
+# gap between them is everything the layout computes, which on a real site is
+# most of the metadata.
+
+from kbve.seo import audit_build, iter_built_pages, parse_html  # noqa: E402
+from kbve.seo.html import url_for  # noqa: E402
+
+HTML = """
+<!doctype html><html><head>
+<title>About — RentEarth</title>
+<meta name="description" content="{desc}">
+<link rel="canonical" href="https://rentearth.com/about">
+{extra}
+</head><body>
+<h1>About</h1>
+<p>Body copy.</p>
+</body></html>
+"""
+
+
+def build_site(root, pages):
+    for rel, html in pages.items():
+        write(root / rel, html)
+    return root
+
+
+def test_parse_html_reads_the_rendered_head():
+    fm, body, redirect = parse_html(HTML.format(desc="d" * 80, extra=""))
+    assert fm.title == "About — RentEarth"
+    assert fm.description == "d" * 80
+    assert fm.canonical == "https://rentearth.com/about"
+    assert redirect is False
+    assert "# About" in body
+
+
+def test_parse_html_reads_robots_and_og():
+    extra = ('<meta name="robots" content="noindex, follow">'
+             '<meta property="og:image" content="/og.png">'
+             '<meta property="og:image:alt" content="a map">')
+    fm, _, _ = parse_html(HTML.format(desc="d", extra=extra))
+    assert fm.noindex is True
+    assert fm.image == "/og.png"
+    assert fm.image_alt == "a map"
+
+
+def test_parse_html_ignores_script_and_style_text():
+    """Inlined JS is not body copy, and counting it would hide a thin page."""
+    html = ("<html><body><script>var x = 'lots of text here';</script>"
+            "<style>.a{color:red}</style><p>Real.</p></body></html>")
+    _, body, _ = parse_html(html)
+    assert "var x" not in body and "color:red" not in body
+    assert "Real." in body
+
+
+def test_parse_html_detects_a_redirect_stub():
+    html = '<html><head><meta http-equiv="refresh" content="0;url=/x/"></head></html>'
+    _, _, redirect = parse_html(html)
+    assert redirect is True
+
+
+def test_url_for_maps_files_to_the_urls_they_are_served_at(tmp_path):
+    assert url_for(tmp_path / "index.html", tmp_path) == "/"
+    assert url_for(tmp_path / "about" / "index.html", tmp_path) == "/about/"
+    assert url_for(tmp_path / "404.html", tmp_path) == "/404/"
+
+
+def test_iter_built_pages_keys_the_home_page_as_root(tmp_path):
+    """It was /index/ before the page carried its own URL."""
+    build_site(tmp_path, {"index.html": HTML.format(desc="d", extra="")})
+    assert [p.url for p in iter_built_pages(tmp_path)] == ["/"]
+
+
+def test_iter_built_pages_skips_redirect_stubs(tmp_path):
+    build_site(tmp_path, {
+        "about/index.html": HTML.format(desc="d", extra=""),
+        "old/index.html":
+            '<html><head><meta http-equiv="refresh" content="0;url=/about/">'
+            "</head></html>",
+    })
+    assert [p.url for p in iter_built_pages(tmp_path)] == ["/about/"]
+
+
+def test_iter_built_pages_skips_the_asset_directory(tmp_path):
+    build_site(tmp_path, {
+        "index.html": HTML.format(desc="d", extra=""),
+        "_astro/chunk.html": "<html><body>bundled</body></html>",
+    })
+    assert [p.url for p in iter_built_pages(tmp_path)] == ["/"]
+
+
+def test_built_pages_are_marked_as_such(tmp_path):
+    build_site(tmp_path, {"index.html": HTML.format(desc="d", extra="")})
+    assert next(iter(iter_built_pages(tmp_path))).origin == "build"
+
+
+# ── the two modes read the same rules differently ────────────────────
+
+def test_rendered_h1_is_expected_not_reported(tmp_path):
+    """The layout turns the title into the h1, so one is correct.
+
+    Read with the source-mode rule this fired on every page of the site.
+    """
+    build_site(tmp_path, {"index.html": HTML.format(desc="d" * 80, extra="")})
+    result = audit_build(tmp_path)
+    rules = {f.rule for p in result.pages.values() for f in p.findings}
+    assert "heading-single-h1" not in rules
+
+
+def test_a_built_page_with_no_h1_is_reported(tmp_path):
+    build_site(tmp_path, {
+        "index.html": "<html><head><title>A title long enough here</title>"
+                      '<meta name="description" content="%s">'
+                      "</head><body><p>x</p></body></html>" % ("d" * 80)})
+    result = audit_build(tmp_path)
+    rules = {f.rule for p in result.pages.values() for f in p.findings}
+    assert "heading-single-h1" in rules
+
+
+def test_convention_rules_do_not_run_over_built_html(tmp_path):
+    """tags and draft are frontmatter; rendered HTML has no counterpart."""
+    build_site(tmp_path, {"index.html": HTML.format(desc="d" * 80, extra="")})
+    profiles = ProfileSet(default=SeoProfile(require_tags=True, require_sem=True))
+    result = audit_build(tmp_path, profiles)
+    rules = {f.rule for p in result.pages.values() for f in p.findings}
+    assert not (rules & {"tags-present", "sem-tracked", "draft"})
+
+
+def test_a_noindex_page_is_not_measured_against_the_serp(tmp_path):
+    """rentearth.com's 404 found this: noindex by design, reported for a
+    short description no search result will ever show."""
+    build_site(tmp_path, {
+        "404.html": '<html><head><title>Not found</title>'
+                    '<meta name="description" content="short">'
+                    '<meta name="robots" content="noindex">'
+                    "</head><body><h1>Not found</h1></body></html>"})
+    result = audit_build(tmp_path)
+    findings = next(iter(result.pages.values())).findings
+    assert [f.rule for f in findings] == ["noindex"]
+
+
+def test_title_template_is_applied_to_source_only():
+    profile = SeoProfile(title_template="{title} — RentEarth")
+    short = page(title="About")
+
+    # 5 chars of frontmatter, 17 rendered: without the template this was
+    # reported as too short on every page of a site that suffixes its titles.
+    assert run(R.rule_title_length, short, profile=profile) == []
+    assert run(R.rule_title_length, short)[0].rule == "title-length"
+
+
+def test_title_template_is_ignored_in_build_mode():
+    """The rendered title needs no template; applying one double-counts."""
+    from kbve.seo.models import Page
+    fm, _ = Frontmatter.parse({"title": "About — RentEarth"})
+    built = Page(collection="", slug="about", url="/about/", path="/d/a.html",
+                 frontmatter=fm, body="# About", origin="build")
+    profile = SeoProfile(title_template="{title} — RentEarth")
+    assert run(R.rule_title_length, built, profile=profile) == []
+
+
+def test_title_template_must_have_a_slot():
+    with pytest.raises(ValidationError):
+        SeoProfile(title_template="RentEarth")
+
+
+def test_audit_cli_accepts_dist(monkeypatch, tmp_path, capsys):
+    from kbve.seo import audit as audit_mod
+    build_site(tmp_path, {"index.html": HTML.format(desc="d" * 80, extra="")})
+    assert _cli(monkeypatch, audit_mod, ["--dist", str(tmp_path)]) == 0
+    assert "audited 1 pages" in capsys.readouterr().out
+
+
+def test_audit_cli_exits_two_on_a_missing_dist(monkeypatch, tmp_path, capsys):
+    from kbve.seo import audit as audit_mod
+    assert _cli(monkeypatch, audit_mod, ["--dist", str(tmp_path / "nope")]) == 2
+    assert "no build directory" in capsys.readouterr().err
+
+
+# ── both modes against the real site ─────────────────────────────────
+
+def _rentearth():
+    return (Path(__file__).resolve().parents[4]
+            / "apps" / "website" / "rentearth.com")
+
+
+def test_rentearth_source_and_build_agree_on_the_page_they_share():
+    """The one finding both modes can see is the one both modes report.
+
+    Source cannot see /  or /404/ -- those are routes, not content files -- and
+    build cannot say which .mdx to edit. Where they overlap they must agree.
+    """
+    site = _rentearth()
+    if not (site / "src" / "content").is_dir():
+        pytest.skip("rentearth.com is not in this checkout")
+
+    profiles = load_profiles(find_config(site / "src" / "content"))
+    source = audit_content(site / "src" / "content", profiles)
+    src_rules = {f.rule for p in source.pages.values() for f in p.findings}
+    assert "title-length" not in src_rules, (
+        "the site's title_template should have covered the suffix")
+
+    if not (site / "dist").is_dir():
+        pytest.skip("rentearth.com has not been built")
+
+    built = audit_build(site / "dist", profiles)
+    about = built.pages["/about/"]
+    assert [f.rule for f in about.findings] == ["desc-length"]
+    assert "desc-length" in src_rules

@@ -9,7 +9,7 @@ import argparse
 import sys
 from collections import Counter
 
-from .audit import add_common_arguments, audit_content, resolve
+from .audit import add_common_arguments, resolve, run
 from .config import ProfileError
 
 
@@ -28,7 +28,7 @@ def main() -> int:
         print(f"kbve-seo-report: {exc}", file=sys.stderr)
         return 2
 
-    result = audit_content(content_dir, profiles, only=args.only)
+    result = run(args, content_dir, profiles)
     s = result.summary
 
     print("== SEO audit ==")

@@ -17,10 +17,30 @@ import re
 from pathlib import Path
 from typing import Any, Callable
 
-from .models import ERROR, INFO, WARN, Finding, Page, SeoProfile
+from .models import BUILD, ERROR, INFO, SOURCE, WARN, Finding, Origin, Page, SeoProfile
 
 Ctx = dict[str, Any]
 Rule = Callable[[Page, Ctx, SeoProfile], list[Finding]]
+
+
+def only_on(*origins: Origin):
+    """Restrict a rule to source pages, built pages, or both.
+
+    Most rules do not need this: a title too long for the search result is the
+    same finding whichever side it was measured on, and both sides fill the
+    same model. The exceptions are authoring conventions with no rendered
+    counterpart -- a draft flag or a tag list is frontmatter and nothing else,
+    so running those over built HTML would report every page as missing them.
+    """
+    def decorate(fn: Rule) -> Rule:
+        fn.origins = frozenset(origins)  # type: ignore[attr-defined]
+        return fn
+    return decorate
+
+
+def applies(rule: Rule, page: Page) -> bool:
+    return page.origin in getattr(rule, "origins", {SOURCE, BUILD})
+
 
 # Markdown images and links, ignoring the escaped and code-fenced cases that a
 # real parser would catch and a regex cannot. This is a linter for authored
@@ -38,13 +58,32 @@ def _body_without_code(page: Page) -> str:
 
 # ── length and presence ──────────────────────────────────────────────
 
+def _indexable(page: Page) -> bool:
+    """Whether search results are a thing this page can have.
+
+    A noindex page never appears in one, so measuring its title against what a
+    SERP truncates at reports a problem that cannot happen. rentearth.com's 404
+    is the case that found this: noindex by design, and reported for a short
+    description no one will ever read.
+    """
+    return not page.frontmatter.noindex
+
+
 def rule_title_length(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
+    if not _indexable(page):
+        return []
     title = page.frontmatter.title
     if not title:
         if not profile.require_title:
             return []
         return [Finding(rule="title-length", severity=ERROR, message="missing title")]
-    n = len(title)
+    # In build mode the layout has already applied whatever template it uses,
+    # so the rendered title is what ships. In source mode it has not.
+    rendered = title
+    if page.origin == SOURCE and profile.title_template:
+        rendered = profile.title_template.format(title=title)
+
+    n = len(rendered)
     if n < profile.title_min:
         return [Finding(rule="title-length", severity=WARN,
                         message=f"title {n} chars < {profile.title_min}")]
@@ -55,6 +94,8 @@ def rule_title_length(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding
 
 
 def rule_desc_length(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
+    if not _indexable(page):
+        return []
     desc = page.frontmatter.description
     if not desc:
         if not profile.require_description:
@@ -86,6 +127,8 @@ def rule_body_thin(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
 # ── whole-site ───────────────────────────────────────────────────────
 
 def rule_title_duplicate(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
+    if not _indexable(page):
+        return []
     if not profile.check_duplicates:
         return []
     title = page.frontmatter.title
@@ -97,6 +140,8 @@ def rule_title_duplicate(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Find
 
 
 def rule_desc_duplicate(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
+    if not _indexable(page):
+        return []
     if not profile.check_duplicates:
         return []
     desc = page.frontmatter.description
@@ -130,11 +175,27 @@ def rule_heading_order(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Findin
 
 
 def rule_heading_single_h1(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
-    """The title is the h1, so a second one in the body competes with it."""
+    """A page has exactly one h1 -- but the two modes count it differently.
+
+    In source the title is frontmatter, so any h1 in the body is a second one
+    competing with it. In the rendered page the layout has turned that title
+    into the h1, so exactly one is correct and the source-mode reading would
+    report every page on the site.
+    """
     if not profile.check_headings:
         return []
     count = sum(1 for m in _HEADING.finditer(_body_without_code(page))
                 if len(m.group("hashes")) == 1)
+
+    if page.origin == BUILD:
+        if count == 0:
+            return [Finding(rule="heading-single-h1", severity=WARN,
+                            message="no h1")]
+        if count > 1:
+            return [Finding(rule="heading-single-h1", severity=WARN,
+                            message=f"{count} h1 headings; a page has one")]
+        return []
+
     if count and page.frontmatter.title:
         return [Finding(rule="heading-single-h1", severity=WARN,
                         message=f"{count} h1 in the body; the title is already one")]
@@ -203,6 +264,7 @@ def rule_noindex(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
     return []
 
 
+@only_on(SOURCE)
 def rule_draft(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
     if page.frontmatter.draft:
         return [Finding(rule="draft", severity=INFO, message="draft")]
@@ -237,6 +299,7 @@ def rule_social_image(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding
 
 # ── per-site conventions ─────────────────────────────────────────────
 
+@only_on(SOURCE)
 def rule_tags_present(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
     if not profile.require_tags:
         return []
@@ -245,6 +308,7 @@ def rule_tags_present(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding
     return []
 
 
+@only_on(SOURCE)
 def rule_sem_tracked(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
     if not profile.require_sem:
         return []
@@ -254,6 +318,7 @@ def rule_sem_tracked(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]
     return []
 
 
+@only_on(SOURCE)
 def rule_software_jsonld(page: Page, ctx: Ctx, profile: SeoProfile) -> list[Finding]:
     """Software JSON-LD is derived from source_path / app_name.
 
