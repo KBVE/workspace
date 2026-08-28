@@ -3,10 +3,15 @@ pnpm = "11.24.0"
 rust = "1.98.0"
 moon = "2.5.3"
 godot = "4.7.2"
-# packages/python/kbve. Upper bound is the package's own requires-python
-# (>=3.12,<3.14); moon 2.5 has no built-in python toolchain plugin, so these
-# are proto-managed binaries the tasks call directly rather than a toolchain.
-python = "3.12.11"
+# packages/python/kbve. moon 2.5 has no built-in python toolchain plugin --
+# declaring `python:` in .moon/toolchains.yml fails with "a locator is required
+# for plugins" -- so uv runs as a system command against this pinned binary.
+#
+# The interpreter is deliberately not pinned here as well. uv resolves it from
+# the project's .python-version and downloads its own build, which is what it
+# did when both pins existed: proto installed 3.12.11 and every venv was still
+# built from uv's 3.12.12. Two pins, and the one that lost was the one written
+# down. proto pins uv; uv pins python.
 uv = "0.12.7"
 
 [plugins]
