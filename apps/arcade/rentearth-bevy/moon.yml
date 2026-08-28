@@ -4,10 +4,17 @@
 layer: 'application'
 language: 'rust'
 stack: 'frontend'
-tags: ['bevy', 'game', 'lfs']
+tags: ['bevy', 'game', 'lfs', 'itch']
 
 owners:
   defaultOwner: '@h0lybyte'
+
+# The one fact the project graph cannot answer: the itch page slug lives on
+# itch, not in this repository, and this project ships to a page called
+# `rentearth`. itch treats a wasm-bindgen bundle and a Vite one the same way,
+# so the channel is still `html`.
+env:
+  ITCH_TARGET: 'kbve/rentearth:html'
 
 tasks:
   # The browser bundles. Inherited `build` stays native: CI compiles that on
@@ -16,6 +23,13 @@ tasks:
   # release consumes.
   build-web:
     command: 'bash ./tools/build-web.sh'
+    deps:
+      # The water textures are LFS objects. Inherited `assets` hangs off the
+      # 'lfs' tag's `build`, which is the native one -- without naming it here
+      # the browser bundle ships pointer files as textures and the game gets
+      # placeholder water.
+      - '~:assets'
+      - '~:wasm-bindgen'
     inputs:
       - 'src/**/*'
       - 'assets/**/*'
@@ -25,3 +39,20 @@ tasks:
       - '/Cargo.lock'
     outputs:
       - 'dist'
+
+  # build-web.sh refuses to run on a CLI that does not match the wasm-bindgen
+  # crate in Cargo.lock, because the mismatch produces a bundle that fails at
+  # import with no useful message. This installs the matching one.
+  wasm-bindgen:
+    command: 'bash ./tools/ensure-wasm-bindgen.sh'
+    inputs:
+      - 'tools/ensure-wasm-bindgen.sh'
+      - '/Cargo.lock'
+    options:
+      cache: false
+
+  # Ships what build-web emits, not what `build` does: `build` stays native so
+  # CI does not cross-compile two wasm binaries on every change.
+  publish:
+    deps:
+      - '~:build-web'
