@@ -191,3 +191,87 @@ func test_the_room_given_is_recorded_with_the_name() -> void:
 	var written := Journal.find_entries(StateBits.JournalKind.ACCUSED)
 	assert_int(written.size()).is_equal(1)
 	assert_str(written[0]["place"]).is_equal(String(Session.night.scene))
+
+
+## What the reader is told when it is over.
+##
+## The verdict is the only event that carries the culprit, and it is safe for exactly
+## the reason nothing else may: it is sent after the accusation, when there is no
+## mystery left to spoil. These are about it going out at that moment and not before,
+## and about it saying what happened rather than what the player hoped had.
+func _watch_for_the_verdict() -> Array[GameEvent]:
+	var given: Array[GameEvent] = []
+	Ecs.world.add_callable(GameEvents.VERDICT, func(e: GameEvent) -> void: given.append(e))
+	return given
+
+
+func test_the_verdict_says_what_happened() -> void:
+	var runner := scene_runner(SCENE)
+	await runner.simulate_frames(30)
+	var given := _watch_for_the_verdict()
+	_accuse(Session.culprit)
+	await runner.simulate_frames(4)
+
+	assert_int(given.size()).override_failure_message(
+		"an accusation landed and the run never said what the answer was"
+	).is_equal(1)
+	var said: Dictionary = given[0].data
+	assert_str(str(said.get("who", ""))).is_equal(String(Session.culprit))
+	assert_str(str(said.get("weapon", ""))).is_equal(String(Session.night.weapon_id))
+	assert_str(str(said.get("room", ""))).is_equal(String(Session.night.scene))
+
+
+func test_the_verdict_repeats_what_the_player_named() -> void:
+	# Both halves travel together because the reveal prints them side by side, and the
+	# browser forgets what it named the moment it sends it.
+	var runner := scene_runner(SCENE)
+	await runner.simulate_frames(30)
+	var given := _watch_for_the_verdict()
+	var accused := _somebody_innocent()
+	var weapon := _another_weapon()
+	var room := _another_room()
+	_accuse(accused, weapon, room)
+	await runner.simulate_frames(4)
+
+	assert_int(given.size()).is_equal(1)
+	var said: Dictionary = given[0].data
+	assert_str(str(said.get("named_who", ""))).is_equal(String(accused))
+	assert_str(str(said.get("named_weapon", ""))).is_equal(String(weapon))
+	assert_str(str(said.get("named_room", ""))).is_equal(String(room))
+
+
+func test_nothing_says_the_answer_before_it_is_asked_for() -> void:
+	# The run is playable for as long as anybody likes without an accusation, and for
+	# all of it the answer stays this side of the boundary.
+	var runner := scene_runner(SCENE)
+	var given := _watch_for_the_verdict()
+	await runner.simulate_frames(60)
+	assert_int(given.size()).override_failure_message(
+		"the answer crossed while the mystery was still being asked"
+	).is_equal(0)
+
+
+func test_a_refused_accusation_gets_no_verdict() -> void:
+	# Refused, not lost: the reader cannot have meant a weapon that does not exist, so
+	# there is nothing to give a verdict on and the run is still theirs to finish.
+	var runner := scene_runner(SCENE)
+	await runner.simulate_frames(30)
+	var given := _watch_for_the_verdict()
+	_accuse(Session.culprit, &"a_harsh_word")
+	await runner.simulate_frames(4)
+	assert_int(given.size()).override_failure_message(
+		"a refused accusation was answered with the solution anyway"
+	).is_equal(0)
+
+
+func test_a_second_accusation_gets_no_second_verdict() -> void:
+	var runner := scene_runner(SCENE)
+	await runner.simulate_frames(30)
+	var given := _watch_for_the_verdict()
+	_accuse(_somebody_innocent())
+	await runner.simulate_frames(4)
+	_accuse(Session.culprit)
+	await runner.simulate_frames(4)
+	assert_int(given.size()).override_failure_message(
+		"the run gave the answer twice, and the second time to somebody already told"
+	).is_equal(1)

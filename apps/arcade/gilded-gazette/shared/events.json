@@ -121,6 +121,19 @@
       },
       "description": "One fact the run has produced: a conversation, an item used, a room entered.\n\n`id` is a ULID, so entries sort by creation without comparing any other field. `kind` is a JournalKind. `actor` and `target` are content ids (`beaumont`, `telegram`) or empty. `at` is in-world minutes past midnight, which is what the player reasons about; the ULID carries the real ordering."
     },
+    "VERDICT": {
+      "bus": "verdict",
+      "wire": "game:verdict",
+      "payload": {
+        "who": "string",
+        "weapon": "string",
+        "room": "string",
+        "named_who": "string",
+        "named_weapon": "string",
+        "named_room": "string"
+      },
+      "description": "The answer, and what the player said it was. Sent once, immediately after an accusation lands, and at no other moment.\n\nThis is the only event that carries the culprit, and it is safe for exactly the reason enquiry:opened is not allowed to: by the time it crosses, the run is over and there is nothing left to spoil. Sending it any earlier -- as part of the state snapshot, say -- would hand a browser console the answer to a mystery it is still being asked.\n\n`who`/`weapon`/`room` are what happened; `named_*` are the three the player gave. Won or lost is the two halves being equal and is not sent as a field of its own, because a verdict that carried both the comparison and its answer could disagree with itself. Both halves travel together because a reveal shows them side by side, and React forgets what it named the moment it is sent."
+    },
     "ENQUIRY_OPENED": {
       "bus": "enquiry_opened",
       "wire": "enquiry:opened",

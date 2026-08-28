@@ -7,6 +7,7 @@ import {
   useNaming,
   useNamingIsWhole,
 } from '../state/notebookStore';
+import { showVerdict, useVerdict } from '../state/verdictStore';
 import { rooms, suspects, weapons, type Answer } from './answers';
 import styles from './dossier.module.css';
 
@@ -28,6 +29,7 @@ export function Accusation() {
   const order = useRunningOrder();
   const naming = useNaming();
   const whole = useNamingIsWhole();
+  const verdict = useVerdict();
 
   // One accusation, once. The run is over the moment it is given, and a second would
   // talk a wrong answer into a right one with nothing recording the reader had been
@@ -88,7 +90,16 @@ export function Accusation() {
       )}
       {settled && (
         <p className={styles.hint} data-testid="accusation-closed">
-          The enquiry is closed.
+          The enquiry is closed.{' '}
+          {verdict && (
+            <button
+              className={styles.link}
+              data-testid="reopen-verdict"
+              onClick={showVerdict}
+            >
+              Read the verdict again.
+            </button>
+          )}
         </p>
       )}
     </section>

@@ -509,6 +509,31 @@ func _on_ui_accuse(event: GameEvent) -> void:
 	Session.time_of_day.running = false
 	_notify_level("won" if Session.accuses_correctly(StringName(who), StringName(weapon),
 		StringName(room)) else "lost")
+	_give_the_verdict(who, weapon, room)
+
+
+## Tells the player what actually happened, beside what they said happened.
+##
+## The one moment the answer leaves the engine. Everything else is deliberately kept
+## this side of the boundary -- the browser hands a copy of every event it receives to
+## whoever opens the console, so [member Session.culprit] crossing at any point before
+## this would be the mystery answering itself. Here it cannot spoil anything: the
+## accusation is already given and the run is already over.
+##
+## Whether they were right is not sent. It is the two halves being equal, and a payload
+## carrying a comparison as well as the things compared is a payload that can disagree
+## with itself.
+func _give_the_verdict(who: String, weapon: String, room: String) -> void:
+	if Session.night == null:
+		return
+	Ecs.notify(GameEvents.VERDICT, {
+		"who": String(Session.culprit),
+		"weapon": String(Session.night.weapon_id),
+		"room": String(Session.night.scene),
+		"named_who": who,
+		"named_weapon": weapon,
+		"named_room": room,
+	})
 
 
 func _notify_level(outcome: String) -> void:

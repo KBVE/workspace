@@ -51,3 +51,23 @@ export const rooms = (): Answer[] =>
   locations
     .filter((l) => typeof l.carriage === 'number')
     .map((l) => ({ id: l.id as LocationId, label: l.name }));
+
+/**
+ * What to call one answer, whichever of the three columns it belongs to.
+ *
+ * The lists above are what can be chosen; this is for printing back something already
+ * chosen -- the verdict names the culprit, and the culprit is not in `suspects()` when
+ * the reader has been told who the body is and the body did it, which cannot happen,
+ * or when they simply picked from a list this function was not given. Falling back to
+ * the raw id is on purpose: an id on screen is a content bug somebody can see, and a
+ * blank is the same bug hidden.
+ */
+export const nameOf = (part: 'who' | 'weapon' | 'room', id: string): string => {
+  if (!id) return '';
+  if (part === 'who') {
+    const passenger = passengers.find((p) => p.id === id);
+    return passenger ? listedAs(passenger) : id;
+  }
+  if (part === 'weapon') return items.find((i) => i.id === id)?.name ?? id;
+  return locations.find((l) => l.id === id)?.name ?? id;
+};
