@@ -1,0 +1,69 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+# Inherited by every project tagged 'npm', so publishing a new package to the
+# registry is a tag and a `build` task that writes to dist -- no entry in a
+# shared matrix, no workflow edit.
+#
+# The release workflow's only job is to turn a `<project>@<version>` tag into a
+# project id and run these tasks. It never names a package, so it stops growing.
+#
+# What a project tagged 'npm' owes these tasks:
+#
+#   a `build` task    writing the publishable tree to dist (or env.NPM_DIST)
+#   package.json      name, version, exports, and a `files` glob
+#   publish.deps      whatever has to pass before a package reaches the public
+#
+# publish.deps are declared per project rather than here because the gates
+# differ: laser has a browser e2e worth blocking a release on, and a package
+# with no renderer would have nothing to put there.
+inheritedBy:
+  tag: 'npm'
+
+tasks:
+  # Assembles the tarball and proves it loads. Separate from `build` on purpose:
+  # it writes the manifest and README into build output, so keeping it apart
+  # leaves `build` with outputs moon alone owns.
+  pack:
+    command: 'node $workspaceRoot/tools/npm/pack.mjs'
+    toolchains: ['node']
+    deps:
+      - '~:build'
+    inputs:
+      - 'package.json'
+      - 'README.md'
+      - '/tools/npm/pack.mjs'
+
+  publish:
+    command: 'bash $workspaceRoot/tools/npm/publish.sh'
+    toolchains: ['node']
+    deps:
+      - '~:pack'
+    # Narrow on purpose. Without inputs a task is affected by any change in its
+    # project, so `moon ci` would run this dry run -- and the build and every
+    # gate behind it -- on every push. What this task actually checks is the
+    # publish configuration, and that lives in package.json and moon.yml.
+    #
+    # A release names the target explicitly, which is not affected-filtered, so
+    # this does not narrow what ships.
+    inputs:
+      - 'moon.yml'
+      - 'package.json'
+    env:
+      # Dry run unless something explicitly opts out. `moon check` runs this
+      # task -- it has no outputs, so moon treats it as checkable -- and a task
+      # that pushes to a public registry by default is one `moon check --all`
+      # away from publishing a work in progress. An npm version is immutable
+      # once published, so that mistake cannot be taken back.
+      #
+      # The dry run still verifies the tarball, the manifest, and that the
+      # version is not already on the registry, so it is worth running; it just
+      # stops before the upload.
+      NPM_DRY_RUN: '1'
+    options:
+      # Not `runInCI: false`, which reads as "release-only" but means something
+      # stronger: moon skips such a task in any CI environment, including when
+      # a release workflow asks for it by name, so publishing would silently
+      # never happen. The dry-run default above is what keeps a push from
+      # uploading -- not this.
+      runInCI: true
+      cache: false
