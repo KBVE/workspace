@@ -47,7 +47,6 @@ export interface Passenger extends Prose {
   traits: string[];
   relationships: { who: string; tie: string }[];
 
-  timeline: { at: string; where: LocationId; note: string }[];
   /**
    * The same statements the `## Alibi` bullets make, in the form a run can respect.
    * A night places everybody consistently with their own claims and breaks exactly
@@ -126,24 +125,6 @@ export const sectionOf = (entry: Prose, key: string): Section | null =>
 
 export const passengersAt = (location: LocationId): Passenger[] =>
   passengers.filter((p) => p.location === location);
-
-export const whereWas = (p: Passenger, clock: number): LocationId | null => {
-  if (p.timeline.length === 0) return null;
-
-  const first = minutes(p.timeline[0].at);
-  const now = clock < first ? clock + 24 * 60 : clock;
-
-  let at: LocationId | null = null;
-  let prev = -1;
-  let day = 0;
-  for (const step of p.timeline) {
-    const m = minutes(step.at);
-    if (prev >= 0 && m < prev) day += 24 * 60;
-    if (m + day <= now) at = step.where;
-    prev = m;
-  }
-  return at;
-};
 
 const minutes = (hhmm: string): number => {
   const [h, m] = hhmm.split(':').map(Number);

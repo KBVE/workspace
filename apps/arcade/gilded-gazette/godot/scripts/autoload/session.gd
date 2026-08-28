@@ -36,16 +36,25 @@ const WALKING_YAW_OFFSET := -PI * 0.5
 ## corridor, which is the one thing about him nobody disputes.
 const ROUNDS_OF_THE_TRAIN := &"moreau"
 
-## Departure, in minutes past midnight. Earliest authored timeline is Dupont boarding at Paris.
+## Departure, in minutes past midnight: the Paris call, which is the earliest anybody
+## boards and so the zero every drawn night is measured from.
 const DEPARTURE_MINUTES := 16 * 60 + 5
 
 var time_of_day: CTimeOfDay
 var run: CRun
 
-## Who did it this run. Drawn in [method begin] and deliberately never packed into the
+## This run's evening: where everybody was, who it happened to, and who did it. Drawn
+## in [method begin], and the only authority on any of it.
+var night: TheNight = null
+
+## Who did it this run. Read off [member night] and deliberately never packed into the
 ## bridged state: React has no use for it, and the browser hands anybody who asks a copy
 ## of everything that crosses. It is answered here, when an accusation is made.
 var culprit: StringName = &""
+
+## The night a headless run always gets. Any value; what matters is that it does not
+## change between two runs of the same suite.
+const FIXED_NIGHT := 0x9e3779b9
 
 var _draw := RandomNumberGenerator.new()
 
@@ -106,27 +115,27 @@ func begin() -> void:
 	run.level_index = 0
 	run.score = 0
 	run.outcome = &"start"
-	culprit = _draw_a_culprit()
+	night = TheNight.draw(_draw_this_run(), DEPARTURE_MINUTES)
+	culprit = night.culprit_id if night != null else &""
 	if _places != null:
-		_places.culprit = culprit
+		_places.night = night
 	time_of_day.running = true
 	_clock.set_minutes(time_of_day, DEPARTURE_MINUTES)
 
 
-## Anybody aboard but the body. Not the `suspect` flag, which is who the enquiry has
-## formally named and is a fact about the enquiry rather than about the night: the
-## conductor is not a suspect and knows it, which is a reason to be able to draw him
-## rather than a reason not to.
-func _draw_a_culprit() -> StringName:
-	var eligible: Array[StringName] = []
-	for passenger: Dictionary in GameContent.passengers():
-		if passenger.get("victim", false):
-			continue
-		eligible.append(StringName(passenger.get("id", "")))
-	if eligible.is_empty():
-		return &""
+## The run's draw, random for a player and fixed for a tool.
+##
+## A headless process is never a player: it is the test suite, the export, or somebody
+## looking at the train from a script. Those need the same night every time, because a
+## suite that walks the carriages and asserts who is in them is otherwise asserting
+## against a train that was reshuffled between runs -- which showed up exactly as it
+## always does, a door test that passed and then did not.
+func _draw_this_run() -> RandomNumberGenerator:
+	if DisplayServer.get_name() == "headless":
+		_draw.seed = FIXED_NIGHT
+		return _draw
 	_draw.randomize()
-	return eligible[_draw.randi_range(0, eligible.size() - 1)]
+	return _draw
 
 
 ## Whether the accusation is the right one. The only question the run's answer is ever

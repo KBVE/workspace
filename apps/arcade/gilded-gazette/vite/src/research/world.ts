@@ -110,11 +110,6 @@ function ingestPassengers(people: Passenger[]): void {
       addComponent(world, subject, TieTo(other));
       Pair(TieTo, other).tie[subject] = r.tie;
     }
-    for (const step of p.timeline) {
-      const room = locationEid.get(step.where);
-      if (room === undefined) continue;
-      sighting(subject, room, absolute(minutes(step.at)), Source.TIMELINE);
-    }
   }
 }
 
@@ -134,7 +129,10 @@ export function ingest(): void {
   if (ingested) return;
   ingested = true;
 
-  const firsts = passengers.map((p) => (p.timeline[0] ? minutes(p.timeline[0].at) : DAY));
+  // The first call of the evening, which is the earliest anybody boards. It used to be
+  // read off the first timeline step; where somebody was is drawn per run now, and the
+  // one thing still authored about the start of the journey is the ticket they hold.
+  const firsts = passengers.map((p) => (p.boarded ? minutes(p.boarded.at) : DAY));
   departure = firsts.length ? Math.min(...firsts) : 0;
 
   ingestLocations();

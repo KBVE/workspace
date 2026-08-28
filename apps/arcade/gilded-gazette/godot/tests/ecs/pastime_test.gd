@@ -94,18 +94,28 @@ func test_the_timeline_gets_them_out_of_their_seat() -> void:
 	var was_in := location.location_id
 
 	# Wound with the clock rather than written by hand: [SPassengerPlace] rewrites the
-	# room from the timeline every tick, so a room set here is gone before anything
-	# reads it. The hours are theirs, whoever they turned out to be.
-	var moved := false
-	for minutes: int in [23 * 60 + 45, 0, 60, 2 * 60, 4 * 60]:
-		_clock_to(minutes)
-		await runner.simulate_frames(4)
-		if location.location_id != was_in:
-			moved = true
+	# room from the night every tick, so a room set here is gone before anything reads
+	# it. The hour is asked of the night rather than guessed at, because the night is
+	# drawn -- a passenger is free to stay put all evening, and a fixed list of hours
+	# would fail on the runs where this one did.
+	var who: StringName = sitting[&"CIdentity"].content_id
+	var night: TheNight = Session.night
+	var elsewhere := -1
+	for step in night.steps():
+		var elapsed: int = step * TheNight.STEP_MINUTES
+		if night.where_is(who, elapsed) != StringName(was_in):
+			elsewhere = elapsed
 			break
-	assert_bool(moved).override_failure_message(
-		"the night never moved %s out of %s" % [sitting[&"CIdentity"].content_id, was_in]
-	).is_true()
+	assert_int(elsewhere).override_failure_message(
+		"the night has %s in %s for the whole journey, so nothing could move them"
+		% [who, was_in]
+	).is_greater(-1)
+
+	_clock_to((Session.DEPARTURE_MINUTES + elsewhere) % (24 * 60))
+	await runner.simulate_frames(4)
+	assert_str(location.location_id).override_failure_message(
+		"the night moved %s out of %s and the world did not" % [who, was_in]
+	).is_not_equal(was_in)
 
 	assert_bool(sitting[&"CSeating"].seated).override_failure_message(
 		"the hour moved them on and they stayed in their seat").is_false()

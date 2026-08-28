@@ -84,7 +84,7 @@ export const passenger = z.object({
   suspect: z.boolean().default(false),
   /**
    * The one this is all about. A victim is a passenger and not a collection of
-   * their own: they bought a ticket, they have a berth, and their timeline runs
+   * their own: they bought a ticket, they have a berth, and their evening runs
    * like anyone's until it stops. What makes them the victim is that it stops.
    *
    * &exclusive -> gen-content enforces exactly one, and that they are not also a
@@ -96,14 +96,6 @@ export const passenger = z.object({
   traits: z.array(z.string()).default([]),
   relationships: z
     .array(z.object({ who: z.string().min(1), tie: z.string().min(1) }))
-    .default([]),
-  /**
-   * &truth -> where this passenger actually was, hour by hour. What they SAY
-   *           lives in the `## Alibi` section, so the contradiction between the
-   *           two is authored, not computed by accident
-   */
-  timeline: z
-    .array(z.object({ at: clock, where: locationId, note: z.string().min(1) }))
     .default([]),
   /**
    * The same statements the `## Alibi` bullets make, in the form a generator can
@@ -125,6 +117,12 @@ export const passenger = z.object({
           where: locationId,
           /** Denies ever having been there, for the whole journey. */
           never: z.boolean().default(false),
+          /**
+           * The window they place themselves in that room for, and they mean the
+           * whole of it. `from` alone runs to the end of the journey, `until` alone
+           * from the moment they boarded. One reading, because two would make a
+           * claim mean something different depending on which half was written.
+           */
           from: clock.optional(),
           until: clock.optional(),
         })

@@ -82,38 +82,6 @@ static func passengers_at(location: String) -> Array:
 static func section(entry: Dictionary, key: String) -> Dictionary:
 	return entry.get("sections", {}).get(key, {})
 
-## Where a passenger actually was at [param clock], from their timeline. What
-## they claim is in the `alibi` section, and the two disagreeing is the game.
-##
-## The journey crosses midnight, so 00:20 comes after 23:40 even though it is the
-## smaller number. Steps are authored in order, so one that moves backwards has
-## rolled over to the next day.
-static func where_was(passenger: Dictionary, clock: int) -> String:
-	var steps: Array = passenger.get("timeline", [])
-	if steps.is_empty():
-		return ""
-
-	var first := _minutes(steps[0].get("at", "00:00"))
-	# a clock reading before the first step belongs to the following morning
-	var now := clock + (1440 if clock < first else 0)
-
-	var at := ""
-	var prev := -1
-	var day := 0
-	for step: Dictionary in steps:
-		var m := _minutes(step.get("at", "00:00"))
-		if prev >= 0 and m < prev:
-			day += 1440
-		if m + day <= now:
-			at = step.get("where", "")
-		prev = m
-	return at
-
-## By their timelines, not their default location.
-static func present_at(location: String, clock: int) -> Array:
-	return passengers().filter(
-		func(p: Dictionary) -> bool: return where_was(p, clock) == location)
-
 ## What a passenger owns, by item.owner.
 static func items_of(passenger_id: String) -> Array:
 	return items().filter(func(i: Dictionary) -> bool: return i.get("owner", "") == passenger_id)

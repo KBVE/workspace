@@ -1,13 +1,15 @@
 # GdUnitTestSuite
 extends GdUnitTestSuite
 
-## &truth -> a passenger's timeline is where they ACTUALLY were. What they claim
-##           is prose in their `alibi` section. The mystery is the two disagreeing,
-##           so this system must never read the prose.
+## &truth -> a passenger is where the drawn night says, and what they claim is prose in
+##           their `alibi` section. The mystery is the two disagreeing, so this system
+##           must never read the prose. [TheNight] is tested on its own rules; what is
+##           here is that the system hands them to the world faithfully.
 
 var _scope: ECSScope
 var _system: SPassengerPlace
 var _time: CTimeOfDay
+var _night: TheNight
 
 
 func before_test() -> void:
@@ -16,8 +18,12 @@ func before_test() -> void:
 	#         view(&"CTimeOfDay")[0] deciding which one the system reads.
 	_time = Session.time_of_day
 	_time.running = false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	_night = TheNight.draw(rng, Session.DEPARTURE_MINUTES)
 	_system = SPassengerPlace.new()
 	_system.departure_minutes = Session.DEPARTURE_MINUTES
+	_system.night = _night
 	_scope.add_system(&"passenger_place_test", _system)
 
 
@@ -26,95 +32,50 @@ func after_test() -> void:
 	Session.begin()
 
 
-func _place(content_id: String, minutes: int) -> String:
-	var identity := CIdentity.new()
-	identity.content_id = content_id
-	var place := CLocation.new()
-	_scope.spawn().add(CPassenger.new()).add(identity).add(place)
-	_time.minutes_past_midnight = minutes
-	_system._on_update(0.0)
-	return place.location_id
-
-
-func test_a_passenger_stands_where_their_timeline_says() -> void:
-	assert_str(_place("dupont", 20 * 60 + 15)).is_equal("dining")
-	assert_str(_place("thompson", 22 * 60 + 30)).is_equal("cabin")
-	assert_str(_place("carrow", 21 * 60 + 50)).is_equal("corridor")
-
-
-func test_a_timeline_step_holds_until_the_next_one() -> void:
-	assert_str(_place("beaumont", 20 * 60 + 31)).is_equal("corridor")
-	assert_str(_place("beaumont", 23 * 60 + 39)).is_equal("corridor")
-	assert_str(_place("beaumont", 23 * 60 + 41)).is_equal("cabin")
-
-
-func test_the_journey_crosses_midnight() -> void:
-	assert_str(_place("weiss", 23 * 60 + 59)).is_equal("dining")
-	assert_str(_place("weiss", 0 * 60 + 21)).override_failure_message(
-		"00:20 comes AFTER 23:40 on this journey even though it is the smaller number"
-	).is_equal("corridor")
-
-
-func test_an_unknown_content_id_is_ignored_rather_than_crashing() -> void:
-	assert_str(_place("nobody_by_that_name", 20 * 60)).is_equal("")
-
-
-func test_every_authored_passenger_resolves_to_an_authored_location() -> void:
-	var known := GameContent.locations().map(func(l: Dictionary) -> String: return l["id"])
-	for passenger: Dictionary in GameContent.passengers():
-		for minutes in [19 * 60, 21 * 60, 23 * 60, 0 * 60 + 30]:
-			var where := _place(passenger["id"], minutes)
-			assert_array(known).override_failure_message(
-				"%s resolved to '%s' at %02d:%02d, which is not a shared/data/locations id"
-				% [passenger["id"], where, minutes / 60, minutes % 60]
-			).contains([where])
-
-
-func test_a_passenger_is_nowhere_before_they_board() -> void:
-	assert_str(_place("beaumont", 16 * 60 + 30)).override_failure_message(
-		"Lady Beaumont boards at 18:15; before that where_was() reads the clock as "
-		+ "the following day and puts her in the cabin she ends the night in"
-	).is_equal("")
-	assert_str(_place("beaumont", 18 * 60 + 20)).is_equal("platform")
-
-
-func test_dupont_boards_first_and_is_aboard_from_departure() -> void:
-	assert_str(_place("dupont", 16 * 60 + 30)).is_not_equal("")
-
-
-## The victim needs a posture to be put down in, which the placement helper above
-## deliberately does not give its passengers: the system has to keep placing people
-## that have no rig.
-func _place_body(content_id: String, minutes: int) -> Dictionary:
+func _spawn(content_id: String) -> Dictionary:
 	var identity := CIdentity.new()
 	identity.content_id = content_id
 	var place := CLocation.new()
 	var posture := CPosture.new()
 	_scope.spawn().add(CPassenger.new()).add(identity).add(place).add(posture)
-	_time.minutes_past_midnight = minutes
+	return {"place": place, "posture": posture}
+
+
+func _at(entity: Dictionary, elapsed: int) -> String:
+	_time.minutes_past_midnight = (Session.DEPARTURE_MINUTES + elapsed) % 1440
 	_system._on_update(0.0)
-	return {"where": place.location_id, "dead": posture.dead}
+	return entity["place"].location_id
 
 
-func test_the_victim_keeps_his_evening_until_it_stops() -> void:
-	var between_the_cars := _place_body("vasek", 23 * 60 + 20)
-	assert_str(between_the_cars["where"]).is_equal("vestibule")
-	assert_bool(between_the_cars["dead"]).override_failure_message(
-		"he is alive at twenty past eleven and walks his timeline like anybody"
-	).is_false()
+func test_a_passenger_stands_where_the_night_says() -> void:
+	for id: String in ["beaumont", "weiss", "moreau"]:
+		var entity := _spawn(id)
+		for elapsed in [4 * 60, 7 * 60, 9 * 60]:
+			assert_str(_at(entity, elapsed)).override_failure_message(
+				"%s was not put where the night placed them at +%d" % [id, elapsed]
+			).is_equal(String(_night.where_is(StringName(id), elapsed)))
 
 
-func test_the_victim_stays_where_his_timeline_stops() -> void:
-	# 01:00 in berth 7 is his last step, and 01:30 is half an hour later on a journey
-	# that departed at 16:05 -- the wrap past midnight is the easy thing to get wrong.
-	var found := _place_body("vasek", 1 * 60 + 30)
-	assert_str(found["where"]).is_equal("cabin")
-	assert_bool(found["dead"]).is_true()
+func test_nobody_is_aboard_before_the_train_leaves() -> void:
+	# Boarding is part of the night, so a passenger who has not boarded is nowhere
+	# rather than standing in whichever room the content happens to name first.
+	var entity := _spawn("weiss")
+	assert_str(_at(entity, 0)).is_equal("")
+
+
+func test_the_victim_is_left_where_it_happened() -> void:
+	var entity := _spawn(String(_night.victim_id))
+	assert_str(_at(entity, _night.murder_elapsed + 45)).is_equal(String(_night.scene))
+	assert_bool(entity["posture"].dead).is_true()
 
 
 func test_nobody_else_is_ever_put_down() -> void:
-	# Only a victim's timeline means anything by ending. Everyone else simply stays
-	# where their last step left them, and goes on being a person there.
-	var late := _place_body("carrow", 2 * 60)
-	assert_str(late["where"]).is_equal("cabin")
-	assert_bool(late["dead"]).is_false()
+	var entity := _spawn(String(_night.culprit_id))
+	_at(entity, _night.murder_elapsed + 45)
+	assert_bool(entity["posture"].dead).override_failure_message(
+		"only the victim's evening ends"
+	).is_false()
+
+
+func test_an_unknown_content_id_is_ignored_rather_than_crashing() -> void:
+	assert_str(_at(_spawn("nobody_by_that_name"), 5 * 60)).is_equal("")
