@@ -1,11 +1,10 @@
 //! Spawning the world's tiles.
 
-use std::f32::consts::FRAC_PI_2;
-
 use bevy::asset::RenderAssetUsages;
 use bevy::image::{ImageAddressMode, ImageSampler, ImageSamplerDescriptor};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
+use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::transform::TransformSystems;
 
@@ -29,6 +28,20 @@ const COLUMN_BASE: f32 = -30.0;
 /// wall, so the gap shows as a seam straight through the map. Tile definition
 /// comes from the side walls and lighting instead.
 const TILE_INSET: f32 = 1.0;
+
+/// Width of the darkened rim around each tile's top face, as a fraction of the
+/// hex's circumradius.
+///
+/// The borders a 4X map is read through. Drawn as part of the column rather
+/// than as an overlay on top of it: there are 24,000 land tiles, so anything
+/// that costs an entity or a draw call each is not a border, it is a budget.
+const BORDER_WIDTH: f32 = 0.055;
+
+/// How much darker the rim is than the tile it edges.
+///
+/// A multiplier rather than a colour, so the border is the terrain's own hue in
+/// shadow. A flat grey line over ice and over jungle belongs to neither.
+const BORDER_SHADE: f32 = 0.62;
 
 /// The generated world, addressable by tile.
 ///
@@ -85,8 +98,8 @@ pub fn spawn_map(
         .iter()
         .filter(|t| !t.is_water())
         .map(|t| {
-            let mesh = meshes.add(Extrusion::new(
-                RegularPolygon::new(HEX_SIZE * TILE_INSET, 6),
+            let mesh = meshes.add(column_mesh(
+                HEX_SIZE * TILE_INSET,
                 t.elevation() - COLUMN_BASE,
             ));
             let material = materials.add(StandardMaterial {
@@ -99,10 +112,6 @@ pub fn spawn_map(
             (*t, (mesh, material))
         })
         .collect();
-
-    // Extrusion builds along +Z from a 2D shape in XY; the map needs that axis
-    // along +Y, so every tile is laid flat.
-    let lay_flat = Quat::from_rotation_x(-FRAC_PI_2);
 
     let world = terrain::generate(*spec);
 
@@ -125,15 +134,15 @@ pub fn spawn_map(
 
         let (mesh, material) = &assets[kind];
 
-        // Extrusion is centred on its own origin, so the column's midpoint
-        // goes here for the top face to land on the terrain's elevation.
-        let mid = (kind.elevation() + COLUMN_BASE) / 2.0;
-        let position = offset.to_hex().to_world(mid);
+        // The mesh puts its top face at the origin and hangs the column below,
+        // so the tile goes straight to its own elevation with no midpoint to
+        // work out and nothing to rotate.
+        let position = offset.to_hex().to_world(kind.elevation());
 
         commands.spawn((
             Mesh3d(mesh.clone()),
             MeshMaterial3d(material.clone()),
-            Transform::from_translation(position).with_rotation(lay_flat),
+            Transform::from_translation(position),
             BasePosition(position),
             Tile,
             *offset,
@@ -228,4 +237,94 @@ fn depth_texture(spec: MapSpec, world: &[(crate::game::core::map::Offset, Terrai
     });
 
     image
+}
+
+/// One hex column: a top face with a darkened rim, and the walls below it.
+///
+/// Built here rather than taken from `Extrusion` because of the rim. Bevy's
+/// primitives make a hexagon with nothing to attach a border to, and every
+/// other way of drawing one -- an overlay mesh, a child entity, a second pass
+/// -- costs something per tile across 24,000 of them. Baked into the mesh the
+/// tiles already share, it costs nothing at all: the rim is the same triangles
+/// carrying a darker vertex colour.
+///
+/// The top face sits at y = 0 and the column hangs to `-height`, so a tile is
+/// placed at its own elevation. The bottom is left open, being under the map.
+fn column_mesh(radius: f32, height: f32) -> Mesh {
+    // Pointy-top, matching the axial layout in `hex`: a vertex straight up the
+    // z axis, the flats to east and west. Get this wrong by thirty degrees and
+    // the tiles stop tessellating.
+    let corner = |k: usize, r: f32| {
+        let angle = std::f32::consts::FRAC_PI_2 + k as f32 * std::f32::consts::FRAC_PI_3;
+        Vec3::new(r * angle.cos(), 0.0, -r * angle.sin())
+    };
+
+    let inner_radius = radius * (1.0 - BORDER_WIDTH);
+
+    let mut positions: Vec<[f32; 3]> = Vec::new();
+    let mut normals: Vec<[f32; 3]> = Vec::new();
+    let mut colors: Vec<[f32; 4]> = Vec::new();
+    let mut indices: Vec<u32> = Vec::new();
+
+    let lit = [1.0, 1.0, 1.0, 1.0];
+    let rim = [BORDER_SHADE, BORDER_SHADE, BORDER_SHADE, 1.0];
+    let up = [0.0, 1.0, 0.0];
+
+    // Centre of the top face.
+    positions.push([0.0, 0.0, 0.0]);
+    normals.push(up);
+    colors.push(lit);
+
+    // Inner ring, then outer ring, both on the top face.
+    for k in 0..6 {
+        positions.push(corner(k, inner_radius).to_array());
+        normals.push(up);
+        colors.push(lit);
+    }
+    for k in 0..6 {
+        positions.push(corner(k, radius).to_array());
+        normals.push(up);
+        colors.push(rim);
+    }
+
+    // The face inside the border: a fan from the centre.
+    for k in 0..6u32 {
+        let next = k % 6 + 1;
+        indices.extend_from_slice(&[0, 1 + k, 1 + (next % 6)]);
+    }
+
+    // The border itself: a quad per edge, between the two rings.
+    for k in 0..6u32 {
+        let (a, b) = (1 + k, 1 + (k + 1) % 6);
+        let (c, d) = (7 + k, 7 + (k + 1) % 6);
+        indices.extend_from_slice(&[a, c, d, a, d, b]);
+    }
+
+    // The walls. Their own vertices, because a wall's normal points outward and
+    // sharing the top face's would round the edge over.
+    for k in 0..6 {
+        let a = corner(k, radius);
+        let b = corner((k + 1) % 6, radius);
+
+        // Outward and level, so neighbouring columns of different heights read
+        // as cliffs rather than as a smooth slope.
+        let outward = ((a + b) * 0.5).normalize_or_zero().to_array();
+
+        let base = positions.len() as u32;
+        for corner_position in [a, b, b - Vec3::Y * height, a - Vec3::Y * height] {
+            positions.push(corner_position.to_array());
+            normals.push(outward);
+            colors.push(lit);
+        }
+        indices.extend_from_slice(&[base, base + 2, base + 1, base, base + 3, base + 2]);
+    }
+
+    Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::RENDER_WORLD,
+    )
+    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+    .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+    .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
+    .with_inserted_indices(Indices::U32(indices))
 }
