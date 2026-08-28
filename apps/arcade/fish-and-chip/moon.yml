@@ -12,6 +12,12 @@ language: 'typescript'
 stack: 'frontend'
 tags: ['phaser', 'game', 'itch']
 
+# laser is consumed from source through an alias in vite.config.ts, so this is
+# not a build-order dependency -- it is what makes moon rerun this project's
+# tasks when laser changes under it.
+dependsOn:
+  - 'laser'
+
 owners:
   defaultOwner: '@h0lybyte'
 
@@ -27,6 +33,11 @@ fileGroups:
     - 'src/**/*'
     - 'public/**/*'
     - 'index.html'
+    # laser is aliased to its TypeScript sources rather than to a built
+    # package, so its files are inputs to this project's builds and tests the
+    # same way src/ is. Without this a laser change leaves every fish-and-chip
+    # task on a cache hit, building the previous version of the dependency.
+    - '/packages/laser/src/**/*'
   configs:
     - 'vite.config.ts'
     - 'tsconfig*.json'

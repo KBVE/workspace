@@ -13,7 +13,14 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vite/client", "vitest/globals"]
+    "types": ["vite/client", "vitest/globals"],
+    // Mirrors the alias in vite.config.ts. laser's published package.json
+    // points at built files under packages/laser/dist, so tsc cannot resolve
+    // the package root from a workspace link either.
+    "paths": {
+      "@kbve/laser/phaser": ["../../../packages/laser/src/phaser.ts"],
+      "@kbve/laser": ["../../../packages/laser/src/index.ts"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "e2e/**/*.ts", "vite.config.ts", "playwright.config.ts"]
 }

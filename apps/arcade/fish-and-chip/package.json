@@ -13,6 +13,7 @@
 		"atlas": "node tools/atlas.mjs"
 	},
 	"dependencies": {
+		"@kbve/laser": "workspace:*",
 		"@nanostores/persistent": "catalog:",
 		"grid-engine": "catalog:",
 		"nanostores": "catalog:",

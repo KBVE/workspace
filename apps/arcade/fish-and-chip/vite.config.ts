@@ -1,4 +1,7 @@
 /// <reference types="vitest/config" />
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -10,6 +13,25 @@ export default defineConfig({
 	base: './',
 
 	plugins: [react()],
+
+	// laser is consumed from source, not from its dist. Its published
+	// package.json points at built files that only exist under packages/laser/
+	// dist, so a workspace link to the package root does not resolve; aliasing
+	// the entry points keeps types live and means the app does not need laser
+	// built before it can run. The subpath alias has to come first -- '@kbve/
+	// laser' is a prefix of '@kbve/laser/phaser'.
+	resolve: {
+		alias: [
+			{
+				find: '@kbve/laser/phaser',
+				replacement: resolve(dirname(fileURLToPath(import.meta.url)), '../../../packages/laser/src/phaser.ts'),
+			},
+			{
+				find: '@kbve/laser',
+				replacement: resolve(dirname(fileURLToPath(import.meta.url)), '../../../packages/laser/src/index.ts'),
+			},
+		],
+	},
 
 	server: { port: 4200 },
 	preview: { port: 4300 },

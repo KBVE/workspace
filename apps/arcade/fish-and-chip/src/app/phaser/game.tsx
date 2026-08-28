@@ -1,6 +1,7 @@
+import { PhaserGame } from '@kbve/laser/phaser';
 import GridEngine from 'grid-engine';
 import Phaser from 'phaser';
-import { useEffect, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { CreditsScene } from './scenes/CreditsScene';
 import { FishChipScene } from './scenes/FishChipScene';
@@ -19,17 +20,14 @@ declare global {
 	}
 }
 
+// The canvas is mounted by @kbve/laser, which exists to be this layer. Booting
+// Phaser inside an effect by hand is a few lines until StrictMode's double
+// mount destroys the game on the first cleanup and leaves the second mount
+// holding an orphaned canvas; laser defers the destroy by a tick so a remount
+// cancels it and reattaches the existing canvas instead.
 export function Game() {
-	const gameRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		const parent = gameRef.current;
-		if (!parent) return;
-
-		const game = new Phaser.Game({
-			title: 'TownEngine',
-			type: Phaser.AUTO,
-			parent,
+	const config = useMemo(
+		() => ({
 			transparent: true,
 			width: 800,
 			height: 600,
@@ -48,24 +46,24 @@ export function Game() {
 			plugins: {
 				scene: [{ key: 'gridEngine', plugin: GridEngine, mapping: 'gridEngine' }],
 			},
-			scene: [Preloader, TownScene, FishChipScene, GameOver, FishScene, CreditsScene, MarketScene],
+			scenes: [Preloader, TownScene, FishChipScene, GameOver, FishScene, CreditsScene, MarketScene],
 			input: {
 				mouse: { preventDefaultWheel: false },
 				touch: { capture: false },
 			},
-		});
+		}),
+		[],
+	);
 
+	const onReady = useCallback((game: Phaser.Game) => {
 		window.__FISHCHIP_GAME__ = game;
-
-		// StrictMode mounts effects twice in development; without this the
-		// second mount leaves an orphaned canvas and a running game loop.
-		return () => {
-			delete window.__FISHCHIP_GAME__;
-			game.destroy(true);
-		};
 	}, []);
 
-	return <div ref={gameRef} />;
+	const onDestroy = useCallback(() => {
+		delete window.__FISHCHIP_GAME__;
+	}, []);
+
+	return <PhaserGame config={config} onReady={onReady} onDestroy={onDestroy} />;
 }
 
 export default Game;
