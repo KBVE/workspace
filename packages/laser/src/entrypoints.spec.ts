@@ -15,8 +15,14 @@ import path from 'node:path';
 
 const SRC = __dirname;
 
-/** Non-optional peers. They are always installed, so they can never be stubbed. */
-const ALWAYS = ['react', 'react-dom'];
+/**
+ * Non-optional peers. They are always installed, so they can never be stubbed.
+ *
+ * react-dom is deliberately absent: nothing in src imports it. It reaches a
+ * consumer through fiber and drei, which declare it themselves, so listing it
+ * here would let it be introduced into the ECS entry unnoticed.
+ */
+const ALWAYS = ['react'];
 
 /** Optional peers each entry point is allowed to reach. */
 const ALLOWED: Record<string, readonly string[]> = {
@@ -136,5 +142,68 @@ describe('laser entry points', () => {
 				`exports["${key}"] has no src/${name}`,
 			).toBe(true);
 		}
+	});
+});
+
+/**
+ * The manifest has to agree with the code about what this package needs.
+ *
+ * Two directions, because they fail differently. A peer the code imports and
+ * the manifest omits installs fine and dies at runtime on a module the bundler
+ * could not resolve. A peer the manifest declares and nothing imports is a
+ * dependency every consumer is asked to reason about for nothing -- and the
+ * whole point of the entry-point split is that a consumer installs only what
+ * the subpath they use actually needs.
+ */
+describe('peerDependencies', () => {
+	const manifest = JSON.parse(
+		readFileSync(path.join(SRC, '..', 'package.json'), 'utf8'),
+	) as { peerDependencies: Record<string, string> };
+
+	const imported = new Set(
+		Object.keys(ALLOWED).flatMap((entry) => [
+			...bareImports(path.join(SRC, entry)),
+		]),
+	);
+	// Node built-ins are not peers; nothing installs them.
+	for (const spec of [...imported]) {
+		if (spec.startsWith('node:')) imported.delete(spec);
+	}
+
+	it('declares every peer the entry points import', () => {
+		const declared = new Set(Object.keys(manifest.peerDependencies));
+		const undeclared = [...imported].filter((s) => !declared.has(s)).sort();
+		expect(
+			undeclared,
+			`imported but not in peerDependencies: ${undeclared.join(', ')}`,
+		).toEqual([]);
+	});
+
+	it('imports every peer it declares', () => {
+		const unused = Object.keys(manifest.peerDependencies)
+			.filter((s) => !imported.has(s))
+			.sort();
+		expect(
+			unused,
+			`declared as a peer but imported by no entry point: ${unused.join(', ')}. ` +
+				`A consumer should not be asked to install what nothing uses.`,
+		).toEqual([]);
+	});
+
+	it('marks every peer outside the required set optional', () => {
+		const meta = (
+			JSON.parse(readFileSync(path.join(SRC, '..', 'package.json'), 'utf8')) as {
+				peerDependenciesMeta?: Record<string, { optional?: boolean }>;
+			}
+		).peerDependenciesMeta;
+
+		const notOptional = Object.keys(manifest.peerDependencies).filter(
+			(s) => !ALWAYS.includes(s) && !meta?.[s]?.optional,
+		);
+		expect(
+			notOptional,
+			`these are required of every consumer, including one that only wants ` +
+				`the ECS: ${notOptional.join(', ')}`,
+		).toEqual([]);
 	});
 });

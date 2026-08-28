@@ -26,14 +26,28 @@ Only React is required. Every other peer is optional and belongs to one entry
 point, so installing `@kbve/laser` for its ECS pulls in neither Phaser nor three.
 
 - `react` >= 18.0.0
-- `react-dom` >= 18.0.0
-- `phaser` >= 4.1.0 _(optional — `@kbve/laser/phaser`)_
+- `phaser` >= 4.2.0 _(optional — `@kbve/laser/phaser`)_
 - `@phaserjs/rapier-connector` >= 1.0.0 _(optional — `@kbve/laser/phaser`)_
 - `three` >= 0.160.0 _(optional — `@kbve/laser/r3f`)_
 - `@react-three/fiber` >= 9.0.0 _(optional — `@kbve/laser/r3f`)_
 - `@react-three/drei` >= 10.0.0 _(optional — `@kbve/laser/r3f`)_
 - `bitecs` >= 0.4.0 _(optional — `@kbve/laser` and `@kbve/laser/ecs`)_
 - `fastnoise-lite` >= 1.1.0 _(optional — `@kbve/laser`)_
+
+`react-dom` is not listed: nothing here imports it. Anything that renders React
+already has it, and `@react-three/fiber` declares it for the paths that do.
+
+Two floors worth knowing about:
+
+- **Phaser 4.2, not 4.1.** `SpriteGPULayer` reached for the global `Phaser`
+  namespace until 4.2.0, which crashes in a module build — and this is only
+  ever consumed as a module.
+- **`@kbve/laser/r3f` needs React 19**, not 18. `@react-three/fiber` 9 declares
+  `react >=19 <19.3` and drei 10 declares `^19`. Every other entry point runs
+  on React 18.
+
+The package is ESM only. There is no CommonJS build and no `require` condition
+in `exports`.
 
 ## Usage
 
