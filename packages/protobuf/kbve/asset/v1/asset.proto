@@ -1,0 +1,312 @@
+syntax = "proto3";
+
+package kbve.asset.v1;
+
+import "google/protobuf/timestamp.proto";
+import "kbve/common/v1/decimal.proto";
+import "kbve/common/v1/registry.proto";
+import "kbve/type/v1/id.proto";
+
+// Things that have a price and can be traded.
+//
+// Equities are the first class modelled here, because they are the strictest:
+// they carry several competing identifier schemes, they trade on venues whose
+// ticker namespaces collide, and their price history is rewritten behind them
+// by splits and dividends. A model that survives that carries a token or a
+// game item without further work.
+//
+// What an asset *is* beyond its market behaviour lives elsewhere. What a game
+// item does when you wear it belongs to the game that owns it; this domain
+// knows only that the thing exists, where it trades, and what it has cost.
+
+// What kind of thing is being traded.
+//
+// The class decides how an asset is identified and which venues can quote it,
+// and little else. Everything below is deliberately shaped so that adding a
+// class does not change any message.
+enum AssetClass {
+  ASSET_CLASS_UNSPECIFIED = 0;
+  // An item in a game economy.
+  ASSET_CLASS_GAME_ITEM = 1;
+  ASSET_CLASS_EQUITY = 2;
+  ASSET_CLASS_CRYPTO = 3;
+  // A national currency, as the subject of a rate rather than the unit of one.
+  ASSET_CLASS_FIAT = 4;
+  ASSET_CLASS_COMMODITY = 5;
+  ASSET_CLASS_INDEX = 6;
+  ASSET_CLASS_FUND = 7;
+}
+
+// How an asset is named where it trades.
+//
+// A symbol alone does not identify anything: the same ticker is different
+// companies on different exchanges, and a token symbol is not unique at all.
+// The venue is part of the name.
+message AssetRef {
+  AssetClass asset_class = 1;
+  // Where it trades, e.g. "osrs-ge", "nasdaq", "coinbase".
+  string venue = 2;
+  // How the venue names it, e.g. "Abyssal whip", "AAPL", "BTC-USD".
+  string symbol = 3;
+}
+
+// What a venue permits.
+message TradingRules {
+  // How many units may be bought within the window below. The Grand Exchange
+  // calls this a buy limit; an exchange would call it a position limit.
+  optional int64 buy_limit = 1;
+  optional int64 buy_limit_window_seconds = 2;
+
+  // The smallest order the venue accepts.
+  optional kbve.common.v1.Decimal min_order_size = 3;
+  // The smallest price increment.
+  optional kbve.common.v1.Decimal tick_size = 4;
+  // Orders must be a multiple of this many units.
+  optional int64 lot_size = 5;
+
+  optional bool tradeable = 6;
+  // Whether units of it are interchangeable and can be held as one balance.
+  optional bool fungible = 7;
+}
+
+// One name an asset goes by, and the scheme that issued it.
+//
+// The scheme is a lowercase slug: "isin", "cusip", "figi", "sedol", "cik",
+// "mic", "contract-address", "osrs-item-id". Keeping it open avoids an enum
+// that has to change every time a data source is added.
+message AssetIdentifier {
+  string scheme = 1;
+  string value = 2;
+}
+
+// What a company or fund is, beyond the fact that it trades.
+//
+// Present only on equities and funds. Absent on a token or a game item, which
+// have no sector and no share count.
+message EquityProfile {
+  // Where the issuer is domiciled, as an ISO 3166-1 alpha-2 code.
+  optional string country = 1;
+  // Classification, as the source system words it.
+  optional string sector = 2;
+  optional string industry = 3;
+
+  optional int64 shares_outstanding = 4;
+  // Recomputed rather than stored as truth: it is a price times a share count,
+  // and both move.
+  optional kbve.common.v1.Decimal market_cap = 5;
+
+  optional bool is_etf = 6;
+  optional string issuer_name = 7;
+  optional google.protobuf.Timestamp listed_at = 8;
+}
+
+// A tradeable thing.
+message Asset {
+  kbve.type.v1.Ulid id = 1;
+  AssetRef ref = 2;
+  string name = 3;
+  optional string description = 4;
+
+  // What prices for it are quoted in: a currency code, or the name of a game
+  // currency such as "gp".
+  string quote_currency = 5;
+
+  // Every identifier the asset is known by. A security carries several at
+  // once - an ISIN, a CUSIP, a FIGI, an exchange ticker - and which one a data
+  // source speaks is not a property of the asset. A single native_id field
+  // would have forced a choice that does not exist.
+  repeated AssetIdentifier identifiers = 6;
+
+  optional TradingRules rules = 7;
+
+  // What the issuing system says it is worth, where that is a fixed number
+  // rather than a market price. A game item's shop value, a bond's face value.
+  optional kbve.common.v1.Decimal base_value = 8;
+
+  optional EquityProfile equity = 9;
+
+  optional string icon_url = 10;
+  repeated string tags = 11;
+
+  google.protobuf.Timestamp created_at = 12;
+  optional google.protobuf.Timestamp updated_at = 13;
+  // When the asset stopped trading: an item removed from a game, a company
+  // delisted, a token abandoned.
+  optional google.protobuf.Timestamp retired_at = 14;
+}
+
+// What an asset costs at one moment.
+//
+// Bid and ask carry their own timestamps because they do not have to move
+// together. On the Grand Exchange they routinely do not: an item can have an
+// instant-sell price from an hour ago and an instant-buy price from a minute
+// ago, and averaging the two without knowing that is how a price ends up
+// wrong.
+message Quote {
+  AssetRef ref = 1;
+  // When this quote was assembled.
+  google.protobuf.Timestamp as_of = 2;
+
+  // The best price a buyer is offering.
+  optional kbve.common.v1.Decimal bid = 3;
+  optional google.protobuf.Timestamp bid_at = 4;
+  optional int64 bid_size = 5;
+
+  // The best price a seller is asking.
+  optional kbve.common.v1.Decimal ask = 6;
+  optional google.protobuf.Timestamp ask_at = 7;
+  optional int64 ask_size = 8;
+
+  // The price of the last trade that actually happened.
+  optional kbve.common.v1.Decimal last = 9;
+  optional google.protobuf.Timestamp last_at = 10;
+
+  // Units traded over the period the venue reports.
+  optional int64 volume = 11;
+}
+
+// The period one candle covers.
+enum CandleInterval {
+  CANDLE_INTERVAL_UNSPECIFIED = 0;
+  CANDLE_INTERVAL_MINUTE_1 = 1;
+  CANDLE_INTERVAL_MINUTE_5 = 2;
+  CANDLE_INTERVAL_MINUTE_15 = 3;
+  CANDLE_INTERVAL_HOUR_1 = 4;
+  CANDLE_INTERVAL_HOUR_4 = 5;
+  CANDLE_INTERVAL_DAY_1 = 6;
+  CANDLE_INTERVAL_WEEK_1 = 7;
+  CANDLE_INTERVAL_MONTH_1 = 8;
+}
+
+// Aggregated trading over one interval.
+message Candle {
+  // The interval this candle opens; it closes one interval later.
+  google.protobuf.Timestamp open_time = 1;
+  kbve.common.v1.Decimal open = 2;
+  kbve.common.v1.Decimal high = 3;
+  kbve.common.v1.Decimal low = 4;
+  kbve.common.v1.Decimal close = 5;
+  optional int64 volume = 6;
+  // How many trades made up the candle.
+  optional int64 trade_count = 7;
+}
+
+// A run of candles for one asset at one interval.
+message PriceHistory {
+  AssetRef ref = 1;
+  CandleInterval interval = 2;
+  // Ordered oldest first.
+  repeated Candle candles = 3;
+
+  // Whether the prices have been restated for splits and dividends since they
+  // were quoted.
+  //
+  // This is not decoration. A two-for-one split halves every price before it,
+  // so an unadjusted series and an adjusted one disagree about what a share
+  // cost on the same day, and a chart that mixes them shows a crash that never
+  // happened. A series that does not say which it is cannot be used safely, so
+  // the field is required rather than optional and the zero value means
+  // nobody said.
+  PriceAdjustment adjustment = 4;
+  // The last corporate action folded into these prices, where the series is
+  // adjusted. A series adjusted before a later split is stale, not wrong, and
+  // this is how a consumer can tell.
+  optional google.protobuf.Timestamp adjusted_through = 5;
+}
+
+// A step in a strategy for turning one asset into another.
+//
+// Generalised from the Grand Exchange flipping guides, which are the same
+// shape as any spread trade: acquire something, do something to it, sell the
+// result.
+message StrategyStep {
+  // One-based.
+  int32 order = 1;
+  // What to do, e.g. "Buy yew logs".
+  string action = 2;
+  optional AssetRef ref = 3;
+  optional int64 quantity = 4;
+}
+
+// A described way of making money on an asset.
+message Strategy {
+  kbve.type.v1.Ulid id = 1;
+  string title = 2;
+  optional string description = 3;
+  // The asset the strategy is filed under.
+  AssetRef ref = 4;
+  repeated StrategyStep steps = 5;
+  // How the profit is worked out, as written for a person to read.
+  repeated string profit_formulas = 6;
+  repeated string notes = 7;
+}
+
+// Every asset being tracked.
+message AssetRegistry {
+  kbve.common.v1.RegistryMeta meta = 1;
+  repeated Asset assets = 2;
+}
+
+// Whether a price series has been restated for corporate actions.
+enum PriceAdjustment {
+  PRICE_ADJUSTMENT_UNSPECIFIED = 0;
+  // Prices exactly as they were quoted at the time.
+  PRICE_ADJUSTMENT_NONE = 1;
+  // Restated for splits only.
+  PRICE_ADJUSTMENT_SPLIT = 2;
+  // Restated for splits and for dividends paid out of the price.
+  PRICE_ADJUSTMENT_SPLIT_AND_DIVIDEND = 3;
+}
+
+// Something an issuer did that changes what a holding is or what it is worth.
+enum CorporateActionKind {
+  CORPORATE_ACTION_KIND_UNSPECIFIED = 0;
+  // One share becomes several.
+  CORPORATE_ACTION_KIND_SPLIT = 1;
+  // Several shares become one.
+  CORPORATE_ACTION_KIND_REVERSE_SPLIT = 2;
+  CORPORATE_ACTION_KIND_CASH_DIVIDEND = 3;
+  CORPORATE_ACTION_KIND_STOCK_DIVIDEND = 4;
+  // The issuer was absorbed; holders receive the successor.
+  CORPORATE_ACTION_KIND_MERGER = 5;
+  // Part of the issuer became a separate asset.
+  CORPORATE_ACTION_KIND_SPINOFF = 6;
+  // The name or ticker changed and the asset did not.
+  CORPORATE_ACTION_KIND_RENAME = 7;
+  CORPORATE_ACTION_KIND_DELISTING = 8;
+  CORPORATE_ACTION_KIND_RIGHTS_ISSUE = 9;
+}
+
+// One corporate action.
+//
+// These are why a price series is not simply a list of numbers. Each one has
+// an effective date that rewrites everything before it, so they are recorded
+// rather than folded silently into the prices.
+message CorporateAction {
+  kbve.type.v1.Ulid id = 1;
+  AssetRef ref = 2;
+  CorporateActionKind kind = 3;
+
+  // The first day the asset trades without the entitlement. This is the date
+  // that matters for adjusting a series, not the announcement or the payment.
+  google.protobuf.Timestamp ex_date = 4;
+  optional google.protobuf.Timestamp announced_at = 5;
+  // Who holds it on this date is entitled.
+  optional google.protobuf.Timestamp record_date = 6;
+  optional google.protobuf.Timestamp pay_date = 7;
+
+  // For splits, as a ratio rather than a decimal: a three-for-two split is
+  // numerator 3 and denominator 2, and writing that as 1.5 loses the fact that
+  // it was a share count.
+  optional int64 ratio_numerator = 8;
+  optional int64 ratio_denominator = 9;
+
+  // For dividends, per share, in the currency below.
+  optional kbve.common.v1.Decimal amount = 10;
+  optional string currency = 11;
+
+  // What the asset became, for a merger, a spinoff or a rename.
+  optional AssetRef resulting_ref = 12;
+
+  optional string notes = 13;
+}
