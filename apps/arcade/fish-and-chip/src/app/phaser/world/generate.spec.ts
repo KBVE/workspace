@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { MARKERS, SAND, collidableGids } from './palette';
+import { BUILDING, collidableGids } from './palette';
 import { generateTown, toTiledJSON, unreachableLandmarks, type TownMap } from './generate';
 
 const SEEDS = [1, 2, 7, 42, 99, 1234, 8675309];
@@ -61,10 +61,33 @@ describe('generateTown', () => {
 		expect(solid.has(tileAt(map, 'objects', door.x, door.y + 1))).toBe(false);
 	});
 
-	// A marker that is also a floor tile is a landmark the player cannot see.
-	it('never uses a landmark tile as ordinary floor', () => {
-		const sand = new Set<number>(SAND);
-		for (const gid of Object.values(MARKERS)) expect(sand.has(gid)).toBe(false);
+	// The complaint that produced the street grid: buildings dropped at random
+	// on open ground, doors facing nothing. A door has to open onto a street.
+	it.each(SEEDS)('opens every door onto a street on seed %i', (seed) => {
+		const map = generateTown({ seed });
+		const streets = new Set(map.streets.map((spot) => `${spot.x},${spot.y}`));
+		const buildingLayer = map.layers.find((layer) => layer.name === 'buildings')!.data;
+		const doorGid = BUILDING.origin + BUILDING.door.y * 45 + BUILDING.door.x;
+
+		let doors = 0;
+		for (let y = 0; y < map.height; y++) {
+			for (let x = 0; x < map.width; x++) {
+				if (buildingLayer[y * map.width + x] !== doorGid) continue;
+				doors++;
+				expect(streets.has(`${x},${y + 1}`)).toBe(true);
+			}
+		}
+		expect(doors).toBeGreaterThan(0);
+	});
+
+	it.each(SEEDS)('keeps the streets walkable on seed %i', (seed) => {
+		const map = generateTown({ seed });
+		const solid = collidableGids();
+
+		for (const spot of map.streets) {
+			const at = spot.y * map.width + spot.x;
+			for (const layer of map.layers) expect(solid.has(layer.data[at])).toBe(false);
+		}
 	});
 
 	it('is bigger than the hand-authored map it replaces', () => {
@@ -74,7 +97,7 @@ describe('generateTown', () => {
 		expect(map.width * map.height).toBeGreaterThan(20 * 20);
 	});
 
-	it('refuses a town too small to hold its landmarks', () => {
+	it('refuses a town too small to lay streets in', () => {
 		expect(() => generateTown({ seed: 1, width: 8, height: 8 })).toThrow(/too small/);
 	});
 });

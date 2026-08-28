@@ -56,21 +56,44 @@ export const BUILDING = {
 	door: { x: 1, y: 3 },
 } as const;
 
-/** Solid scenery scattered on the object layer: rocks, crates, cacti. */
-export const PROPS = [1102, 1103, 1066, 1067, 1111, 1112] as const;
+/** Kept for the collision set: every gid any decor stamp can place. */
+export const DECOR_GIDS = [
+	872, 873, 917, 918, 1052, 1097, 1102, 1103, 1147, 1148, 1106, 1107, 1151, 1152, 877, 922, 967,
+] as const;
 
 /**
- * Marks a point of interest on the ground. Walkable -- the player stands on it.
- * None of these may appear in SAND, or the landmark stops being findable.
+ * Landmarks are built out of real objects rather than a recoloured floor tile.
+ * The first attempt marked them with paving gids, which is what 453, 409, and
+ * 407 are -- edge pieces of a plaza -- so a landmark looked like ground.
+ *
+ * Each stamp is rows of gids, top row first, and is placed on the object layer.
+ * The player stands on the tile below the stamp, which is why nothing here is
+ * more than two tiles tall: taller and the caption sits off screen.
  */
-export const MARKERS = {
-	/** The sand pit that starts the fishing minigame. */
-	fishingPit: 453,
-	/** The credits sign. */
-	sign: 409,
-	/** The tombstone. */
-	tombstone: 407,
+export const DECOR = {
+	/** Wooden notice board. The credits sign. */
+	noticeBoard: [
+		[872, 873],
+		[917, 918],
+	],
+	/** Grey headstone. The grave. */
+	headstone: [[1052], [1097]],
+	/** Planks laid over the ground, read as a jetty. The fishing spot. */
+	jetty: [
+		[1102, 1103],
+		[1147, 1148],
+	],
+	/** Ornamental fountain, for the middle of a junction. */
+	fountain: [
+		[1106, 1107],
+		[1151, 1152],
+	],
+	/** Three tile street lamp, top to base. */
+	lamp: [[877], [922], [967]],
 } as const;
+
+/** Loose scenery with no meaning: cacti and rocks. */
+export const SCATTER = [1066, 1111, 1109, 1103] as const;
 
 /**
  * Every gid the generator can place that the player cannot walk through.
@@ -79,7 +102,8 @@ export const MARKERS = {
  */
 export function collidableGids(): Set<number> {
 	const solid = new Set<number>(Object.values(WALL));
-	for (const prop of PROPS) solid.add(prop);
+	for (const gid of DECOR_GIDS) solid.add(gid);
+	for (const gid of SCATTER) solid.add(gid);
 
 	for (let row = 0; row < BUILDING.height; row++) {
 		for (let column = 0; column < BUILDING.width; column++) {

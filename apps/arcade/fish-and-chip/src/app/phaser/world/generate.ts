@@ -1,9 +1,9 @@
 import {
 	BUILDING,
-	MARKERS,
-	PROPS,
+	DECOR,
 	SAND,
 	SAND_PRIMARY,
+	SCATTER,
 	TILESET_COLUMNS,
 	WALL,
 	collidableGids,
@@ -11,33 +11,31 @@ import {
 
 // Generates the town TownScene walks around in.
 //
-// It replaces cloud_city.json, a 20x20 map with every landmark at a fixed
-// coordinate -- which is why the old scene asked "is the player between x=2 and
-// x=5" to know it was standing at the well. Landmarks come out of the generator
-// here, so the interaction code reads a position instead of a magic rectangle
-// and a bigger map does not mean rewriting those checks.
+// The first version scattered buildings at random on open ground, which looked
+// exactly like what it was: four boxes dropped in a desert, doors facing
+// nothing. A town is a street plan, so this lays streets first and hangs
+// everything off them -- buildings stand in the block above a street with their
+// doorway opening onto it, lamps line the kerb, landmarks sit at junctions.
 //
 // Everything is a pure function of the seed. That is what makes it testable
-// without a canvas, and it means a seed that produces a broken town can be
-// replayed exactly.
+// without a canvas, and it means a town someone complains about can be
+// reproduced from its `?seed=`.
 
 export type Position = { x: number; y: number };
 
-export type PointOfInterest =
-	| 'fishingPit'
-	| 'sign'
-	| 'tombstone'
-	| 'building';
+export type PointOfInterest = 'fishingPit' | 'sign' | 'tombstone' | 'building';
 
 export type TownMap = {
 	width: number;
 	height: number;
 	/** Bottom-to-top draw order, matching the authored map's layer names. */
 	layers: { name: string; data: number[] }[];
-	/** Where each landmark sits. The scene turns these into interactions. */
+	/** The tile the player stands on to use each landmark. */
 	landmarks: Record<PointOfInterest, Position>;
 	playerSpawn: Position;
 	npcSpawns: Position[];
+	/** Street tiles, for tests and for placing anything that wants a kerb. */
+	streets: Position[];
 };
 
 export type TownOptions = {
@@ -45,13 +43,18 @@ export type TownOptions = {
 	width?: number;
 	height?: number;
 	buildings?: number;
-	props?: number;
+	scatter?: number;
 	npcs?: number;
 };
 
+/** Rows between one street and the next. A block is this tall, minus the street. */
+const BLOCK_HEIGHT = 7;
+/** Columns between cross streets. */
+const BLOCK_WIDTH = 11;
+
 /**
- * mulberry32. Small, seedable, and good enough to scatter rocks -- the point is
- * reproducibility, not statistical quality.
+ * mulberry32. Small, seedable, and good enough to choose which lots get built
+ * on -- the point is reproducibility, not statistical quality.
  */
 function rng(seed: number): () => number {
 	let state = seed >>> 0;
@@ -83,20 +86,14 @@ function wallAt(x: number, y: number, width: number, height: number): number {
 	return WALL.right;
 }
 
-/**
- * Builds the town. Landmarks and spawns are placed on open floor, then the
- * whole thing is checked for reachability -- a town with a walled-off sand pit
- * is a town the player cannot finish.
- */
 export function generateTown(options: TownOptions): TownMap {
 	const width = options.width ?? 40;
 	const height = options.height ?? 30;
-	const buildingCount = options.buildings ?? 4;
-	const propCount = options.props ?? 24;
+	const scatterCount = options.scatter ?? 18;
 	const npcCount = options.npcs ?? 2;
 
-	if (width < 12 || height < 12) {
-		throw new Error(`A ${width}x${height} town is too small to place its landmarks.`);
+	if (width < 16 || height < 16) {
+		throw new Error(`A ${width}x${height} town is too small to lay streets in.`);
 	}
 
 	const random = rng(options.seed);
@@ -106,116 +103,184 @@ export function generateTown(options: TownOptions): TownMap {
 	const buildings = new Array<number>(width * height).fill(0);
 	const objects = new Array<number>(width * height).fill(0);
 
-	// Floor first, walls over the edge of it.
 	for (let y = 0; y < height; y++) {
 		for (let x = 0; x < width; x++) {
 			const onEdge = x === 0 || y === 0 || x === width - 1 || y === height - 1;
-			// Most of the floor is the primary sand; the variants only speckle,
-			// the way the authored map uses them.
 			ground[index(x, y, width)] = onEdge
 				? wallAt(x, y, width, height)
-				: random() < 0.15
+				: random() < 0.07
 					? pick(SAND)
 					: SAND_PRIMARY;
 		}
 	}
 
-	const solid = collidableGids();
-	const blocked = (x: number, y: number) =>
-		solid.has(ground[index(x, y, width)]) ||
-		solid.has(buildings[index(x, y, width)]) ||
-		solid.has(objects[index(x, y, width)]);
+	// The street plan. Horizontal streets are what buildings face; the vertical
+	// ones connect them, so no block is a dead end.
+	const streetRows: number[] = [];
+	for (let y = BLOCK_HEIGHT; y < height - 2; y += BLOCK_HEIGHT) streetRows.push(y);
+	const streetColumns: number[] = [];
+	for (let x = BLOCK_WIDTH; x < width - 2; x += BLOCK_WIDTH) streetColumns.push(x);
 
+	if (streetRows.length === 0 || streetColumns.length === 0) {
+		throw new Error(`A ${width}x${height} town has no room for a street grid.`);
+	}
+
+	const onStreet = (x: number, y: number) =>
+		streetRows.includes(y) || streetColumns.includes(x);
+
+	const streets: Position[] = [];
+	for (let y = 1; y < height - 1; y++) {
+		for (let x = 1; x < width - 1; x++) {
+			if (onStreet(x, y)) streets.push({ x, y });
+		}
+	}
+
+	const solid = collidableGids();
 	const occupied = (x: number, y: number) =>
 		buildings[index(x, y, width)] !== 0 || objects[index(x, y, width)] !== 0;
+	const free = (x: number, y: number) =>
+		x > 0 && y > 0 && x < width - 1 && y < height - 1 && !occupied(x, y);
 
-	/** Interior floor, one tile in from the wall so nothing hugs the edge. */
-	const freeInteriorTile = (margin = 2): Position | null => {
-		for (let attempt = 0; attempt < 500; attempt++) {
-			const x = margin + Math.floor(random() * (width - margin * 2));
-			const y = margin + Math.floor(random() * (height - margin * 2));
-			if (!blocked(x, y) && !occupied(x, y)) return { x, y };
+	/**
+	 * Every lot a building could stand in: footprint sitting on a block, with
+	 * its doorway one tile above a street, so the door opens onto the street
+	 * rather than into whatever the random number generator left there.
+	 */
+	const lots: Position[] = [];
+	for (const street of streetRows) {
+		const top = street - BUILDING.height;
+		if (top < 2) continue;
+		for (let x = 2; x + BUILDING.width < width - 2; x += BUILDING.width + 1) {
+			// Skip a lot that would sit across a cross street, or the junction
+			// stops being a junction.
+			let clearOfCrossStreets = true;
+			for (let dx = 0; dx < BUILDING.width; dx++) {
+				if (streetColumns.includes(x + dx)) clearOfCrossStreets = false;
+			}
+			if (clearOfCrossStreets) lots.push({ x, y: top });
+		}
+	}
+
+	if (lots.length === 0) {
+		throw new Error(`Seed ${options.seed} produced a town with nowhere to build.`);
+	}
+
+	// Build on a deterministic subset, so a town has gaps between its buildings
+	// rather than a solid terrace along every street.
+	const wanted = Math.min(options.buildings ?? Math.ceil(lots.length * 0.55), lots.length);
+	const shuffled = [...lots];
+	for (let i = shuffled.length - 1; i > 0; i--) {
+		const j = Math.floor(random() * (i + 1));
+		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+	}
+
+	const doors: Position[] = [];
+	for (const lot of shuffled.slice(0, wanted)) {
+		for (let row = 0; row < BUILDING.height; row++) {
+			for (let column = 0; column < BUILDING.width; column++) {
+				buildings[index(lot.x + column, lot.y + row, width)] =
+					BUILDING.origin + row * TILESET_COLUMNS + column;
+			}
+		}
+		doors.push({ x: lot.x + BUILDING.door.x, y: lot.y + BUILDING.door.y });
+	}
+
+	/** Stamps a decor block on the object layer, top row first. */
+	const stamp = (art: readonly (readonly number[])[], x: number, y: number) => {
+		art.forEach((row, dy) => {
+			row.forEach((gid, dx) => {
+				objects[index(x + dx, y + dy, width)] = gid;
+			});
+		});
+	};
+
+	const fits = (art: readonly (readonly number[])[], x: number, y: number) => {
+		for (let dy = 0; dy < art.length; dy++) {
+			for (let dx = 0; dx < art[dy].length; dx++) {
+				if (!free(x + dx, y + dy)) return false;
+				if (onStreet(x + dx, y + dy)) return false;
+			}
+		}
+		// The tile the player stands on to use it has to stay walkable, and be
+		// somewhere they can actually get to: the street below.
+		const standY = y + art.length;
+		for (let dx = 0; dx < art[0].length; dx++) {
+			if (!free(x + dx, standY)) return false;
+		}
+		return true;
+	};
+
+	/** Places a landmark against a street, returning the tile to stand on. */
+	const placeLandmark = (art: readonly (readonly number[])[]): Position | null => {
+		for (let attempt = 0; attempt < 800; attempt++) {
+			const street = streetRows[Math.floor(random() * streetRows.length)];
+			const y = street - art.length;
+			const x = 2 + Math.floor(random() * (width - 4));
+			if (y < 2) continue;
+			if (!fits(art, x, y)) continue;
+			stamp(art, x, y);
+			return { x, y: street };
 		}
 		return null;
 	};
 
-	// Buildings. Each is a solid stamp with a walkable doorway at its foot; the
-	// tile below the door is kept clear so the player can stand there.
-	const doors: Position[] = [];
-	// A door is useless if something later covers the tile you walk in from, and
-	// a building placed there is allowed by an occupancy test alone -- that tile
-	// is empty, which is the whole point of it.
-	const reservedApproaches = new Set<number>();
-	for (let placed = 0; placed < buildingCount; placed++) {
-		let anchor: Position | null = null;
+	const landmarks = {} as Record<PointOfInterest, Position>;
 
-		for (let attempt = 0; attempt < 200 && !anchor; attempt++) {
-			const x = 2 + Math.floor(random() * (width - BUILDING.width - 4));
-			const y = 2 + Math.floor(random() * (height - BUILDING.height - 5));
+	const jetty = placeLandmark(DECOR.jetty);
+	const board = placeLandmark(DECOR.noticeBoard);
+	const grave = placeLandmark(DECOR.headstone);
+	if (!jetty || !board || !grave) {
+		throw new Error(`Seed ${options.seed} left nowhere to put its landmarks.`);
+	}
+	landmarks.fishingPit = jetty;
+	landmarks.sign = board;
+	landmarks.tombstone = grave;
+	landmarks.building = doors[0];
 
-			// One tile of clearance all round, plus the approach below the door,
-			// so two buildings cannot seal a corridor between them.
-			let clear = true;
-			for (let dy = -1; dy <= BUILDING.height + 1 && clear; dy++) {
-				for (let dx = -1; dx <= BUILDING.width && clear; dx++) {
-					const cx = x + dx;
-					const cy = y + dy;
-					if (cx < 1 || cy < 1 || cx >= width - 1 || cy >= height - 1) clear = false;
-					else if (occupied(cx, cy)) clear = false;
-					else if (reservedApproaches.has(index(cx, cy, width))) clear = false;
-				}
-			}
-			if (clear) anchor = { x, y };
-		}
-
-		if (!anchor) continue;
-
-		for (let row = 0; row < BUILDING.height; row++) {
-			for (let column = 0; column < BUILDING.width; column++) {
-				buildings[index(anchor.x + column, anchor.y + row, width)] =
-					BUILDING.origin + row * TILESET_COLUMNS + column;
-			}
-		}
-		const door = { x: anchor.x + BUILDING.door.x, y: anchor.y + BUILDING.door.y };
-		doors.push(door);
-		reservedApproaches.add(index(door.x, door.y + 1, width));
+	// A fountain where two streets cross, purely so the middle of town looks
+	// like the middle of town.
+	const junctionX = streetColumns[Math.floor(streetColumns.length / 2)];
+	const junctionY = streetRows[Math.floor(streetRows.length / 2)];
+	if (free(junctionX + 1, junctionY + 1) && free(junctionX + 2, junctionY + 2)) {
+		stamp(DECOR.fountain, junctionX + 1, junctionY + 1);
 	}
 
-	if (doors.length === 0) {
-		throw new Error(`Seed ${options.seed} produced a town with no buildings.`);
-	}
-
-	// Landmarks. The building landmark is the doorway of the first building --
-	// the tile the player stands on to go in.
-	const landmarks = {
-		building: doors[0],
-	} as Record<PointOfInterest, Position>;
-
-	for (const marker of ['fishingPit', 'sign', 'tombstone'] as const) {
-		const spot = freeInteriorTile(3);
-		if (!spot) throw new Error(`Seed ${options.seed} left nowhere to put the ${marker}.`);
-		ground[index(spot.x, spot.y, width)] = MARKERS[marker];
-		landmarks[marker] = spot;
+	// Lamps on the kerb: the tile above a street, in the gaps between buildings.
+	for (const street of streetRows) {
+		for (let x = 3; x < width - 3; x += 6) {
+			const y = street - DECOR.lamp.length;
+			if (y > 1 && fits(DECOR.lamp, x, y)) stamp(DECOR.lamp, x, y);
+		}
 	}
 
 	const reserved = new Set(
 		Object.values(landmarks).map((position) => index(position.x, position.y, width)),
 	);
 
-	const playerSpawn = freeInteriorTile(2);
-	if (!playerSpawn) throw new Error(`Seed ${options.seed} left nowhere to put the player.`);
+	/** An open tile off the street, for spawns and scenery. */
+	const freeOffStreet = (): Position | null => {
+		for (let attempt = 0; attempt < 500; attempt++) {
+			const x = 2 + Math.floor(random() * (width - 4));
+			const y = 2 + Math.floor(random() * (height - 4));
+			if (free(x, y) && !onStreet(x, y) && !reserved.has(index(x, y, width))) return { x, y };
+		}
+		return null;
+	};
 
+	// The player and the townsfolk start on a street, which is the one place
+	// they are certain to be able to walk out of.
+	const streetSpawn = (): Position => {
+		for (let attempt = 0; attempt < 500; attempt++) {
+			const spot = streets[Math.floor(random() * streets.length)];
+			if (free(spot.x, spot.y) && !reserved.has(index(spot.x, spot.y, width))) return spot;
+		}
+		return streets[0];
+	};
+
+	const playerSpawn = streetSpawn();
 	const npcSpawns: Position[] = [];
-	for (let placed = 0; placed < npcCount; placed++) {
-		const spot = freeInteriorTile(2);
-		if (spot) npcSpawns.push(spot);
-	}
+	for (let placed = 0; placed < npcCount; placed++) npcSpawns.push(streetSpawn());
 
-	// Props go last and are checked one at a time. A rock dropped in a doorway
-	// or across the only path to the sand pit produces a town that looks fine
-	// and cannot be finished, and placing them at random means that is a matter
-	// of luck rather than of seed -- so each one is placed only if the town is
-	// still fully connected with it there.
 	const draft: TownMap = {
 		width,
 		height,
@@ -227,37 +292,39 @@ export function generateTown(options: TownOptions): TownMap {
 		landmarks,
 		playerSpawn,
 		npcSpawns,
+		streets,
 	};
 
-	for (let placed = 0; placed < propCount; placed++) {
-		const spot = freeInteriorTile(2);
+	// Scenery last, and one at a time. A cactus in the wrong tile can seal a
+	// landmark off, and placing them at random makes that a matter of luck
+	// rather than of seed -- so each is kept only if the town is still
+	// connected with it there.
+	for (let placed = 0; placed < scatterCount; placed++) {
+		const spot = freeOffStreet();
 		if (!spot) break;
 		const at = index(spot.x, spot.y, width);
-		if (reserved.has(at)) continue;
-		if (reservedApproaches.has(at)) continue;
 		if (spot.x === playerSpawn.x && spot.y === playerSpawn.y) continue;
 		if (npcSpawns.some((npc) => npc.x === spot.x && npc.y === spot.y)) continue;
 
-		objects[at] = pick(PROPS);
+		objects[at] = pick(SCATTER);
 		if (unreachableLandmarks(draft).length > 0) objects[at] = 0;
 	}
 
-	const map = draft;
-
-	const unreachable = unreachableLandmarks(map);
+	const unreachable = unreachableLandmarks(draft);
 	if (unreachable.length > 0) {
 		throw new Error(
 			`Seed ${options.seed} walled off ${unreachable.join(', ')} from the player spawn.`,
 		);
 	}
 
-	return map;
+	void solid;
+	return draft;
 }
 
 /**
  * Flood fill from the player spawn, returning the landmarks it never reaches.
- * Props are placed at random, so this is the check that a town is playable at
- * all rather than merely well formed.
+ * This is the check that a town is playable at all rather than merely well
+ * formed.
  */
 export function unreachableLandmarks(map: TownMap): PointOfInterest[] {
 	const solid = collidableGids();
@@ -349,12 +416,12 @@ export function toTiledJSON(map: TownMap, tilesetName = 'Cloud City') {
 				tilecount: 1260,
 				margin: 0,
 				spacing: 0,
-				// Only the solid tiles need declaring: grid-engine reads a missing
-				// property as "not blocking".
-				tiles: [...used].sort((a, b) => a - b).map((gid) => ({
-					id: gid - 1,
-					properties: [{ name: 'ge_collide', type: 'bool' as const, value: true }],
-				})),
+				tiles: [...used]
+					.sort((a, b) => a - b)
+					.map((gid) => ({
+						id: gid - 1,
+						properties: [{ name: 'ge_collide', type: 'bool' as const, value: true }],
+					})),
 			},
 		],
 	};
