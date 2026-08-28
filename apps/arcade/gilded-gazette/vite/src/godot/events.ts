@@ -53,6 +53,9 @@ export interface GodotToJs {
   'notice:read': { id: string };
   // One fact the run has produced: a conversation, an item used, a room entered.
   'journal:entry': { id: string; kind: number; actor: string; target: string; place: string; at: number };
+  // The answer, and what the player said it was. Sent once, immediately after an
+  // accusation lands, and at no other moment.
+  'game:verdict': { who: string; weapon: string; room: string; named_who: string; named_weapon: string; named_room: string };
   // Who it happened to this run, sent as the enquiry opens.
   'enquiry:opened': { victim: string };
 }
@@ -91,6 +94,7 @@ export const WIRE_FIELDS: Record<string, readonly string[]> = {
   'render:budget': ['shrink', 'detail'],
   'notice:read': ['id'],
   'journal:entry': ['id', 'kind', 'actor', 'target', 'place', 'at'],
+  'game:verdict': ['who', 'weapon', 'room', 'named_who', 'named_weapon', 'named_room'],
   'enquiry:opened': ['victim'],
 };
 

@@ -5,9 +5,11 @@ import { DebugPanel } from './debug/DebugPanel';
 import { Newspaper } from './paper/Newspaper';
 import { Dossier } from './paper/Dossier';
 import { Notice } from './paper/Notice';
+import { Verdict } from './paper/Verdict';
 import { setView, toggleView, useView } from './state/paperStore';
 import { closeResearch, useResearchStore } from './state/researchStore';
 import { closeNotice, useNoticeStore } from './state/noticeStore';
+import { hideVerdict, useVerdictStore } from './state/verdictStore';
 import {
   useBridgeReady,
   usePlaying,
@@ -51,6 +53,12 @@ function useEscapeKeyLayering() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
+      // Topmost, because it is drawn over everything: the run is finished and the
+      // layers underneath it are a board and a paper about an evening that is over.
+      if (useVerdictStore.getState().shown) {
+        hideVerdict();
+        return;
+      }
       if (useNoticeStore.getState().reading) {
         closeNotice();
         return;
@@ -83,6 +91,7 @@ export default function App() {
       </div>
       <Dossier />
       <Notice />
+      <Verdict />
       <GpuWarning />
     </div>
   );

@@ -131,6 +131,25 @@ const NOTICE_READ := &"notice_read"
 ## string, "at": number}. Reaches JS as "journal:entry".
 const JOURNAL_ENTRY := &"journal_entry"
 
+## The answer, and what the player said it was. Sent once, immediately after an
+## accusation lands, and at no other moment.
+##
+## This is the only event that carries the culprit, and it is safe for exactly the
+## reason enquiry:opened is not allowed to: by the time it crosses, the run is over and
+## there is nothing left to spoil. Sending it any earlier -- as part of the state
+## snapshot, say -- would hand a browser console the answer to a mystery it is still
+## being asked.
+##
+## `who`/`weapon`/`room` are what happened; `named_*` are the three the player gave. Won
+## or lost is the two halves being equal and is not sent as a field of its own, because
+## a verdict that carried both the comparison and its answer could disagree with itself.
+## Both halves travel together because a reveal shows them side by side, and React
+## forgets what it named the moment it is sent.
+##
+## Payload: {"who": string, "weapon": string, "room": string, "named_who": string,
+## "named_weapon": string, "named_room": string}. Reaches JS as "game:verdict".
+const VERDICT := &"verdict"
+
 ## Who it happened to this run, sent as the enquiry opens.
 ##
 ## Drawn per run rather than authored, so React cannot read it out of the compiled
@@ -210,6 +229,7 @@ const OUTBOUND_WIRE: Dictionary[StringName, String] = {
 	RENDER_BUDGET: "render:budget",
 	NOTICE_READ: "notice:read",
 	JOURNAL_ENTRY: "journal:entry",
+	VERDICT: "game:verdict",
 	ENQUIRY_OPENED: "enquiry:opened",
 }
 
@@ -229,6 +249,7 @@ const WIRE_FIELDS: Dictionary[String, Array] = {
 	"render:budget": ["shrink", "detail"],
 	"notice:read": ["id"],
 	"journal:entry": ["id", "kind", "actor", "target", "place", "at"],
+	"game:verdict": ["who", "weapon", "room", "named_who", "named_weapon", "named_room"],
 	"enquiry:opened": ["victim"],
 }
 

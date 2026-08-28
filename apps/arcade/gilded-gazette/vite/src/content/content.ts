@@ -41,18 +41,22 @@ export interface Passenger extends Prose {
   berth: string;
   boarded: { at: string; where: string };
   location: LocationId;
-  suspect: boolean;
-  /** The one this is all about. Exactly one passenger carries it. */
-  victim: boolean;
   traits: string[];
   relationships: { who: string; tie: string }[];
 
   /**
-   * The same statements the `## Alibi` bullets make, in the form a run can respect.
-   * A night places everybody consistently with their own claims and breaks exactly
-   * one, for the culprit.
+   * Every account this passenger might give, one of which the run draws. Neither being
+   * the body nor being a suspect is a fact about a passenger any more: both are drawn,
+   * and the engine says which on the wire.
+   *
+   * `says` is what they tell an enquiry and `claims` is what it would mean if it were
+   * true. A night places everybody consistently with their own drawn claims and breaks
+   * exactly one, for the culprit.
    */
-  claims: { where: LocationId; never: boolean; from?: string; until?: string }[];
+  alibis: {
+    says: string[];
+    claims: { where: LocationId; never: boolean; from?: string; until?: string }[];
+  }[];
   /** What finding them in a room looks like, and so which rooms they can be in. */
   sightings: Partial<Record<LocationId, string[]>>;
 }
