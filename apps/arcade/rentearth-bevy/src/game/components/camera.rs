@@ -23,6 +23,14 @@ pub struct CameraRig {
     /// [`Self::ZOOM_LEVELS`], and equal to `zoom` while the wheel is moving --
     /// there is nothing to settle toward until it stops.
     pub zoom_target: f32,
+    /// Where the settle started from, and how far through it is in seconds.
+    ///
+    /// Kept so the move can be a curve over a known duration rather than a
+    /// decay toward the target. A decay is fastest at its first frame, so it
+    /// leaves the pause before it and arrives as a jerk; a curve can start and
+    /// end at a standstill.
+    pub zoom_from: f32,
+    pub zoom_elapsed: f32,
 }
 
 impl Default for CameraRig {
@@ -33,6 +41,8 @@ impl Default for CameraRig {
             // step.
             zoom: 1.0,
             zoom_target: 1.0,
+            zoom_from: 1.0,
+            zoom_elapsed: 0.0,
         }
     }
 }

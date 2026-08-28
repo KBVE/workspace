@@ -44,13 +44,15 @@ const PIXELS_PER_NOTCH: f32 = 12.0;
 ///
 /// Long enough to span the gap between notches of a turning wheel, so settling
 /// happens when you stop rather than between clicks.
-const ZOOM_SETTLE_DELAY: f32 = 0.14;
+const ZOOM_SETTLE_DELAY: f32 = 0.10;
 
-/// How quickly zoom closes on the level it is settling to, per second.
+/// How long the settle takes.
 ///
-/// Exponential rather than linear, so the move starts fast and eases out, and
-/// so the rate does not depend on the frame time.
-const ZOOM_EASE: f32 = 16.0;
+/// It has real distance to cover: the levels double, so the furthest the zoom
+/// can sit from one is a factor of root two, and a 41% change of scale is not
+/// something to rush. Slower than this and the camera feels like it is
+/// correcting you; faster and the arrival is the jump it is meant to avoid.
+const ZOOM_SETTLE_TIME: f32 = 0.28;
 
 pub struct CameraPlugin;
 
@@ -222,27 +224,38 @@ fn zoom_control(
 
     for mut rig in &mut rigs {
         if rig.zoom_target == rig.zoom {
-            rig.zoom_target = rig.nearest_level();
+            let target = rig.nearest_level();
+            if target == rig.zoom {
+                // Already on a level. Left untouched, so the camera stays out
+                // of change detection and the tile wrap has nothing to do.
+                continue;
+            }
+            rig.zoom_target = target;
+            rig.zoom_from = rig.zoom;
+            rig.zoom_elapsed = 0.0;
         }
 
-        let target = rig.zoom_target;
-        let gap = target - rig.zoom;
+        rig.zoom_elapsed += time.delta_secs();
+        let t = (rig.zoom_elapsed / ZOOM_SETTLE_TIME).clamp(0.0, 1.0);
 
-        if gap == 0.0 {
-            // Left untouched, so the camera stays out of change detection and
-            // the tile wrap has nothing to do.
+        if t >= 1.0 {
+            // Landed exactly, not merely near: the levels are chosen so the
+            // tree atlas samples a mip exactly, and a value that stopped a
+            // fraction short would miss it every time.
+            rig.zoom = rig.zoom_target;
             continue;
         }
 
-        // Landing exactly on it rather than approaching forever: the levels are
-        // chosen so the atlas samples a mip exactly, and a value that stopped a
-        // fraction short would miss it every time.
-        if gap.abs() < target * 1e-3 {
-            rig.zoom = target;
-            continue;
-        }
+        // Smoothstep, which is flat at both ends -- the move begins at the
+        // standstill the wheel left behind and arrives at another one, so
+        // neither end is a visible edge.
+        let eased = t * t * (3.0 - 2.0 * t);
 
-        rig.zoom += gap * (1.0 - (-ZOOM_EASE * time.delta_secs()).exp());
+        // Interpolated in log space, because zoom is a scale: halfway between
+        // 1 and 4 should look like 2, and arithmetically it is 2.5.
+        let from = rig.zoom_from.ln();
+        let to = rig.zoom_target.ln();
+        rig.zoom = (from + (to - from) * eased).exp();
     }
 }
 
