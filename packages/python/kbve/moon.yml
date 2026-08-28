@@ -1,0 +1,58 @@
+# The `kbve` PyPI package, ported from the legacy Nx workspace at
+# KBVE/kbve packages/python/kbve.
+#
+# The id is not the directory name. `crates/kbve` already owns `kbve` in the
+# project graph, and two projects cannot share an id -- but only the graph
+# cares. The directory, the distribution name, and `pip install kbve` all stay
+# `kbve`; the crate and the wheel live in different registries and never meet.
+# The visible consequence is the release tag: `kbve-py@2.0.0`, which is also
+# what keeps it unambiguous against a future tag for the crate.
+id: 'kbve-py'
+layer: 'library'
+language: 'python'
+stack: 'backend'
+
+owners:
+  defaultOwner: '@h0lybyte'
+
+fileGroups:
+  sources:
+    - 'kbve/**/*'
+  tests:
+    - 'tests/**/*'
+  manifests:
+    - 'pyproject.toml'
+    - 'uv.lock'
+
+tasks:
+  # moon 2.5 has no built-in python toolchain plugin -- declaring `python:` in
+  # .moon/toolchains.yml fails with "a locator is required for plugins". The
+  # interpreter and uv are pinned in .prototools instead, so these run as
+  # system commands against proto-managed binaries.
+  install:
+    command: 'uv sync --dev'
+    toolchains: ['system']
+    inputs: ['@group(manifests)']
+    options:
+      # The output is a .venv full of absolute paths; nothing portable to cache.
+      cache: false
+
+  test:
+    command: 'uv run pytest tests/'
+    toolchains: ['system']
+    deps: ['~:install']
+    inputs: ['@group(sources)', '@group(tests)', '@group(manifests)']
+    outputs: ['reports']
+
+  lint:
+    command: 'uv run flake8 kbve tests'
+    toolchains: ['system']
+    deps: ['~:install']
+    inputs: ['@group(sources)', '@group(tests)', '.flake8']
+
+  build:
+    command: 'uv build --out-dir dist'
+    toolchains: ['system']
+    deps: ['~:install']
+    inputs: ['@group(sources)', '@group(manifests)', 'README.md']
+    outputs: ['dist']

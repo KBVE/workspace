@@ -14,6 +14,16 @@ node_modules/
 .pnpm-store/
 *-debug.log*
 
+# --- python -------------------------------------------------------------
+# uv builds the venv from uv.lock, so it is derived state, not configuration.
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+# coverage.py's data file. The XML report under reports/ is the declared task
+# output; this is the raw intermediate it is generated from.
+.coverage
+
 # --- build output -------------------------------------------------------
 dist/
 build/
@@ -36,6 +46,9 @@ blob-report/
 # vitest --coverage. No task passes that flag, so it only appears after an ad
 # hoc run -- which is exactly when it goes unnoticed.
 coverage/
+# pytest --junitxml / --cov-report=xml. kbve-py:test declares this directory as
+# a task output, so moon owns what is in it.
+reports/
 
 # --- moon ---------------------------------------------------------------
 .moon/cache

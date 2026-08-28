@@ -1,0 +1,55 @@
+[project]
+name = "kbve"
+version = "2.0.0"
+description = "KBVE - API layer and complexity handler for async HTTP, WebSocket, gRPC, and broadcasting"
+readme = "README.md"
+license = "LicenseRef-Proprietary"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "pydantic>=1.10,<3.0",
+    "aiohttp>=3.9,<4.0",
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.32,<1.0",
+    "grpcio>=1.62,<2.0",
+    "protobuf>=4.25,<6.0",
+    "pyyaml>=6.0,<7.0",
+]
+
+# No optional-dependencies and no [project.scripts]. The Nx workspace tooling
+# (kbve.nx), the asset pipelines (kbve.sprite, kbve.blender), the content
+# tooling (kbve.osrs, kbve.seo, kbve.mdx, kbve.svg) and kbve.unreal /
+# kbve.argocd were left behind in the Nx repo: half of them read paths that do
+# not exist here, and every one of them hung 18 console scripts off a
+# distribution whose public API is the server stack. What ships now is what
+# `kbve/__init__.py` exports.
+
+[dependency-groups]
+dev = [
+    "autopep8==2.0.2",
+    "flake8==6.0.0",
+    "pytest==8.3.3",
+    "pytest-sugar==0.9.7",
+    "pytest-cov==4.1.0",
+    "pytest-asyncio>=0.23,<1.0",
+    "grpcio-tools>=1.62,<2.0",
+    "httpx>=0.27,<1.0",
+]
+
+[tool.coverage.run]
+branch = true
+source = [ "kbve" ]
+
+[tool.coverage.report]
+exclude_lines = ['if TYPE_CHECKING:']
+show_missing = true
+
+[tool.pytest.ini_options]
+# Project-relative on purpose. Upstream wrote these to '../../../coverage/...',
+# which only resolves at one nesting depth and put the artifacts outside the
+# project moon would have to declare them as outputs of.
+addopts = "--cov --cov-report=term-missing --cov-report=xml:reports/coverage.xml --junitxml=reports/junit.xml"
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
