@@ -1,0 +1,365 @@
+use crate::error::JediError;
+use chrono::Utc;
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use std::borrow::Cow;
+use std::env;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::fs;
+
+pub fn get_env(key: &str, default: &str) -> String {
+    let file_key = format!("{}_FILE", key);
+    if let Ok(path) = env::var(&file_key) {
+        std::fs::read_to_string(path)
+            .map(|s| s.trim().to_string())
+            .unwrap_or_else(|_| default.to_string())
+    } else {
+        env::var(key).unwrap_or_else(|_| default.to_string())
+    }
+}
+
+pub async fn get_env_async(key: &str, default: &str) -> String {
+    let file_key = format!("{}_FILE", key);
+    if let Ok(path) = env::var(&file_key) {
+        tokio::fs::read_to_string(path)
+            .await
+            .map(|s| s.trim().to_string())
+            .unwrap_or_else(|_| default.to_string())
+    } else {
+        env::var(key).unwrap_or_else(|_| default.to_string())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FileTokenStorage<T> {
+    pub(crate) path: Arc<PathBuf>,
+    _phantom: std::marker::PhantomData<T>,
+}
+
+impl<T> FileTokenStorage<T>
+where
+    T: Serialize + DeserializeOwned + Send + Sync + 'static,
+{
+    pub fn new<P: Into<PathBuf>>(path: P) -> Self {
+        Self {
+            path: Arc::new(path.into()),
+            _phantom: std::marker::PhantomData,
+        }
+    }
+
+    pub async fn load(&self) -> Option<T> {
+        match fs::read_to_string(&*self.path).await {
+            Ok(contents) => match serde_json::from_str::<T>(&contents) {
+                Ok(token) => Some(token),
+                Err(e) => {
+                    tracing::warn!("Failed to parse token JSON: {}", e);
+                    None
+                }
+            },
+            Err(e) => {
+                tracing::warn!("Failed to read token file: {}", e);
+                None
+            }
+        }
+    }
+
+    pub async fn save(&self, value: &T) {
+        if let Ok(json) = serde_json::to_string_pretty(value) {
+            if let Err(e) = fs::write(&*self.path, json).await {
+                tracing::error!("Failed to write token file: {}", e);
+            } else {
+                tracing::debug!("Token saved at {:?}", self.path);
+            }
+        }
+    }
+
+    pub async fn try_load(&self) -> Result<T, JediError> {
+        let contents = fs::read_to_string(&*self.path).await?;
+        let token = serde_json::from_str::<T>(&contents)
+            .map_err(|e| JediError::Internal(Cow::Owned(format!("Parse error: {e}"))))?;
+        Ok(token)
+    }
+
+    pub async fn try_save(&self, value: &T) -> Result<(), JediError> {
+        let json = serde_json::to_string_pretty(value)
+            .map_err(|e| JediError::Internal(Cow::Owned(format!("Serialize error: {e}"))))?;
+        fs::write(&*self.path, json).await?;
+        Ok(())
+    }
+}
+
+pub struct RedisConfig {
+    pub url: String,
+}
+
+impl RedisConfig {
+    pub fn from_env() -> Self {
+        let host = get_env("REDIS_HOST", "localhost");
+        let port = get_env("REDIS_PORT", "6379");
+        let password = get_env("REDIS_PASSWORD", "");
+
+        let url = if password.is_empty() {
+            format!("redis://{}:{}", host, port)
+        } else {
+            format!("redis://:{}@{}:{}", password, host, port)
+        };
+
+        Self { url }
+    }
+}
+
+#[cfg(feature = "clickhouse")]
+pub struct ClickHouseConfig {
+    pub url: String,
+    pub user: String,
+    pub password: String,
+    pub database: String,
+}
+
+#[cfg(feature = "clickhouse")]
+impl ClickHouseConfig {
+    pub fn from_env() -> Self {
+        Self::from_env_resolved().0
+    }
+
+    /// Returns `(config, url_explicit)` — `url_explicit` is `false` when
+    /// the URL fell back to localhost so callers can fail loud.
+    pub fn from_env_resolved() -> (Self, bool) {
+        let endpoint = env::var("CLICKHOUSE_ENDPOINT")
+            .ok()
+            .filter(|s| !s.trim().is_empty());
+        let host_set = env::var("CLICKHOUSE_HOST").is_ok() || env::var("CLICKHOUSE_PORT").is_ok();
+
+        let (url, url_explicit) = if let Some(ep) = endpoint {
+            (ep.trim_end_matches('/').to_string(), true)
+        } else {
+            let host = get_env("CLICKHOUSE_HOST", "localhost");
+            let port = get_env("CLICKHOUSE_PORT", "8123");
+            (format!("http://{}:{}", host, port), host_set)
+        };
+
+        let user = env::var("CLICKHOUSE_USER")
+            .ok()
+            .filter(|s| !s.is_empty())
+            .or_else(|| {
+                env::var("CLICKHOUSE_USERNAME")
+                    .ok()
+                    .filter(|s| !s.is_empty())
+            })
+            .unwrap_or_else(|| "default".to_string());
+        let password = get_env("CLICKHOUSE_PASSWORD", "");
+        let database = get_env("CLICKHOUSE_DATABASE", "default");
+
+        (
+            Self {
+                url,
+                user,
+                password,
+                database,
+            },
+            url_explicit,
+        )
+    }
+
+    pub fn build_client(&self) -> clickhouse::Client {
+        let mut client = clickhouse::Client::default()
+            .with_url(&self.url)
+            .with_user(&self.user)
+            .with_database(&self.database);
+
+        if !self.password.is_empty() {
+            client = client.with_password(&self.password);
+        }
+
+        client
+    }
+
+    /// Process-wide pooled HTTP client with timeouts. Reused across every
+    /// ClickHouse call so a hung server can't block indefinitely (a missing
+    /// timeout previously let one stalled request wedge a caller) and TCP
+    /// connections are pooled instead of rebuilt per request.
+    /// Tunable via `CLICKHOUSE_HTTP_TIMEOUT_MS` (default 30s).
+    fn shared_http_client() -> &'static reqwest::Client {
+        static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+        CLIENT.get_or_init(|| {
+            let timeout_ms = std::env::var("CLICKHOUSE_HTTP_TIMEOUT_MS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(30_000u64);
+            reqwest::Client::builder()
+                .timeout(std::time::Duration::from_millis(timeout_ms))
+                .connect_timeout(std::time::Duration::from_secs(5))
+                .pool_idle_timeout(std::time::Duration::from_secs(90))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new())
+        })
+    }
+
+    pub async fn execute_select(&self, query: &str) -> Result<Vec<serde_json::Value>, JediError> {
+        let http = Self::shared_http_client();
+        let full_query = format!("{} FORMAT JSONEachRow", query);
+
+        let mut req = http
+            .post(&self.url)
+            .query(&[("database", &self.database)])
+            .body(full_query);
+
+        if !self.user.is_empty() {
+            req = req.header("X-ClickHouse-User", &self.user);
+        }
+        if !self.password.is_empty() {
+            req = req.header("X-ClickHouse-Key", &self.password);
+        }
+
+        let resp = req.send().await.map_err(|e| {
+            JediError::Database(Cow::Owned(format!("ClickHouse HTTP error: {}", e)))
+        })?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(JediError::Database(Cow::Owned(format!(
+                "ClickHouse query failed: {}",
+                body
+            ))));
+        }
+
+        let text = resp.text().await.map_err(|e| {
+            JediError::Database(Cow::Owned(format!("ClickHouse response error: {}", e)))
+        })?;
+
+        let rows: Vec<serde_json::Value> = text
+            .lines()
+            .filter(|l| !l.is_empty())
+            .map(serde_json::from_str)
+            .collect::<Result<_, _>>()
+            .map_err(|e| JediError::Parse(format!("ClickHouse JSON parse error: {}", e)))?;
+
+        Ok(rows)
+    }
+
+    pub async fn execute_insert(
+        &self,
+        table: &str,
+        rows: &[serde_json::Value],
+    ) -> Result<(), JediError> {
+        if rows.is_empty() {
+            return Ok(());
+        }
+
+        let body = rows
+            .iter()
+            .map(serde_json::to_string)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| JediError::Parse(format!("ClickHouse JSON serialize error: {}", e)))?
+            .join("\n");
+
+        self.execute_insert_raw(table, &body).await
+    }
+
+    /// Insert a pre-serialized JSONEachRow body (newline-delimited JSON objects).
+    /// Lets hot callers serialize once on their own threads and hand the flusher
+    /// a ready body, avoiding a second pass over `serde_json::Value`.
+    pub async fn execute_insert_raw(&self, table: &str, body: &str) -> Result<(), JediError> {
+        if body.is_empty() {
+            return Ok(());
+        }
+
+        let insert_query = format!("INSERT INTO {} FORMAT JSONEachRow", table);
+        let http = Self::shared_http_client();
+
+        let mut req = http
+            .post(&self.url)
+            .query(&[("database", &self.database), ("query", &insert_query)])
+            .body(body.to_string());
+
+        if !self.user.is_empty() {
+            req = req.header("X-ClickHouse-User", &self.user);
+        }
+        if !self.password.is_empty() {
+            req = req.header("X-ClickHouse-Key", &self.password);
+        }
+
+        let resp = req.send().await.map_err(|e| {
+            JediError::Database(Cow::Owned(format!("ClickHouse HTTP error: {}", e)))
+        })?;
+
+        if !resp.status().is_success() {
+            let err_body = resp.text().await.unwrap_or_default();
+            return Err(JediError::Database(Cow::Owned(format!(
+                "ClickHouse insert failed: {}",
+                err_body
+            ))));
+        }
+
+        Ok(())
+    }
+}
+
+pub struct TwitchAuth {
+    pub client_id: String,
+    pub client_secret: String,
+    pub token_path: String,
+}
+
+impl TwitchAuth {
+    pub fn from_env() -> Self {
+        let client_id = get_env("TWITCH_CLIENT_ID", "");
+        let client_secret = get_env("TWITCH_CLIENT_SECRET", "");
+        let token_path = get_env("TWITCH_TOKEN_PATH", "twitch_tokens.json");
+
+        if client_id.is_empty() || client_secret.is_empty() {
+            panic!("Missing TWITCH_CLIENT_ID or TWITCH_CLIENT_SECRET");
+        }
+
+        Self {
+            client_id,
+            client_secret,
+            token_path,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct EnvTwitchToken {
+    access_token: String,
+    refresh_token: String,
+    expires_in: i64,
+    token_type: String,
+    #[serde(default)]
+    scope: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct TwitchFileToken {
+    access_token: String,
+    refresh_token: String,
+    expires_in: i64,
+    created_at: String,
+}
+
+pub fn save_twitch_json_from_env(env_key: &str, file_path: &str) -> Result<(), JediError> {
+    let raw = std::env::var(env_key)
+        .map_err(|e| JediError::Internal(Cow::Owned(format!("env: {}", e))))?;
+    let parsed: EnvTwitchToken = serde_json::from_str(&raw)
+        .map_err(|e| JediError::Internal(Cow::Owned(format!("json: {}", e))))?;
+
+    let token = TwitchFileToken {
+        access_token: parsed.access_token,
+        refresh_token: parsed.refresh_token,
+        expires_in: parsed.expires_in,
+        created_at: Utc::now().to_rfc3339(),
+    };
+
+    let json = serde_json::to_string_pretty(&token)
+        .map_err(|e| JediError::Internal(Cow::Owned(format!("serde: {}", e))))?;
+    std::fs::write(file_path, json)
+        .map_err(|e| JediError::Internal(Cow::Owned(format!("fs: {}", e))))?;
+
+    tracing::debug!(
+        env_key = %env_key,
+        file_path = %file_path,
+        "[Twitch] Token saved from environment to file"
+    );
+
+    Ok(())
+}
