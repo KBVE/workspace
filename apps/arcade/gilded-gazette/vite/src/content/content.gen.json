@@ -133,202 +133,202 @@
       "carriage": 1,
       "furnishings": [
         {
-          "prop": "dining_table",
           "along": -5.4,
           "across": 1.1,
           "above": 0,
-          "facing": 0
+          "facing": 0,
+          "prop": "dining_table"
         },
         {
-          "prop": "dining_chair",
           "along": -4.74,
           "across": 1.1,
           "above": 0,
           "facing": 1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_chair",
           "along": -6.06,
           "across": 1.1,
           "above": 0,
           "facing": -1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_table",
           "along": -1.8,
           "across": 1.1,
           "above": 0,
-          "facing": 0
+          "facing": 0,
+          "prop": "dining_table"
         },
         {
-          "prop": "dining_chair",
           "along": -1.14,
           "across": 1.1,
           "above": 0,
           "facing": 1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_chair",
           "along": -2.46,
           "across": 1.1,
           "above": 0,
           "facing": -1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_table",
           "along": 1.8,
           "across": 1.1,
           "above": 0,
-          "facing": 0
+          "facing": 0,
+          "prop": "dining_table"
         },
         {
-          "prop": "dining_chair",
           "along": 2.46,
           "across": 1.1,
           "above": 0,
           "facing": 1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_chair",
           "along": 1.14,
           "across": 1.1,
           "above": 0,
           "facing": -1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_table",
           "along": 5.4,
           "across": 1.1,
           "above": 0,
-          "facing": 0
+          "facing": 0,
+          "prop": "dining_table"
         },
         {
-          "prop": "dining_chair",
           "along": 6.06,
           "across": 1.1,
           "above": 0,
           "facing": 1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_chair",
           "along": 4.74,
           "across": 1.1,
           "above": 0,
           "facing": -1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_table",
           "along": -5.4,
           "across": -1.1,
           "above": 0,
-          "facing": 0
+          "facing": 0,
+          "prop": "dining_table"
         },
         {
-          "prop": "dining_chair",
           "along": -4.74,
           "across": -1.1,
           "above": 0,
           "facing": 1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_chair",
           "along": -6.06,
           "across": -1.1,
           "above": 0,
           "facing": -1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_table",
           "along": -1.8,
           "across": -1.1,
           "above": 0,
-          "facing": 0
+          "facing": 0,
+          "prop": "dining_table"
         },
         {
-          "prop": "dining_chair",
           "along": -1.14,
           "across": -1.1,
           "above": 0,
           "facing": 1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_chair",
           "along": -2.46,
           "across": -1.1,
           "above": 0,
           "facing": -1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_table",
           "along": 1.8,
           "across": -1.1,
           "above": 0,
-          "facing": 0
+          "facing": 0,
+          "prop": "dining_table"
         },
         {
-          "prop": "dining_chair",
           "along": 2.46,
           "across": -1.1,
           "above": 0,
           "facing": 1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_chair",
           "along": 1.14,
           "across": -1.1,
           "above": 0,
           "facing": -1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_table",
           "along": 5.4,
           "across": -1.1,
           "above": 0,
-          "facing": 0
+          "facing": 0,
+          "prop": "dining_table"
         },
         {
-          "prop": "dining_chair",
           "along": 6.06,
           "across": -1.1,
           "above": 0,
           "facing": 1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         },
         {
-          "prop": "dining_chair",
           "along": 4.74,
           "across": -1.1,
           "above": 0,
           "facing": -1.5708,
+          "prop": "dining_chair",
           "seats": true,
           "cushionHeight": 0.48
         }
@@ -359,32 +359,32 @@
       "carriage": 0,
       "furnishings": [
         {
-          "prop": "crate",
           "along": -6.4,
           "across": 1.15,
           "above": 0,
-          "facing": 0
+          "facing": 0,
+          "prop": "crate"
         },
         {
-          "prop": "crate",
           "along": -5.6,
           "across": 1.15,
           "above": 0,
-          "facing": 0.35
+          "facing": 0.35,
+          "prop": "crate"
         },
         {
-          "prop": "crate",
           "along": 6.6,
           "across": -1.15,
           "above": 0,
-          "facing": 0
+          "facing": 0,
+          "prop": "crate"
         },
         {
-          "prop": "lockbox",
           "along": 6.9,
           "across": 1.05,
           "above": 0,
-          "facing": 1.5708
+          "facing": 1.5708,
+          "prop": "lockbox"
         }
       ],
       "lede": "Last car of the consist, and the only one with a door that opens onto nothing but weather.",
@@ -1320,6 +1320,51 @@
         }
       },
       "source": "shared/data/items/brass_key.mdx"
+    },
+    {
+      "id": "ornate_dagger",
+      "name": "Ornate Dagger",
+      "kind": "weapon",
+      "carried": false,
+      "location": "guard_van",
+      "model": "ornate_dagger",
+      "found": {
+        "along": -7.2,
+        "across": 1.15,
+        "above": 0,
+        "facing": 0.6
+      },
+      "reveals": [
+        "the_blade_left_its_sheath_before_the_border",
+        "somebody_walked_the_length_of_the_train_to_put_it_here"
+      ],
+      "lede": "A hand's length of blade, chased along the spine and fitted to a sheath it is no longer in. Both are on the floor of the van, a foot apart, past the crates and under the window, where the light does not reach.",
+      "body": [],
+      "sections": {
+        "the_blade": {
+          "heading": "The Blade",
+          "paragraphs": [
+            "Ornamental, and sharpened anyway. The chasing runs to the edge and stops, the way a maker's work does when the edge is meant to be honed and the pattern is not meant to be worn away.",
+            "It has been wiped. Not cleaned -- wiped, once, along one face, by somebody in more of a hurry than the wiping was worth."
+          ],
+          "bullets": []
+        },
+        "the_sheath": {
+          "heading": "The Sheath",
+          "paragraphs": [
+            "Lying open and empty, which is the part worth reading. A dagger dropped in a struggle keeps its sheath on a belt. A dagger drawn somewhere else and carried here arrives with the sheath in the other hand."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "Nothing on the manifest matches it, and nothing in the van was opened to let it out. It came aboard in somebody's luggage and left that luggage before the border."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/items/ornate_dagger.mdx"
     },
     {
       "id": "pocket_watch",

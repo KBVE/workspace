@@ -115,7 +115,7 @@ var _carriages: Array[Node3D] = []
 var _lampsets: Array[Node3D] = []
 var _shared: Dictionary = {}
 var _prop_meshes: Dictionary = {}
-var _prop_atlas: Texture2D = null
+var _item_meshes: Dictionary = {}
 
 func _ready() -> void:
 	if carriage_scene == null:
@@ -133,6 +133,7 @@ func _ready() -> void:
 		# and after the reskin, because props carry the atlas material the prop
 		# compiler gave them and the carriage shader would paint over it
 		_furnish(carriage, i)
+		_scatter_items(carriage, i)
 		_post_notices(carriage, i)
 		var lamps := Node3D.new()
 		lamps.name = "Lamps"
@@ -265,6 +266,67 @@ func _furnish(carriage: Node3D, index: int) -> void:
 		_fit_box_collision(instance)
 
 
+## Lays out what was left lying in carriage [param index].
+##
+## An item is not a prop. A prop is furniture, drawn out of one atlased library because
+## a train holds a hundred crates and one crate mesh; an item is one thing in one place
+## and ships as its own model, so this loads by name the way [method _post_notices]
+## loads a sheet by id. What they do share is the lighting: a dagger on the floor of the
+## van is lit by the same lamps the crates beside it are, and looking lit differently is
+## exactly how a thing reads as not belonging to the scene.
+##
+## No collision. These are small and on the floor, and a body around one is something to
+## trip over on the way past -- the thing to do with an item is to look at it.
+func _scatter_items(carriage: Node3D, index: int) -> void:
+	var lying: Array = GameContent.items_in(index)
+	if lying.is_empty():
+		return
+	var room := Node3D.new()
+	room.name = "Items"
+	carriage.add_child(room)
+	for item: Dictionary in lying:
+		var mesh := _item_mesh(String(item.get("model", "")))
+		if mesh == null:
+			continue
+		var placement: Dictionary = item.get("found", {})
+		var instance := MeshInstance3D.new()
+		instance.name = String(item.get("id", "item"))
+		instance.mesh = mesh
+		instance.position = _furnishing_offset(placement)
+		instance.rotation.y = float(placement.get("facing", 0.0))
+		_light_the_prop(instance)
+		room.add_child(instance)
+
+
+## The mesh inside res://assets/items/[param model].glb, loaded once.
+##
+## Cached across carriages for the same reason the prop library is: the same model in
+## two rooms is two placements of one mesh, and loading the scene twice would be two
+## copies of it resident for nothing.
+func _item_mesh(model: String) -> Mesh:
+	if model.is_empty():
+		return null
+	if _item_meshes.has(model):
+		return _item_meshes[model]
+	var path := "res://assets/items/%s.glb" % model
+	var scene: PackedScene = load(path)
+	if scene == null:
+		push_error("Consist: no item model at %s" % path)
+		_item_meshes[model] = null
+		return null
+	var built := scene.instantiate()
+	var found: Mesh = null
+	for instance: MeshInstance3D in _mesh_instances(built):
+		if instance.mesh != null:
+			found = instance.mesh
+			break
+	built.free()
+	if found == null:
+		push_error("Consist: %s holds no mesh" % path)
+	_item_meshes[model] = found
+	return found
+
+
 ## Hangs the sheets posted in carriage [param index] on its wall.
 ##
 ## A quad rather than a prop: a notice is printed matter, and what a poster is in this
@@ -374,28 +436,28 @@ func _furnishing_offset(placement: Dictionary) -> Vector3:
 ## Dresses one prop in the light of where it stands.
 ##
 ## An override per instance rather than a shared material, because the tint is the one
-## thing about a prop that is not shared. The mesh and the atlas still are, so this
+## thing about a prop that is not shared. The mesh and its texture still are, so this
 ## costs a material bind and not a copy of the crate.
 func _light_the_prop(instance: MeshInstance3D) -> void:
 	var lit := ShaderMaterial.new()
 	lit.shader = load("res://shaders/prop.gdshader")
-	lit.set_shader_parameter("tex_albedo", _prop_albedo())
+	lit.set_shader_parameter("tex_albedo", _albedo_of(instance.mesh))
 	lit.set_shader_parameter("baked_tint", _lamplight(instance.position))
 	for surface in range(instance.mesh.get_surface_count()):
 		instance.set_surface_override_material(surface, lit)
 
 
-## The prop atlas, taken off the first prop in the library. Every prop the compiler
-## builds shares it, which is the whole point of an atlas.
-func _prop_albedo() -> Texture2D:
-	if _prop_atlas != null:
-		return _prop_atlas
-	for mesh: Mesh in _prop_library().values():
-		var src := mesh.surface_get_material(0) as BaseMaterial3D
-		if src != null and src.albedo_texture != null:
-			_prop_atlas = src.albedo_texture
-			break
-	return _prop_atlas
+## The texture a mesh is drawn with, taken off the material it arrived wearing.
+##
+## Every prop the compiler builds shares one atlas, which is the whole point of an
+## atlas, so for the library this returns the same texture every time and the bind is
+## shared. An item is its own model with its own image and answers with that instead,
+## which is why this asks the mesh rather than caching one atlas for the whole train.
+func _albedo_of(mesh: Mesh) -> Texture2D:
+	if mesh == null or mesh.get_surface_count() == 0:
+		return null
+	var src := mesh.surface_get_material(0) as BaseMaterial3D
+	return null if src == null else src.albedo_texture
 
 
 ## Prop name to mesh, harvested once out of [member props_scene].

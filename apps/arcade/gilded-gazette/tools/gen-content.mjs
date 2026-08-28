@@ -243,6 +243,23 @@ for (const it of content.items) {
 }
 
 /**
+ * &model -> an item lying in a room names a glb, and a glb that is not there is
+ *           an empty patch of floor in game with nothing said about it. Checked
+ *           against the file rather than against a manifest, because one item is
+ *           one model here: there is no library to be in or out of.
+ */
+const ITEM_MODELS = join(root, 'godot/assets/items');
+for (const it of content.items) {
+  if (!it.model) continue;
+  if (!existsSync(join(ITEM_MODELS, `${it.model}.glb`))) {
+    throw new Error(
+      `${it.source}: model "${it.model}" has no glb at godot/assets/items/${it.model}.glb;`
+      + ' build it with tools/import-item-model.py',
+    );
+  }
+}
+
+/**
  * &consist -> a carriage index is a position along the train, which SOccupancy
  *             indexes into directly. A gap or a repeat would leave a carriage
  *             resolving to nowhere, so the run of indices has to be 0..n.

@@ -144,6 +144,31 @@ export const passenger = z.object({
   ...prose,
 });
 
+/**
+ * A spot in a carriage, in carriage-local metres.
+ *
+ * Not world space. Consist centres itself on its own origin, so inserting a
+ * carriage moves every world X by half a pitch, and anything authored in world
+ * space slides half a car every time the train changes length. Local placement
+ * is what survives the consist growing, which is the whole reason for the field.
+ *
+ * `along` runs down the train from the carriage centre, `across` from the aisle
+ * centreline toward a wall, `above` lifts it off the deck so a plate can stand on
+ * a table rather than under it, and `facing` turns it about its own up axis.
+ * Every model this game loads has its origin on the ground under it, so `above`
+ * is the height of whatever surface the thing is standing on and nothing else.
+ * The carriage geometry those have to clear -- end walls, door swing, the aisle
+ * between the benches -- is checked engine side against the measured constants
+ * on Consist rather than restated here, because a second copy of 8.615 is a
+ * second copy that can drift.
+ */
+const placement = z.object({
+  along: z.number(),
+  across: z.number(),
+  above: z.number().min(0).default(0),
+  facing: z.number().default(0),
+});
+
 export const item = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -154,10 +179,40 @@ export const item = z.object({
   owner: z.string().optional(),
   /** Where it is found, when it is not carried. */
   location: locationId.optional(),
+  /**
+   * The glb under godot/assets/items that is this thing, without the extension.
+   *
+   * Named rather than derived from the id, because one model can be several
+   * items -- two identical candlesticks in two rooms are two ids -- and because
+   * an id is content vocabulary while a filename is an asset that gets rebuilt.
+   */
+  model: z.string().min(1).optional(),
+  /**
+   * Where it lies in its room. Absent means the item is real but has nowhere to
+   * be seen yet, which is every item this game shipped with before the first
+   * one had a model.
+   */
+  found: placement.optional(),
   /** Reading it, opening it or turning it over reveals this. */
   reveals: z.array(z.string()).default([]),
   ...prose,
-});
+})
+  /**
+   * &lying -> a thing on the floor of a room needs all three of a model to draw,
+   *           a room to be in, and a spot in that room. Any one of them alone is
+   *           an item that either never appears or appears in the wrong carriage,
+   *           and both of those read as a broken build rather than a content gap.
+   */
+  .refine((i) => !(i.found || i.model) || (i.found && i.model && i.location), {
+    message: 'found/model: an item in the world needs a model, a location and a found spot',
+  })
+  /**
+   * &pockets -> a carried item is in the player's effects, so a copy of it lying
+   *             in a room as well would be the same object in two places.
+   */
+  .refine((i) => !(i.carried && i.found), {
+    message: 'found: a carried item cannot also be lying in a room',
+  });
 
 /**
  * Somewhere on the train, or off it.
@@ -168,29 +223,10 @@ export const item = z.object({
  *         and the ECS never spawns a carriage for it.
  */
 /**
- * One prop standing in a room, placed in carriage-local metres.
- *
- * Not world space. Consist centres itself on its own origin, so inserting a
- * carriage moves every world X by half a pitch, and a prop authored in world
- * space slides half a car every time the train changes length. Local placement
- * is what survives the consist growing, which is the whole reason for the field.
- *
- * `along` runs down the train from the carriage centre, `across` from the aisle
- * centreline toward a wall, `above` lifts it off the deck so a plate can stand on
- * a table rather than under it, and `facing` turns the prop about its own up axis.
- * The prop compiler puts every origin on the ground under its prop, so `above` is
- * the height of whatever surface it is standing on and nothing else. The
- * carriage geometry those have to clear -- end walls, door swing, the aisle
- * between the benches -- is checked engine side against the measured constants
- * on Consist rather than restated here, because a second copy of 8.615 is a
- * second copy that can drift.
+ * One prop standing in a room, at a spot in its carriage.
  */
-const furnishing = z.object({
+const furnishing = placement.extend({
   prop: z.string().min(1),
-  along: z.number(),
-  across: z.number(),
-  above: z.number().min(0).default(0),
-  facing: z.number().default(0),
   /** Stamped on by gen-content from the prop library; not authored per room. */
   seats: z.boolean().optional(),
   cushionHeight: z.number().optional(),

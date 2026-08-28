@@ -61,6 +61,22 @@ static func notices_in(carriage: int) -> Array:
 		func(n: Dictionary) -> bool: return int(n.get("carriage", -1)) == carriage)
 
 
+## The things lying on the floor of the carriage at [param carriage].
+##
+## Keyed by position along the train for the same reason [method furnishings_at] is:
+## [Consist] builds carriages by index, and the mdx is what ties an id to a place.
+## Only items with somewhere to be: an item with no model is real without being
+## anywhere, which is most of them.
+static func items_in(carriage: int) -> Array:
+	var rooms := locations().filter(
+		func(l: Dictionary) -> bool: return int(l.get("carriage", -1)) == carriage)
+	if rooms.is_empty():
+		return []
+	var room: String = rooms[0].get("id", "")
+	return items().filter(func(i: Dictionary) -> bool:
+		return i.get("location", "") == room and i.has("found") and i.get("model", "") != "")
+
+
 static func notices() -> Array:
 	return data().get("notices", [])
 

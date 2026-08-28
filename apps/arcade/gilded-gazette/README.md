@@ -86,6 +86,29 @@ Model: queensland-railways-1900s-bl-heritage-carriage-807b44e77da345f2aac51c750d
 Created by Jotrain – www.jotrain.com.au
 ```
 
+#### Items
+
+Ornate Medieval Dagger from [Poly Haven](https://polyhaven.com/a/ornate_medieval_dagger)
+(CC0).
+
+Item models are built from a downloaded asset rather than committed as one. The
+downloads are a .blend plus a 1k PBR set, and none of the normal, roughness or
+metallic maps survive: `shaders/prop.gdshader` takes one albedo and a baked lamp
+tint, so the other three megabytes would be downloaded by every browser and then
+ignored. `tools/import-item-model.py` keeps the diffuse, resizes it, lays the
+object down, puts its origin on the ground under it, and writes one self-contained
+glb:
+
+```
+blender -b ~/Downloads/ornate_medieval_dagger_1k/ornate_medieval_dagger_1k.blend \
+  -P tools/import-item-model.py -- --out godot/assets/items/ornate_dagger.glb
+```
+
+The glb is committed; the download is not. What an item then needs is an mdx in
+`shared/data/items` naming that model and a `found` spot in the room it lies in --
+see `ornate_dagger.mdx`. A model named with no glb behind it fails `npm run gen`
+rather than leaving an empty patch of floor in game.
+
 #### Parallax Forest
 
 Parallax Forest Background by [DigitalMoonStudio](https://digitalmoons.itch.io/parallax-forest-background)
