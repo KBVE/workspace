@@ -1,0 +1,10 @@
+# Proc-macro helpers, migrated from the legacy Nx workspace at
+# KBVE/kbve packages/rust/holy. Nothing depends on it here yet; `erust` does in
+# the old repository and follows.
+layer: 'library'
+stack: 'systems'
+toolchains:
+  default: 'rust'
+
+owners:
+  defaultOwner: '@h0lybyte'

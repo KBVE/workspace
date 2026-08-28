@@ -40,6 +40,13 @@ tower-http = { version = "0.7.0", features = ["cors", "trace", "compression-br",
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
+# Proc-macro crates. syn 3 is a breaking change from 2 and the derives in
+# `holy` are written against it, so this is a floor rather than a preference.
+proc-macro2 = "1"
+quote = "1.0.44"
+syn = "3"
+rand = "0.10"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1
