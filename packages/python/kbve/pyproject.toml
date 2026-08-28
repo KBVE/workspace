@@ -15,13 +15,26 @@ dependencies = [
     "pyyaml>=6.0,<7.0",
 ]
 
-# No optional-dependencies and no [project.scripts]. The Nx workspace tooling
-# (kbve.nx), the asset pipelines (kbve.sprite, kbve.blender), the content
-# tooling (kbve.osrs, kbve.seo, kbve.mdx, kbve.svg) and kbve.unreal /
-# kbve.argocd were left behind in the Nx repo: half of them read paths that do
-# not exist here, and every one of them hung 18 console scripts off a
-# distribution whose public API is the server stack. What ships now is what
-# `kbve/__init__.py` exports.
+[project.optional-dependencies]
+# kbve.blender. Three of its five modules import bpy and only ever run inside
+# Blender, which brings its own interpreter -- nothing to install for those.
+# pack_orm is the exception: it stays out of Blender on purpose (see its
+# docstring) and needs Pillow. Upstream declared no blender extra at all and
+# left Pillow in `sprite`, so `pip install kbve` gave you a kbve-blender-turf
+# that worked and a pack_orm that raised ImportError.
+blender = [
+    "pillow>=10.0,<12.0",
+]
+
+[project.scripts]
+kbve-blender-retarget = "kbve.blender.cli:retarget_main"
+kbve-blender-vat = "kbve.blender.cli:vat_main"
+kbve-blender-turf = "kbve.blender.cli:turf_main"
+
+# Everything else the Nx workspace hung off this distribution stayed there:
+# kbve.nx, kbve.sprite, kbve.osrs, kbve.seo, kbve.mdx, kbve.svg, kbve.ai,
+# kbve.unreal and kbve.argocd, and 15 of the original 18 console scripts. Half
+# of them read paths that exist only in that repository.
 
 [dependency-groups]
 dev = [
@@ -33,6 +46,8 @@ dev = [
     "pytest-asyncio>=0.23,<1.0",
     "grpcio-tools>=1.62,<2.0",
     "httpx>=0.27,<1.0",
+    # kbve.blender.pack_orm, so its tests are not silently skipped.
+    "pillow>=10.0,<12.0",
 ]
 
 # The package is fully annotated and ships .pyi stubs for the generated proto
@@ -44,6 +59,15 @@ packages = ["kbve"]
 [tool.coverage.run]
 branch = true
 source = [ "kbve" ]
+# These import bpy at module scope, so they cannot be imported by the test
+# venv at all -- coverage would report each as 0% and drag the total down to
+# describe code no test could ever reach. Their wrapper in kbve.blender.cli is
+# covered, and what happens inside Blender needs Blender to check.
+omit = [
+    "kbve/blender/retarget.py",
+    "kbve/blender/turf_bake.py",
+    "kbve/blender/vat_bake.py",
+]
 
 [tool.coverage.report]
 exclude_lines = ['if TYPE_CHECKING:']
