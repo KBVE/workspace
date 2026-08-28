@@ -6,7 +6,9 @@
 //!   (`queueMicrotask`).
 //! - **WASM** (with atomics): [`spawn`] dispatches `Send` futures to
 //!   web workers via a shared work queue; [`spawn_local`] pins `!Send`
-//!   futures to the spawning thread via `Atomics.waitAsync`.
+//!   futures to the spawning thread via `Atomics.waitAsync`. The pool is
+//!   not implicit: call [`start_workers`] once before the app starts, or
+//!   `spawn` queues work that nothing is awake to run.
 //! - **Desktop**: tasks run on a thread pool sized to
 //!   [`std::thread::available_parallelism`], wired through crossbeam
 //!   channels.
@@ -39,6 +41,8 @@
 
 extern crate alloc;
 
+#[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
+mod bootstrap;
 #[cfg(target_arch = "wasm32")]
 mod job;
 #[cfg(target_arch = "wasm32")]
@@ -52,6 +56,8 @@ mod desktop;
 use async_task::Task;
 use core::future::Future;
 
+#[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
+pub use bootstrap::{default_worker_count, is_worker, start_workers};
 #[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
 pub use worker::{worker_count, worker_entry_point};
 
