@@ -36,6 +36,9 @@ kbve-blender-turf = "kbve.blender.cli:turf_main"
 kbve-model-sprites = "kbve.blender.cli:model_sprites_main"
 kbve-sprite-postprocess = "kbve.blender.sprite_postprocess:main"
 kbve-skin-variant = "kbve.blender.skin_variant:main"
+# kbve.seo needs no extra: it is pydantic and PyYAML, both core.
+kbve-seo-audit = "kbve.seo.audit:main"
+kbve-seo-report = "kbve.seo.report:main"
 
 # Everything else the Nx workspace hung off this distribution stayed there:
 # kbve.nx, kbve.sprite, kbve.osrs, kbve.seo, kbve.mdx, kbve.svg, kbve.ai,

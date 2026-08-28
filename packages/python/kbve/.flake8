@@ -20,6 +20,11 @@ per-file-ignores =
 	# declaration in a style attribute reads as a bare colon, and so does
 	# every :.1f coordinate format spec.
 	kbve/svg/chart.py: E231, E702
+	# And again in kbve.seo, where the findings are f-strings carrying
+	# semicolons in prose and the report's columns are :<4 width specs.
+	kbve/seo/pages.py: E702
+	kbve/seo/rules.py: E702
+	kbve/seo/report.py: E231
 	kbve/svg/dag.py: E231, E702
 	tests/test_svg.py: E231
 	kbve/proto/*_pb2*.py: E501, E303, F401, E261, W504, E302, W291, E271, E211, E111, E225, E231, F541, E114, E128

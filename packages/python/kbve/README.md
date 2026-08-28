@@ -23,6 +23,38 @@ moon run kbve-py:build
 Python and uv are pinned in the workspace `.prototools`; `moon run kbve-py:install`
 (a dependency of every task above) syncs the venv from `uv.lock`.
 
+## SEO auditing (`kbve.seo`)
+
+Static frontmatter and MDX analysis of any Astro content collection. No build,
+no browser, no network — so it runs in CI on the files a site is authored from.
+
+```bash
+kbve-seo-audit  --content apps/website/rentearth.com/src/content
+kbve-seo-report --content apps/website/rentearth.com/src/content --rule desc-length
+```
+
+Exit status is the contract: `0` clean, `1` error-severity findings, `2` the
+tool could not run. A bad path is never a failing site.
+
+Thresholds and per-collection switches live in a `seo.toml` the site owns,
+found automatically beside the content or at the project root:
+
+```toml
+[default]
+desc_min = 50
+
+[collections.blog]
+body_min_chars = 800
+require_tags = true
+```
+
+Without one, the defaults apply — and those are limited to what is true of any
+indexed page: a title, a description that survives the search result, headings
+that descend one level at a time, images with alt text, no duplicate titles,
+and no broken relative links. Anything that encodes one site's convention
+(`tags`, `sem`, JSON-LD `source_path`, a social card) is off until a profile
+asks for it.
+
 ## Content and rendering (`kbve.mdx`, `kbve.svg`, `kbve.ai`)
 
 `kbve.svg` renders donut charts and DAGs to inline SVG at generation time, so a
@@ -68,7 +100,7 @@ that has no equivalent here yet:
 
 | module | needs |
 | --- | --- |
-| `kbve.osrs`, `kbve.seo` | `apps/kbve/astro-kbve` content tree |
+| `kbve.osrs` | `apps/kbve/astro-kbve` content tree |
 | `kbve.argocd` | `apps/kube` |
 | `kbve.unreal` | `apps/rentearth/unreal-rentearth` |
 | `kbve.sprite.ship_footprint` | `apps/agones/arpg/{web,server}` |
