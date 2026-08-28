@@ -1,11 +1,23 @@
 $schema: 'https://moonrepo.dev/schemas/tasks.json'
 
 # Inherited by every project tagged 'itch', so shipping a new game to itch.io
-# is a tag and an ITCH_TARGET in that project's own moon.yml -- no entry in a
+# is a tag and a few env values in that game's own moon.yml -- no entry in a
 # shared matrix, no workflow edit.
 #
 # The publish workflow's only job is to turn a `<project>@<version>` tag into a
 # project id and run this task. It never names a game, so it stops growing.
+#
+# What a project tagged 'itch' owes this task:
+#
+#   env.ITCH_TARGET   required, e.g. 'kbve/fishchip:html'
+#   env.ITCH_DIST     only when dist is not `dist`, e.g. 'vite/dist'
+#   publish.deps      the task that produces that directory, plus any gate
+#                     that has to pass before a build reaches the public
+#
+# deps are declared per project rather than here because the task that builds
+# the shipping artifact is not the same everywhere: fish-and-chip ships what
+# `build` emits, rentearth-bevy keeps `build` native and ships `build-web`.
+# Naming `build` here would have shipped whatever happened to be in dist.
 inheritedBy:
   tag: 'itch'
 
@@ -13,9 +25,17 @@ tasks:
   publish:
     command: 'bash $workspaceRoot/tools/itch/push.sh'
     toolchains: ['node']
-    # Publishing what CI never built would defeat the point of checking it, so
-    # the artifact comes from the same build task.
-    deps: ['~:build']
+    # Narrow on purpose. Without inputs a task is affected by any change in
+    # its project, so `moon ci` would run this dry run -- and everything it
+    # depends on -- on every push. That is free for a game whose build CI
+    # already runs, and two wasm cross-compiles for one whose build is
+    # deliberately native. The itch configuration is what this task actually
+    # checks, and the itch configuration lives in moon.yml.
+    #
+    # A release names the target explicitly, which is not affected-filtered, so
+    # this does not narrow what ships.
+    inputs:
+      - 'moon.yml'
     env:
       # Dry run unless something explicitly opts out. `moon check` runs this
       # task -- it has no outputs, so moon treats it as checkable -- and a task
@@ -27,7 +47,10 @@ tasks:
       # The release workflow sets ITCH_DRY_RUN=0.
       ITCH_DRY_RUN: '1'
     options:
-      # Never on a push: this task uploads to a public page. It runs from the
-      # release workflow, on a tag, and nowhere else.
-      runInCI: false
+      # Not `runInCI: false`, which reads as "release-only" but means something
+      # stronger: moon skips such a task in any CI environment, including when
+      # the release workflow asks for it by name, so publishing would silently
+      # never happen. The dry-run default above is what keeps a push from
+      # uploading -- not this.
+      runInCI: true
       cache: false

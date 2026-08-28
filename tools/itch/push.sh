@@ -29,11 +29,18 @@ dist="${ITCH_DIST:-dist}"
 # The version label defaults to the manifest, which is the same number the
 # release tag is checked against. Passing it explicitly stays possible for a
 # one-off, but the default keeps one source of truth.
+# Both manifests are read because neither is universal: a Vite game has a
+# package.json and a Bevy one has a Cargo.toml. The sed is not a TOML parser on
+# purpose -- it stops at the next table header, so a dependency's version
+# further down the file cannot be mistaken for the package's own.
 version="${ITCH_USERVERSION:-}"
 if [ -z "$version" ] && [ -f package.json ]; then
   version=$(node -p "require('./package.json').version || ''" 2>/dev/null || echo '')
 fi
-[ -n "$version" ] || die "No version to label the build with. Set ITCH_USERVERSION or add a version to package.json."
+if [ -z "$version" ] && [ -f Cargo.toml ]; then
+  version=$(sed -n '/^\[package\]/,/^\[/{s/^version *= *"\([^"]*\)".*/\1/p;}' Cargo.toml | head -1)
+fi
+[ -n "$version" ] || die "No version to label the build with. Set ITCH_USERVERSION, or add a version to package.json or Cargo.toml."
 
 if [ "${ITCH_DRY_RUN:-}" = "1" ]; then
   echo "dry run: would push $dist -> $ITCH_TARGET as $version"

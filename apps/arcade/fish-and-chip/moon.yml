@@ -102,3 +102,13 @@ tasks:
       - '@group(configs)'
       - 'e2e/**/*'
       - 'playwright.config.ts'
+
+  # What ships and what gates it. `build` is the artifact; `e2e` boots that
+  # artifact in a browser, and is the last check before a build reaches the
+  # public -- unit tests mock Phaser away, so nothing else proves the game
+  # starts. Declared here rather than on the inherited task because the task
+  # that builds a shipping artifact differs per game.
+  publish:
+    deps:
+      - '~:build'
+      - '~:e2e'
