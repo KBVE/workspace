@@ -4,6 +4,7 @@
 pub mod camera;
 pub mod debug;
 pub mod map;
+pub mod museum;
 pub mod trees;
 pub mod units;
 pub mod ui;
