@@ -161,11 +161,21 @@ const UI_PAUSE := &"ui_pause"
 ## Payload: none. Reaches JS as "ui:restart".
 const UI_RESTART := &"ui_restart"
 
-## The player named somebody. The run's one irreversible move: the answer is drawn per
-## run, so this is the only moment the game compares what the player worked out against
-## what happened. A second name is ignored, because the run is already over.
+## The player named somebody, with what and where. The run's one irreversible move.
 ##
-## Payload: {"who": string}. Reaches JS as "ui:accuse".
+## All three or none of it: a name alone was the accusation while the weapon and the
+## room were not things a player could have worked out, and both are now. The weapon is
+## drawn per run and left lying in the room it was used in, so finding it answers two
+## thirds of this at once -- which is what makes requiring the other two thirds fair
+## rather than a lottery.
+##
+## The answer is drawn per run, so this is the only moment the game compares what the
+## player worked out against what happened. A second accusation is ignored, because the
+## run is already over and letting one land would talk a wrong answer into a right one
+## with nothing recording that the reader had been wrong.
+##
+## Payload: {"who": string, "weapon": string, "room": string}. Reaches JS as
+## "ui:accuse".
 const UI_ACCUSE := &"ui_accuse"
 
 ## React asked to leave the game scene for the main menu, think of it as a quick escape

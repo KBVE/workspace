@@ -140,8 +140,11 @@ func _draw_this_run() -> RandomNumberGenerator:
 
 ## Whether the accusation is the right one. The only question the run's answer is ever
 ## asked, and the only place it is compared.
-func accuses_correctly(content_id: StringName) -> bool:
-	return not culprit.is_empty() and content_id == culprit
+func accuses_correctly(content_id: StringName, weapon: StringName,
+		room: StringName) -> bool:
+	if night == null or culprit.is_empty():
+		return false
+	return content_id == culprit and weapon == night.weapon_id and room == night.scene
 
 
 func _exit_tree() -> void:

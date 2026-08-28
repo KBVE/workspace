@@ -65,10 +65,8 @@ export interface JsToGodot {
   // React , jest or playwright requested to restart the current run or murder or clue
   // scene.
   'ui:restart': Record<string, never>;
-  // The player named somebody. The run's one irreversible move: the answer is drawn per
-  // run, so this is the only moment the game compares what the player worked out
-  // against what happened. A second name is ignored, because the run is already over.
-  'ui:accuse': { who: string };
+  // The player named somebody, with what and where. The run's one irreversible move.
+  'ui:accuse': { who: string; weapon: string; room: string };
   // React asked to leave the game scene for the main menu, think of it as a quick
   // escape hatch.
   'ui:main_menu': Record<string, never>;

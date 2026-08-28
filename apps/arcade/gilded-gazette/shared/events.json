@@ -149,9 +149,11 @@
       "bus": "ui_accuse",
       "wire": "ui:accuse",
       "payload": {
-        "who": "string"
+        "who": "string",
+        "weapon": "string",
+        "room": "string"
       },
-      "description": "The player named somebody. The run's one irreversible move: the answer is drawn per run, so this is the only moment the game compares what the player worked out against what happened. A second name is ignored, because the run is already over."
+      "description": "The player named somebody, with what and where. The run's one irreversible move.\n\nAll three or none of it: a name alone was the accusation while the weapon and the room were not things a player could have worked out, and both are now. The weapon is drawn per run and left lying in the room it was used in, so finding it answers two thirds of this at once -- which is what makes requiring the other two thirds fair rather than a lottery.\n\nThe answer is drawn per run, so this is the only moment the game compares what the player worked out against what happened. A second accusation is ignored, because the run is already over and letting one land would talk a wrong answer into a right one with nothing recording that the reader had been wrong."
     },
     "UI_MAIN_MENU": {
       "bus": "ui_main_menu",

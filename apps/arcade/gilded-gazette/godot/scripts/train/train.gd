@@ -467,24 +467,48 @@ func _on_ui_restart(_event: GameEvent) -> void:
 	_begin()
 
 
-## The end of the run, and the only place the drawn answer is ever read. An accusation
-## already made is not re-made: the run is over either way, and a second name would
-## overwrite the first with no record that the player had already been wrong.
+## The end of the run, and the only place the drawn answer is ever read.
+##
+## All three parts or none of it. A name alone was the accusation while the weapon and
+## the room were not things a reader could work out; the weapon is drawn now and left
+## lying in the room it was used in, so finding it answers two thirds at once, which is
+## what makes asking for the other third fair rather than a lottery.
+##
+## An accusation already made is not re-made: the run is over either way, and a second
+## one would overwrite the first with no record that the player had already been wrong.
 func _on_ui_accuse(event: GameEvent) -> void:
 	if _run.outcome != &"start":
 		return
 	var payload: Variant = event.data
 	var who := ""
+	var weapon := ""
+	var room := ""
 	if payload is Dictionary:
 		who = str(payload.get("who", ""))
+		weapon = str(payload.get("weapon", ""))
+		room = str(payload.get("room", ""))
+
+	# Each part is checked against the vocabulary it belongs to rather than merely
+	# being non-empty. A weapon that is not a weapon, or a room that is not in the
+	# consist, is a wrong accusation in the same way a misspelt name is: the reader
+	# cannot have meant it, so recording it as their answer would be recording
+	# something they did not say.
 	if who.is_empty() or GameContent.by_id("passengers", who).is_empty():
 		push_warning("train: accused '%s', who is not aboard." % who)
 		return
-	Journal.record(StateBits.JournalKind.ACCUSED, "player", who)
+	if not TheNight.weapons().has(StringName(weapon)):
+		push_warning("train: accused with '%s', which is not a weapon this run could name." % weapon)
+		return
+	if not GameContent.carriage_locations().has(StringName(room)):
+		push_warning("train: accused in '%s', which is not a room in the consist." % room)
+		return
+
+	Journal.record(StateBits.JournalKind.ACCUSED, "player", who, room)
 	# The night stops when the accusation is made. Whatever the passengers do after it,
 	# nobody is watching any more.
 	Session.time_of_day.running = false
-	_notify_level("won" if Session.accuses_correctly(StringName(who)) else "lost")
+	_notify_level("won" if Session.accuses_correctly(StringName(who), StringName(weapon),
+		StringName(room)) else "lost")
 
 
 func _notify_level(outcome: String) -> void:
