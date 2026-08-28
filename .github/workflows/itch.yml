@@ -123,6 +123,52 @@ jobs:
           path: ~/.local/share/godot/export_templates
           key: godot-templates-${{ runner.os }}-${{ hashFiles('.prototools') }}
 
+      # The next two are restores with no matching save, which looks like an
+      # oversight and is not. Actions scopes a cache to the ref that wrote it.
+      # This workflow runs on tag pushes, and every release is a different tag,
+      # so anything written here would be readable only by a re-run of the same
+      # tag -- never by the next release. What a tag ref can read is what the
+      # default branch wrote. So ci.yml on main is the writer for both of these
+      # and this workflow is a pure reader, and the two files have to agree on
+      # the key character for character or the hit never happens. Adding a save
+      # here would not fix anything; it would spend the repository's ten
+      # gigabytes of cache on per-tag copies nothing reads.
+      #
+      # Neither entry names a game, for the same reason nothing else in this
+      # file does. A project with no browser build has no target directory to
+      # restore, the restore misses, and the job carries on exactly as before.
+      - name: Restore the cargo registry
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      # The expensive one. A threaded wasm bundle rebuilds the standard library
+      # from source and rentearth ships two of them, which is the sixteen of
+      # this job's seventeen minutes; with the target directory already on disk
+      # only the game crate recompiles and it is about a minute. The pinned
+      # nightly rides along in the same entry because it is what build-std's
+      # output is valid for -- caching one without the other would let a
+      # toolchain bump restore artifacts no compiler here can use.
+      #
+      # The key is explained in ci.yml, which writes it. In short: the first
+      # hash covers the RUSTFLAGS and the nightly pin, either of which
+      # invalidates every artifact including std's, and the lockfile is a
+      # separate segment so a dependency bump can still fall back on the
+      # previous build.
+      - name: Restore the browser build
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            target/wasm32-unknown-unknown/release
+            ~/.rustup/toolchains/nightly-*
+          key: wasm-${{ runner.os }}-${{ hashFiles('apps/**/tools/build-web.sh', 'apps/**/tools/wasm-toolchain.txt') }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: wasm-${{ runner.os }}-${{ hashFiles('apps/**/tools/build-web.sh', 'apps/**/tools/wasm-toolchain.txt') }}-
+
       # Same workaround as ci.yml: proto's rust plugin can leave an empty
       # toolchain directory and still report success, so the toolchain is
       # installed for real before proto looks for it. See the comment there.

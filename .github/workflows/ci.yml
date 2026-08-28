@@ -148,6 +148,68 @@ jobs:
           test -x "$HOME/.rustup/toolchains/$version-$(uname -m)-unknown-linux-gnu/bin/cargo" \
             || { echo "::error::rustup did not produce a cargo binary for $version"; exit 1; }
 
+      # What cargo downloads, not what it produces. The registry index and the
+      # .crate tarballs are what a cold runner spends its first minutes on
+      # before it compiles a line, and they are the same for every job here, so
+      # one entry keyed on the lockfile serves the whole workspace. registry/src
+      # is deliberately not in the list: cargo re-extracts it from the tarballs
+      # beside it in seconds, and keeping the extracted copy as well would
+      # roughly treble what this uploads for nothing. The fallback key matters
+      # more than the exact one -- a lockfile bump changes a handful of crates
+      # and leaves the rest of the download worth keeping.
+      - name: Restore the cargo registry
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      # The browser build's compiled output, and the nightly that produces it.
+      #
+      # A threaded wasm bundle rebuilds the standard library from source --
+      # `-Z build-std`, because the wasm32 std rustup ships has no atomics --
+      # and rentearth ships two of them, one per wgpu backend. That is about a
+      # quarter of an hour, of which all but the last minute is dependencies
+      # and std that no change in this repository touches. With the target
+      # directory already on disk only the game crate recompiles and the task
+      # finishes in around a minute.
+      #
+      # This step is also the only way the release workflow can ever have a
+      # warm target directory, and that is not obvious enough to survive a
+      # tidy-up. Actions scopes a cache to the ref that wrote it. itch.yml runs
+      # on tag pushes, so a cache written while publishing one tag cannot be
+      # read while publishing the next, and caching there would only ever help
+      # a re-run of the same tag. A tag ref can read what the default branch
+      # wrote, though -- so the writer has to live here, on main, and itch.yml
+      # only restores. Deleting this step puts a quarter of an hour back on
+      # every release, silently, with nothing failing to say so.
+      #
+      # Note that this costs main nothing it was not already paying: build-web
+      # is a normal task in the graph, so `moon ci` compiles those bundles
+      # whenever rentearth-bevy is affected whether or not anything caches the
+      # result.
+      #
+      # Nothing here names a game, which is the property itch.yml depends on.
+      # The key hashes whatever browser build scripts the workspace happens to
+      # have, and that is where both of the things that invalidate every
+      # artifact live: the RUSTFLAGS are written inside build-web.sh, and the
+      # nightly pin -- which decides what build-std's output is even valid for
+      # -- inside wasm-toolchain.txt. The lockfile is a second segment rather
+      # than part of the same hash so that a dependency bump falls back through
+      # restore-keys onto the previous build instead of onto nothing.
+      - name: Restore the browser build
+        id: wasm-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            target/wasm32-unknown-unknown/release
+            ~/.rustup/toolchains/nightly-*
+          key: wasm-${{ runner.os }}-${{ hashFiles('apps/**/tools/build-web.sh', 'apps/**/tools/wasm-toolchain.txt') }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: wasm-${{ runner.os }}-${{ hashFiles('apps/**/tools/build-web.sh', 'apps/**/tools/wasm-toolchain.txt') }}-
+
       - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
         with:
           auto-install: true
@@ -159,3 +221,37 @@ jobs:
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
         run: moon ci --job ${{ matrix.index }} --job-total ${{ matrix.total }}
+
+      # Restore and save are split for the two steps below, rather than left to
+      # one actions/cache, because this job is a matrix and only one half of it
+      # ever runs a browser build. The combined action saves whatever is on
+      # disk when any job ends, so the half that compiled no wasm would write
+      # its empty -- or merely restored, and therefore stale -- target
+      # directory under the key first, and the half that did the work would
+      # then find the key already taken. So the save asks what this job
+      # actually produced. A wasm-bindgen bundle in a dist is the answer:
+      # build-web clears that directory and rewrites it, and nothing restores
+      # it, so its presence means the compile happened here and now.
+      - name: Did a browser build run
+        id: wasm-built
+        if: always()
+        run: |
+          shopt -s nullglob
+          bundles=(apps/*/*/dist/*_bg.wasm)
+          if [ "${#bundles[@]}" -gt 0 ]; then
+            echo 'built=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      # Saved even when the run failed: a lint that came back red leaves the
+      # compiled dependencies just as valid as a green one, and throwing them
+      # away would mean the next push pays the full quarter of an hour again.
+      # Skipped on an exact restore hit, where there is by definition nothing
+      # new to write.
+      - name: Save the browser build
+        if: ${{ always() && steps.wasm-built.outputs.built == 'true' && steps.wasm-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            target/wasm32-unknown-unknown/release
+            ~/.rustup/toolchains/nightly-*
+          key: wasm-${{ runner.os }}-${{ hashFiles('apps/**/tools/build-web.sh', 'apps/**/tools/wasm-toolchain.txt') }}-${{ hashFiles('Cargo.lock') }}
