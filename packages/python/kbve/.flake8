@@ -24,6 +24,7 @@ per-file-ignores =
 	# semicolons in prose and the report's columns are :<4 width specs.
 	kbve/seo/pages.py: E702
 	kbve/seo/rules.py: E702
+	kbve/unreal/ubt.py: E702
 	kbve/seo/report.py: E231
 	kbve/svg/dag.py: E231, E702
 	tests/test_svg.py: E231

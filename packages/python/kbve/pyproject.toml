@@ -57,6 +57,10 @@ kbve-seo-report = "kbve.seo.report:main"
 # kbve.argocd is PyYAML only -- file manipulation, no cluster access.
 kbve-argocd-annotate = "kbve.argocd.annotate:main"
 kbve-argocd-label = "kbve.argocd.label_resources:main"
+# kbve.unreal is stdlib only; it shells out to UBT and clang rather than
+# importing anything.
+kbve-unreal-clangd = "kbve.unreal.clangd:main"
+kbve-unreal-check = "kbve.unreal.check:main"
 
 # Everything else the Nx workspace hung off this distribution stayed there:
 # kbve.nx, kbve.sprite, kbve.osrs, kbve.seo, kbve.mdx, kbve.svg, kbve.ai,

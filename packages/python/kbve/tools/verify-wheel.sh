@@ -47,6 +47,7 @@ import sys
 import kbve
 import kbve.argocd
 import kbve.seo
+import kbve.unreal
 import kbve.mdx
 import kbve.svg
 import kbve.ai
@@ -100,14 +101,15 @@ scripts = [ep for ep in dist.entry_points if ep.group == "console_scripts"]
 if not scripts:
     raise SystemExit("no console scripts in the wheel")
 
-# kbve.seo and kbve.argocd need neither extra -- pydantic and PyYAML are in the
-# base install -- so their commands have to work without one.
+# kbve.seo, kbve.argocd and kbve.unreal need neither extra -- the first two use
+# pydantic and PyYAML from the base install, and kbve.unreal is stdlib only --
+# so their commands have to work without one.
 light = [ep for ep in scripts
-         if ep.name.startswith(("kbve-seo-", "kbve-argocd-"))]
+         if ep.name.startswith(("kbve-seo-", "kbve-argocd-", "kbve-unreal-"))]
 for ep in light:
     ep.load()
 
-print(f"  bare:      seo + argocd + stdlib modules, py.typed ok, "
+print(f"  bare:      seo + argocd + unreal + stdlib, py.typed ok, "
       f"{len(light)}/{len(scripts)} scripts run unextra'd")
 PY
 

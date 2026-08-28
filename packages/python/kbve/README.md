@@ -113,6 +113,27 @@ carries the provenance its Application declares. Manifests are found in
 Same exit contract as the auditor: `0` clean, `1` findings that should block,
 `2` could not run.
 
+## Unreal Engine (`kbve.unreal`)
+
+Stdlib only — it shells out to Unreal Build Tool and to clang, so it installs
+and imports on a machine with no engine at all.
+
+```bash
+kbve-unreal-clangd --project <path.uproject> --target <Game>Editor
+kbve-unreal-check  Source/Game/Private/Thing.cpp
+```
+
+`clangd` asks UBT for a `compile_commands.json`, moves it beside the
+`.uproject`, and writes a `.clangd` at the repository root pointing at it.
+`check` reads that database back and re-runs one file's own compile command
+with `-fsyntax-only` — the difference between a syntax check and a
+twenty-minute build. Headers aren't in the database, so a header resolves to a
+sibling translation unit and is force-included into it.
+
+The engine is located from `--engine-root`, then `$KBVE_UE_ROOT`, then the
+macOS Epic install path. There's no equivalent convention on Linux, so it says
+so rather than guessing.
+
 ## Content and rendering (`kbve.mdx`, `kbve.svg`, `kbve.ai`)
 
 `kbve.svg` renders donut charts and DAGs to inline SVG at generation time, so a
@@ -159,7 +180,6 @@ that has no equivalent here yet:
 | module | needs |
 | --- | --- |
 | `kbve.osrs` | `apps/kbve/astro-kbve` content tree |
-| `kbve.unreal` | `apps/rentearth/unreal-rentearth` |
 | `kbve.sprite.ship_footprint` | `apps/agones/arpg/{web,server}` |
 
 Porting them before their consumers would mean shipping paths already known to
