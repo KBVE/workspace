@@ -90,6 +90,25 @@ axum-extra = "0.12.6"
 dotenvy = "0.15"
 tokio-tungstenite = { version = "0.29", default-features = false }
 
+# Brought over with the bevy crate group. Same 0.19 the rentearth-bevy app
+# already pins, so there is one bevy in the lockfile rather than two.
+avian3d = { version = "0.7", default-features = false }
+bevy = { version = "0.19", default-features = false }
+bincode = "2.0"
+criterion = { version = "0.5", default-features = false }
+crossbeam-channel = "0.5.15"
+dirs = "6"
+hex = "0.4"
+js-sys = { version = "0.3", default-features = false }
+lightyear = { version = "0.29", default-features = false }
+prost-build = "0.14"
+tempfile = "3"
+web-sys = "0.3"
+# Not the `=0.2.114` the old workspace pinned: bevy 0.19.1 resolves 0.2.127
+# here, and rentearth-bevy's build-web.sh asserts the wasm-bindgen CLI matches
+# the lockfile. An exact pin would put two of them in the graph.
+wasm-bindgen = "0.2"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

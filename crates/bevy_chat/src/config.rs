@@ -1,0 +1,110 @@
+use serde::{Deserialize, Serialize};
+
+/// How the native client reaches the IRC server.
+///
+/// - `Tcp` (default): raw TCP, optionally TLS, used by the Discord bot and
+///   the lightyear server which both run inside our network.
+/// - `WebSocket`: tokio-tungstenite WebSocket transport, used by the
+///   isometric game's desktop build to share the same `wss://chat.kbve.com`
+///   endpoint as the WASM browser client.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum IrcTransport {
+    #[default]
+    Tcp,
+    WebSocket,
+}
+
+/// Configuration for connecting to an IRC server.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IrcConfig {
+    /// IRC server hostname (e.g. "irc.kbve.internal").
+    pub host: String,
+    /// IRC server port (default: 6667, or 6697 for TLS).
+    pub port: u16,
+    /// Whether to use TLS.
+    pub tls: bool,
+    /// Nickname for this client (e.g. "mud-abc123", "iso-player42").
+    pub nick: String,
+    /// Channels to auto-join on connect (e.g. ["#global", "#world-events"]).
+    pub channels: Vec<String>,
+    /// Optional server password.
+    pub password: Option<String>,
+    /// Reconnect delay in seconds after disconnect (0 = no reconnect).
+    pub reconnect_delay_secs: u64,
+    /// Transport mode. Defaults to TCP for backward compatibility with the
+    /// existing IRC-over-TCP consumers; the isometric desktop client sets
+    /// this to `WebSocket` to talk to `wss://chat.kbve.com`.
+    #[serde(default)]
+    pub transport: IrcTransport,
+    /// If true, the client skips sending `PASS`/`NICK`/`USER` after connect
+    /// and only sends `JOIN` for configured channels. Used by the
+    /// `wss://chat.kbve.com` gateway which pre-registers the user with Ergo
+    /// from the JWT-authenticated identity carried in the WS upgrade query.
+    #[serde(default)]
+    pub skip_registration: bool,
+}
+
+impl Default for IrcConfig {
+    fn default() -> Self {
+        Self {
+            host: "localhost".to_owned(),
+            port: 6667,
+            tls: false,
+            nick: "bevy-chat".to_owned(),
+            channels: vec!["#global".to_owned()],
+            password: None,
+            reconnect_delay_secs: 5,
+            transport: IrcTransport::Tcp,
+            skip_registration: false,
+        }
+    }
+}
+
+impl IrcConfig {
+    /// Create a config from environment variables.
+    ///
+    /// | Env var | Default |
+    /// |---------|---------|
+    /// | `IRC_HOST` | `localhost` |
+    /// | `IRC_PORT` | `6667` |
+    /// | `IRC_TLS` | `false` |
+    /// | `IRC_NICK` | `bevy-chat` |
+    /// | `IRC_CHANNELS` | `#global` (comma-separated) |
+    /// | `IRC_PASSWORD` | none |
+    /// | `IRC_RECONNECT_DELAY` | `5` |
+    pub fn from_env() -> Self {
+        let host = std::env::var("IRC_HOST").unwrap_or_else(|_| "localhost".to_owned());
+        let port: u16 = std::env::var("IRC_PORT")
+            .ok()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(6667);
+        let tls = std::env::var("IRC_TLS")
+            .map(|v| v == "true" || v == "1")
+            .unwrap_or(false);
+        let nick = std::env::var("IRC_NICK").unwrap_or_else(|_| "bevy-chat".to_owned());
+        let channels: Vec<String> = std::env::var("IRC_CHANNELS")
+            .unwrap_or_else(|_| "#global".to_owned())
+            .split(',')
+            .map(|s| s.trim().to_owned())
+            .filter(|s| !s.is_empty())
+            .collect();
+        let password = std::env::var("IRC_PASSWORD").ok();
+        let reconnect_delay_secs: u64 = std::env::var("IRC_RECONNECT_DELAY")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(5);
+
+        Self {
+            host,
+            port,
+            tls,
+            nick,
+            channels,
+            password,
+            reconnect_delay_secs,
+            transport: IrcTransport::Tcp,
+            skip_registration: false,
+        }
+    }
+}
