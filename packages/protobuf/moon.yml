@@ -50,23 +50,22 @@ tasks:
     toolchains: ['node']
     inputs: ['kbve/**/*.proto']
 
-  # DISABLED UNTIL PUBLICATION. Re-enable before the first `buf push`.
+  # Every published schema is a promise. This rejects a change that would
+  # break a consumer already pinned to the module: a deleted field, a retyped
+  # field, a renumbered one.
   #
-  # Nothing consumes these schemas yet, so breaking changes are not only
-  # allowed but the point: retiring kbve/schema.proto deletes messages, and
-  # folding the per-domain rarity and element enums into common changes field
-  # types. This check would fail every one of those pull requests.
+  # Migrating a new domain in does not trip it. The comparison is against this
+  # module's own history, so bringing osrs or the infra protos across adds
+  # files and adds messages -- the reshaping happens on the way in, against a
+  # source this module has never contained. What it does catch is reshaping a
+  # domain already landed here, which is exactly the change that should cost a
+  # deliberate decision.
   #
-  # The moment a consumer pins a published version that stops being true, and
-  # this becomes the most important task in the file. Uncommenting it is the
-  # last step before publishing, not an afterthought -- protobuf-publish.yml
-  # greps for an active `breaking:` task here and refuses to push without one.
-  #
-  # The command is verified working: against origin/main it rejects a deleted
-  # field and a changed field type, and accepts an added field. It resolves a
-  # git ref, so it needs the full clone ci.yml already checks out.
-  #
-  # breaking:
-  #   command: 'buf breaking --against .git#branch=origin/main'
-  #   toolchains: ['node']
-  #   inputs: ['kbve/**/*.proto', 'buf.yaml']
+  # The ref resolves from the repository root with the module as a subdir; the
+  # bare '.git' form works only when the module is its own repository, which it
+  # stopped being when it moved into the monorepo. It needs the full clone that
+  # protobuf-ci.yml already checks out with fetch-depth: 0.
+  breaking:
+    command: 'buf breaking --against ../../.git#branch=origin/main,subdir=packages/protobuf'
+    toolchains: ['node']
+    inputs: ['kbve/**/*.proto', 'buf.yaml']
