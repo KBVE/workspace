@@ -131,6 +131,10 @@ pub struct UpdateProfileSchema {
 // Implement methods for the UpdateProfileSchema struct.
 impl UpdateProfileSchema {
     // Define a method named `sanitize` to clean and validate the fields.
+    // Still on spellbook_sanitize_fields!. It cleans through ammonia, which
+    // strips tags rather than rejecting them, and holy has no equivalent rule
+    // -- adding one means an html5ever dependency. See the crate docs.
+    #[allow(deprecated)]
     pub fn sanitize(&mut self) {
         // Sanitize the fields using a custom macro or function.
         // This likely includes trimming whitespace, escaping special characters, etc.

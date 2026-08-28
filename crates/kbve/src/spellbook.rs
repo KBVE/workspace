@@ -1,3 +1,21 @@
+//! Legacy request-boundary helpers.
+//!
+//! Most of these are deprecated. They were written before the crate had an
+//! error type, so each ends in `return` -- which is why they had to be macros:
+//! a function cannot return on behalf of its caller. `?` with `ApiError` does
+//! the same job, visibly, and answers with a status that describes the failure
+//! rather than 401 for everything.
+//!
+//! Two others are macros wrapping a single function call and nothing else, and
+//! one is replaced by `#[derive(holy::Sanitize)]`.
+//!
+//! The deprecations are here to keep the list honest while the remaining
+//! crates are migrated: every call site warns, and the ones that have not been
+//! converted yet carry an explicit `#[allow(deprecated)]` naming what they are
+//! waiting on. Not everything here is deprecated -- spellbook_pool_conn,
+//! spellbook_get_global, spellbook_create_jwt and the hazardous_* pair capture
+//! control flow or repeat over token lists, which is what a macro is for.
+
 //!         [SPELLBOOK]
 //?         Collection of all the v2 Macros
 
@@ -66,6 +84,10 @@ macro_rules! spellbook_get_global {
 // error responses throughout your web application.
 
 #[macro_export]
+#[deprecated(
+    since = "0.1.27",
+    note = "return an ApiError variant, which carries the right status instead of 401"
+)]
 macro_rules! spellbook_error {
   // The macro takes two parameters: `$status` for the HTTP status code, and `$error` for the error message.
   ($status:expr, $error:expr) => {
@@ -108,6 +130,10 @@ macro_rules! spellbook_error {
 // The `spellbook_pool` macro is defined using Rust's macro_rules! system.
 // This macro is designed to simplify the process of obtaining a database connection from a connection pool.
 #[macro_export]
+#[deprecated(
+    since = "0.1.27",
+    note = "use pool.get() with map_err into ApiError::Unavailable -- this macro answers 401 for a database outage"
+)]
 macro_rules! spellbook_pool {
   // The macro takes a single argument, `$pool`, which represents the connection pool.
   ($pool:expr) => {
@@ -144,6 +170,10 @@ macro_rules! spellbook_pool_conn {
 }
 
 #[macro_export]
+#[deprecated(
+    since = "0.1.27",
+    note = "return Ok(...) from a handler returning Result<Response, ApiError>"
+)]
 macro_rules! spellbook_complete {
   ($spell:expr) => {
         return (axum::http::StatusCode::OK, axum::Json(serde_json::json!({"data": $spell}))).into_response()
@@ -151,6 +181,7 @@ macro_rules! spellbook_complete {
 }
 
 #[macro_export]
+#[deprecated(since = "0.1.27", note = "validate with #[holy(validate = "username")], or utility::sanitize_username with .field("username")?")]
 macro_rules! spellbook_username {
   ($username:expr) => {
         match $crate::utility::sanitize_username($username) {
@@ -161,6 +192,7 @@ macro_rules! spellbook_username {
 }
 
 #[macro_export]
+#[deprecated(since = "0.1.27", note = "validate with #[holy(validate = "ulid")], or utility::sanitizie_ulid with .field("ulid")?")]
 macro_rules! spellbook_ulid {
   ($ulid:expr) => {
         match $crate::utility::sanitizie_ulid($ulid) {
@@ -171,6 +203,7 @@ macro_rules! spellbook_ulid {
 }
 
 #[macro_export]
+#[deprecated(since = "0.1.27", note = "validate with #[holy(validate = "email")], or utility::sanitize_email with .field("email")?")]
 macro_rules! spellbook_email {
   ($email:expr) => {
         match $crate::utility::sanitize_email($email) {
@@ -181,6 +214,10 @@ macro_rules! spellbook_email {
 }
 
 #[macro_export]
+#[deprecated(
+    since = "0.1.27",
+    note = "call utility::generate_ulid_as_bytes() directly -- this macro only wraps it"
+)]
 macro_rules! spellbook_generate_ulid_bytes {
     () => {{
         // Call the generate_ulid_as_bytes function
@@ -189,6 +226,10 @@ macro_rules! spellbook_generate_ulid_bytes {
 }
 
 #[macro_export]
+#[deprecated(
+    since = "0.1.27",
+    note = "call utility::generate_ulid_as_string() directly -- this macro only wraps it"
+)]
 macro_rules! spellbook_generate_ulid_string {
     () => {{
         // Call the generate_ulid_as_string function
@@ -207,6 +248,7 @@ In the spellbook_sanitize_fields macro:
 // This is a macro definition using Rust's macro_rules! system.
 // It is designed to generalize the process of sanitizing fields in a struct.
 #[macro_export]
+#[deprecated(since = "0.1.27", note = "derive it: #[derive(holy::Sanitize)] with #[holy(sanitize = "...")] on the fields")]
 macro_rules! spellbook_sanitize_fields {
   // The macro takes two types of input:
   // 1. $struct:expr, which represents the struct instance whose fields need sanitizing.
@@ -280,6 +322,7 @@ macro_rules! spellbook_hazardous_task_fetch {
 }
 
 #[macro_export]
+#[deprecated(since = "0.1.27", note = "unused; read the variable directly")]
 macro_rules! spellbook_env_load {
     ($var_name:expr, $default:expr) => {{
         let env_val = std::env::var($var_name).unwrap_or_else(|_| $default.to_string());
@@ -298,6 +341,7 @@ macro_rules! spellbook_env_load {
 }
 
 #[macro_export]
+#[deprecated(since = "0.1.27", note = "unused; read the variable directly")]
 macro_rules! spellbook_env_load_duration {
     ($var_name:expr, $default:expr) => {{
         let default_secs = $default.as_secs().to_string();

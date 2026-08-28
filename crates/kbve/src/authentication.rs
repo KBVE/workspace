@@ -68,6 +68,10 @@ pub async fn auth_logout() -> impl IntoResponse {
     )
 }
 
+// Still on spellbook_error!, spellbook_pool! and spellbook_complete!.
+// Converting means returning Result<Response, ApiError> the way
+// auth_jwt_profile does, which also stops a database outage answering 401.
+#[allow(deprecated)]
 pub async fn auth_player_register(
     Extension(pool): Extension<Arc<Pool>>,
     Json(mut body): Json<AuthPlayerRegisterSchema>,
@@ -487,8 +491,11 @@ pub async fn auth_jwt_profile(
     // Extract JWT token data (assuming `jsonwebtoken::TokenData<TokenRune>` is a valid type)
     Extension(privatedata): Extension<jsonwebtoken::TokenData<TokenRune>>,
 ) -> Result<Response, ApiError> {
+    // .await before map_err: under diesel-async the pool hands back a future,
+    // which is the same thing the rest of this module gets wrong.
     let mut conn = pool
         .get()
+        .await
         .map_err(|_| ApiError::Unavailable("database pool"))?;
 
     // Sanitize and validate the username, ULID, and email from the JWT token
@@ -533,6 +540,10 @@ pub async fn auth_jwt_profile(
 
 // Define an asynchronous function named `auth_jwt_update_profile`
 // This function is designed to handle a request to update a user profile
+// Still on spellbook_pool! and spellbook_ulid!, and calls
+// UpdateProfileSchema::sanitize, which cannot become a derive until holy
+// can strip HTML rather than reject it.
+#[allow(deprecated)]
 pub async fn auth_jwt_update_profile(
     // Extract a shared connection pool (wrapped in an Arc for thread safety)
     Extension(pool): Extension<Arc<Pool>>,
