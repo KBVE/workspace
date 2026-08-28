@@ -95,16 +95,41 @@ Item models are built from a downloaded asset rather than committed as one. The
 downloads are a .blend plus a 1k PBR set, and none of the normal, roughness or
 metallic maps survive: `shaders/prop.gdshader` takes one albedo and a baked lamp
 tint, so the other three megabytes would be downloaded by every browser and then
-ignored. `tools/import-item-model.py` keeps the diffuse, resizes it, lays the
-object down, puts its origin on the ground under it, and writes one self-contained
-glb:
+ignored. `tools/import-item-model.py` keeps the diffuse, resizes it to 256,
+collapses the mesh to a triangle budget, lays the object down, puts its origin on
+the ground under it, and writes one self-contained glb:
 
 ```
 blender -b ~/Downloads/ornate_medieval_dagger_1k/ornate_medieval_dagger_1k.blend \
   -P tools/import-item-model.py -- --out godot/assets/items/ornate_dagger.glb
 ```
 
-The glb is committed; the download is not. What an item then needs is an mdx in
+Both budgets are worth understanding before raising either. Vertex data is the
+bulk of what a glb weighs, not the image: the dagger arrived at 6,290 triangles
+and 192K, of which 162K was positions, normals, UVs and indices. At 800 triangles
+and a 256 albedo it is 37K, and it is still the most detailed thing in the train
+-- the crates it lies beside are 68 triangles each. A hand-sized object seen from
+across a carriage does not repay more than that.
+
+The glb is committed; the download is not.
+
+What the browser downloads is neither. Godot imports a glb at build time into its
+own `.scn` and `.ctex`, and `index.pck` carries those; the glb is a source file
+the export never ships. So the numbers to watch are in `.godot/imported`, and they
+do not follow the source. The dagger's 10.5K jpeg imported to a 78.9K `.ctex`,
+because textures default to lossless: `compress/mode=1` in the `.import` puts it
+at 9.9K, which is a bigger saving than every other decision here put together.
+The mesh lands at 25.6K.
+
+That is also the answer to gltfpack, which is the obvious tool to reach for here.
+Its headline win is a smaller glb -- quantized attributes, meshopt compression --
+and this game does not download the glb. Measured on the dagger: the default
+quantized output does not import at all under Godot 4.7.2, which records
+`valid=false` in the `.import` and produces no scene; `gltfpack -noq` imports
+cleanly and lands at 25.7K against the 25.6K it already was, because Godot
+re-encodes either way. What it would still be good for is its simplifier, which
+is better than Blender's collapse -- worth revisiting if an item ever arrives
+that decimates badly. What an item then needs is an mdx in
 `shared/data/items` naming that model and a `found` spot in the room it lies in --
 see `ornate_dagger.mdx`. A model named with no glb behind it fails `npm run gen`
 rather than leaving an empty patch of floor in game.

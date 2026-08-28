@@ -8,7 +8,7 @@ metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "09b465b38903f07a15e729180b82f5d6"
+"md5": "4b204c832210ea389df6065160f79ac3"
 }
 
 [deps]
@@ -18,7 +18,7 @@ dest_files=["res://.godot/imported/ornate_dagger_ornate_medieval_dagger_diff_1k.
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

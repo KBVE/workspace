@@ -10,6 +10,13 @@ baked lamp tint and has no channel to put a normal map in; the other three maps
 would be exported, downloaded by every browser, and then ignored. So this keeps
 the diffuse, resizes it, drops the rest, and writes one self-contained glb.
 
+The geometry gets the same treatment, and for the same reason. A downloaded
+asset is modelled for a render, so it arrives with a few thousand triangles on
+something the size of a hand; the props already in this train are built out of
+dozens, and one item carrying more geometry than the whole carriage around it
+is weight nobody sees. Vertex data is also the bulk of what a glb weighs -- a
+1k albedo resized to 256 saves a tenth of what collapsing the mesh does.
+
 It also lies the object down. A weapon asset is modelled standing up, because
 that is how a product shot wants it, and an item in this game is on the floor
 of a carriage or on a table in one. Standing it up would need a rotation
@@ -39,11 +46,17 @@ def parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--out', required=True, help='glb to write')
     p.add_argument('--name', default='', help='mesh name in the glb; defaults to the out stem')
-    p.add_argument('--texture-size', type=int, default=512,
+    p.add_argument('--texture-size', type=int, default=256,
                    help='square size the albedo is resized to')
+    p.add_argument('--triangles', type=int, default=800,
+                   help='triangle budget; the mesh is collapsed down to it')
     p.add_argument('--stand', action='store_true',
                    help='keep the asset upright instead of laying it down')
     return p.parse_args(args_after_double_dash())
+
+
+def triangles_in(mesh: bpy.types.Mesh) -> int:
+    return sum(len(p.vertices) - 2 for p in mesh.polygons)
 
 
 def meshes() -> list[bpy.types.Object]:
@@ -121,6 +134,21 @@ def main() -> None:
         obj.rotation_euler = (-1.5707963267948966, 0.0, 0.0)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
+    # Collapse, not un-subdivide: collapse is the one decimate mode that keeps
+    # the UV layout, and the whole model is one image on one map. Applied before
+    # the origin is measured, because collapsing moves the outermost vertices
+    # and the origin has to sit under where the mesh ends up.
+    # Counted as triangles rather than as faces, because collapse triangulates
+    # before it measures its own ratio: a ratio worked out against a mesh of
+    # quads asks for half the reduction it looks like it is asking for.
+    before = triangles_in(obj.data)
+    if before > opts.triangles:
+        shrink = obj.modifiers.new('budget', 'DECIMATE')
+        shrink.decimate_type = 'COLLAPSE'
+        shrink.ratio = opts.triangles / before
+        shrink.use_collapse_triangulate = True
+        bpy.ops.object.modifier_apply(modifier=shrink.name)
+
     # Origin on the ground under the mesh, matching the prop library. Set from
     # the bounding box rather than by the bounds-centre operator, which would
     # bury half the model under the floor.
@@ -150,8 +178,8 @@ def main() -> None:
         export_apply=True,
         export_image_format='JPEG',
     )
-    print(f'wrote {out} ({out.stat().st_size // 1024}K), {len(obj.data.polygons)} polygons, '
-          f'{tuple(round(d, 4) for d in obj.dimensions)} metres')
+    print(f'wrote {out} ({out.stat().st_size // 1024}K), {triangles_in(obj.data)} triangles '
+          f'from {before}, {tuple(round(d, 4) for d in obj.dimensions)} metres')
 
 
 main()
