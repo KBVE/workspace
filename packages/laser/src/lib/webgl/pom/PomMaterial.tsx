@@ -83,7 +83,29 @@ const PomMaterialBase = shaderMaterial(
 	fragment,
 );
 
-extend({ PomMaterial: PomMaterialBase });
+let registered = false;
+
+/**
+ * Registers `<pomMaterial>` in react-three-fiber's element catalogue.
+ *
+ * Called once when this module is first evaluated, which is how the tag has
+ * always come to exist. It is exported and made idempotent because that import
+ * side effect is the package's only one, and it is invisible to a bundler: the
+ * r3f entry point re-exports constants and types from here and nothing that
+ * references the material itself, so a build told the package is side-effect
+ * free may drop this call and leave `<pomMaterial>` silently unknown at render
+ * time. A consumer in that position can call this to put it back.
+ *
+ * This is why package.json carries no `sideEffects: false`, and
+ * PomMaterial.spec.tsx fails if one is added.
+ */
+export function registerPomMaterial(): void {
+	if (registered) return;
+	registered = true;
+	extend({ PomMaterial: PomMaterialBase });
+}
+
+registerPomMaterial();
 
 export type PomMaterialType = THREE.ShaderMaterial & {
 	uAlbedo: THREE.Texture | null;

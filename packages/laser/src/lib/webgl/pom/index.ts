@@ -19,6 +19,7 @@ export {
 	POM_SOURCE_BRICK,
 	POM_SOURCE_LUMA,
 	POM_SOURCE_MAP,
+	registerPomMaterial,
 } from './PomMaterial';
 export type { PomMaterialType } from './PomMaterial';
 

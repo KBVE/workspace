@@ -22,6 +22,7 @@ export {
 	POM_SOURCE_LUMA,
 	POM_SOURCE_MAP,
 	POM_WGSL_STUB,
+	registerPomMaterial,
 } from './lib/webgl/pom';
 export type {
 	PomUniformValues,
