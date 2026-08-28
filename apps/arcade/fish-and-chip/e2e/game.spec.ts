@@ -134,24 +134,26 @@ test.describe('fish and chip', () => {
 
 		const position = () =>
 			page.evaluate(() => window.__GRID_ENGINE__?.getPosition('player') ?? null);
-
 		await expect.poll(position).not.toBeNull();
-		const start = (await position())!;
 
-		// Right, not left: the player spawns at (5,12) with a blocked tile to
-		// its left, so walking that way is correctly a no-op and would look
-		// exactly like broken input.
+		// Row 1 is always clear floor: the generator keeps buildings, props, and
+		// landmarks at a margin of 2 or more from the wall. Walking east from
+		// (1,1) is therefore unblocked on every seed, where "east of wherever
+		// the player spawned" is a coin toss on a generated map.
+		await page.evaluate(() => window.__GRID_ENGINE__?.setPosition('player', { x: 1, y: 1 }));
+		const start = { x: 1, y: 1 };
+
 		await page.locator('canvas').click({ position: { x: 10, y: 10 } });
 		await page.keyboard.down('d');
 		await expect.poll(position, { timeout: 30_000 }).not.toEqual(start);
 		await page.keyboard.up('d');
 
 		const moved = (await position())!;
-		expect(moved.x).toBe(start.x + 1);
+		expect(moved.x).toBeGreaterThan(start.x);
 		expect(moved.y).toBe(start.y);
 	});
 
-	test('refuses to walk into a blocked tile', async ({ page }) => {
+	test('refuses to walk into a wall', async ({ page }) => {
 		await booted(page);
 		await page.evaluate(() => window.__FISHCHIP_GAME__?.scene.start('TownScene'));
 		await expect.poll(() => activeScenes(page), { timeout: 60_000 }).toContain('TownScene');
@@ -159,16 +161,81 @@ test.describe('fish and chip', () => {
 		const position = () =>
 			page.evaluate(() => window.__GRID_ENGINE__?.getPosition('player') ?? null);
 		await expect.poll(position).not.toBeNull();
-		const start = (await position())!;
 
-		// The wall west of the spawn. Collision comes from the Tiled map, so
-		// this fails if the tilemap stops loading or its collision property is
-		// renamed -- the player would walk through scenery instead.
+		// (1,1) is the inside corner of the enclosure on every seed: the
+		// generator keeps buildings, props, and landmarks at a margin of 2 or
+		// more, so this tile is always open floor with wall to its west and
+		// north. Standing the player there is what makes the assertion
+		// seed-independent -- the old version relied on a wall the fixed map
+		// happened to have beside the spawn.
+		await page.evaluate(() => window.__GRID_ENGINE__?.setPosition('player', { x: 1, y: 1 }));
+		const corner = { x: 1, y: 1 };
+		expect(await position()).toEqual(corner);
+
 		await page.locator('canvas').click({ position: { x: 10, y: 10 } });
-		await page.keyboard.down('a');
-		await page.waitForTimeout(1_000);
-		await page.keyboard.up('a');
+		for (const key of ['a', 'w']) {
+			await page.keyboard.down(key);
+			await page.waitForTimeout(700);
+			await page.keyboard.up(key);
+			// Collision comes from the ge_collide property the generator emits,
+			// so this fails if that stops being written or the wall gids change.
+			expect(await position()).toEqual(corner);
+		}
+	});
 
-		expect(await position()).toEqual(start);
+	test('generates a town bigger than the map it replaced', async ({ page }) => {
+		await booted(page);
+		await page.evaluate(() => window.__FISHCHIP_GAME__?.scene.start('TownScene'));
+		await expect.poll(() => activeScenes(page), { timeout: 60_000 }).toContain('TownScene');
+
+		const town = await page.evaluate(() => {
+			const map = window.__TOWN__;
+			if (!map) return null;
+			return {
+				width: map.width,
+				height: map.height,
+				landmarks: Object.keys(map.landmarks).sort(),
+				layers: map.layers.map((layer) => layer.name),
+			};
+		});
+
+		expect(town).not.toBeNull();
+		expect(town!.width * town!.height).toBeGreaterThan(20 * 20);
+		expect(town!.landmarks).toEqual(['building', 'fishingPit', 'sign', 'tombstone']);
+		expect(town!.layers).toEqual(['ground', 'buildings', 'objects']);
+	});
+
+	// The landmark system, end to end: the generator places a landmark, the
+	// scene turns its position into an interaction, and F acts on it. The
+	// building and the tombstone used to reach a console.log, so "does F do
+	// anything here" is the whole question.
+	test.describe('landmarks', () => {
+		for (const [landmark, scene] of [
+			['fishingPit', 'FishChipScene'],
+			['sign', 'CreditsScene'],
+			['building', 'MarketScene'],
+		] as const) {
+			test(`${landmark} opens ${scene}`, async ({ page }) => {
+				await booted(page);
+				await page.evaluate(() => window.__FISHCHIP_GAME__?.scene.start('TownScene'));
+				await expect.poll(() => activeScenes(page), { timeout: 60_000 }).toContain('TownScene');
+
+				// Stand on the landmark rather than walking to it: pathing across a
+				// generated town is not what this test is about, and the seed
+				// changes every run.
+				await page.evaluate((name) => {
+					const spot = window.__TOWN__!.landmarks[name];
+					// The building landmark is its doorway, which is solid; the
+					// player stands on the approach tile below it.
+					const stand = name === 'building' ? { x: spot.x, y: spot.y + 1 } : spot;
+					window.__GRID_ENGINE__?.setPosition('player', stand);
+				}, landmark);
+
+				await page.locator('canvas').click({ position: { x: 10, y: 10 } });
+				await page.keyboard.press('f');
+
+				await expect.poll(() => activeScenes(page), { timeout: 30_000 }).toContain(scene);
+			});
+		}
 	});
 });

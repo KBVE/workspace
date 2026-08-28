@@ -1,9 +1,11 @@
 import type { CharacterDataHeadless } from 'grid-engine';
 
+import type { TownMap } from '../../world/generate';
+
 // The town's grid-engine characters, minus their sprites. Kept apart from
-// TownScene so the ids, start positions, and speeds can be exercised against a
-// real GridEngineHeadless in a test -- the scene itself needs a canvas, so
-// nothing in it is reachable from a unit test.
+// TownScene so the ids, spawns, and speeds can be exercised against a real
+// GridEngineHeadless in a test -- the scene itself needs a canvas, so nothing
+// in it is reachable from a unit test.
 //
 // walkingAnimationMapping is a row index into the shared character sheet: each
 // character is a 3x4 block of 52x72 frames, so a number is enough and no
@@ -12,24 +14,44 @@ export type TownCharacter = CharacterDataHeadless & {
 	walkingAnimationMapping: number;
 };
 
-export const TOWN_CHARACTERS: readonly TownCharacter[] = [
-	{
-		id: 'player',
-		walkingAnimationMapping: 6,
-		startPosition: { x: 5, y: 12 },
-	},
-	{
-		id: 'npc',
-		walkingAnimationMapping: 5,
-		startPosition: { x: 4, y: 10 },
-		speed: 3,
-	},
-	{
-		id: 'fishNpc',
-		walkingAnimationMapping: 4,
-		startPosition: { x: 8, y: 14 },
-		speed: 3,
-	},
-];
-
 export const PLAYER_ID = 'player';
+
+/** The wandering townsfolk, in the order the generator's npc spawns fill them. */
+export const NPC_IDS = ['npc', 'fishNpc'] as const;
+
+const ANIMATION_ROW: Record<string, number> = {
+	player: 6,
+	npc: 5,
+	fishNpc: 4,
+};
+
+/**
+ * Builds the character list for a generated town. Positions come from the map
+ * rather than from constants -- they used to be fixed coordinates into
+ * cloud_city.json, which is exactly what stops a town from being generated.
+ *
+ * An npc with no spawn left is dropped rather than placed somewhere arbitrary:
+ * a townsperson standing inside a rock is worse than one fewer townsperson.
+ */
+export function townCharacters(map: TownMap): TownCharacter[] {
+	const characters: TownCharacter[] = [
+		{
+			id: PLAYER_ID,
+			walkingAnimationMapping: ANIMATION_ROW.player,
+			startPosition: map.playerSpawn,
+		},
+	];
+
+	NPC_IDS.forEach((id, position) => {
+		const spawn = map.npcSpawns[position];
+		if (!spawn) return;
+		characters.push({
+			id,
+			walkingAnimationMapping: ANIMATION_ROW[id],
+			startPosition: spawn,
+			speed: 3,
+		});
+	});
+
+	return characters;
+}

@@ -6,6 +6,7 @@ import { CreditsScene } from './scenes/CreditsScene';
 import { FishChipScene } from './scenes/FishChipScene';
 import { FishScene } from './scenes/FishScene';
 import { GameOver } from './scenes/GameOver';
+import { MarketScene } from './scenes/MarketScene';
 import { Preloader } from './scenes/Preloader';
 import { TownScene } from './scenes/TownScene';
 
@@ -47,7 +48,7 @@ export function Game() {
 			plugins: {
 				scene: [{ key: 'gridEngine', plugin: GridEngine, mapping: 'gridEngine' }],
 			},
-			scene: [Preloader, TownScene, FishChipScene, GameOver, FishScene, CreditsScene],
+			scene: [Preloader, TownScene, FishChipScene, GameOver, FishScene, CreditsScene, MarketScene],
 			input: {
 				mouse: { preventDefaultWheel: false },
 				touch: { capture: false },

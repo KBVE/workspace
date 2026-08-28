@@ -1,26 +1,32 @@
-
 import { Direction, type GridEngine, type GridEngineConfig } from 'grid-engine';
 import { Scene } from 'phaser';
 import Phaser from 'phaser';
 
+import { generateTown, toTiledJSON, type Position, type TownMap } from '../world/generate';
 import { totalFish } from './data/score';
-import { PLAYER_ID, TOWN_CHARACTERS } from './data/town-characters';
+import { PLAYER_ID, townCharacters } from './data/town-characters';
 
 declare global {
   interface Window {
     __GRID_ENGINE__?: GridEngine;
+    /** The town this run generated. Read by the e2e suite. */
+    __TOWN__?: TownMap;
   }
 }
 
 class ExtendedSprite extends Phaser.GameObjects.Sprite {
-  textBubble?: Phaser.GameObjects.Container; // Assuming it's a Container
+  textBubble?: Phaser.GameObjects.Container;
 }
 
+/** Tilemap cache key the generated map is registered under. */
+const MAP_KEY = 'generated-town';
+
+/** How close the player has to stand to a landmark for F to do anything. */
+const INTERACT_RANGE = 1;
 
 export class TownScene extends Scene {
-  
-  npcSprite: ExtendedSprite | undefined;
-  fishNpcSprite: ExtendedSprite| undefined;
+  town!: TownMap;
+  npcSprites: ExtendedSprite[] = [];
   cursor: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
   // Keys are registered once in create(). The jam build called
   // createCursorKeys() and addKey() from update(), i.e. on every frame.
@@ -28,67 +34,86 @@ export class TownScene extends Scene {
   // Injected by the grid-engine scene plugin under the `gridEngine` mapping
   // declared in game.tsx, so it exists from create() onwards.
   gridEngine!: GridEngine;
-  
-  
+  /** Set while a landmark message is on screen. */
+  private notice?: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: 'TownScene' });
   }
 
-  create() {
+  /**
+   * The seed for this run. `?seed=` pins it, which is what makes a bad town
+   * reportable -- otherwise every run is a different map and any bug in one is
+   * a bug nobody else can reach.
+   */
+  private seed(): number {
+    const requested = new URLSearchParams(window.location.search).get('seed');
+    const parsed = Number(requested);
+    if (requested !== null && requested !== '' && Number.isFinite(parsed)) return parsed;
+    return Math.floor(Math.random() * 2 ** 31);
+  }
 
+  create() {
     const fishCaught = totalFish.get();
-    
-    const cloudCityTilemap = this.make.tilemap({ key: "cloud-city-map" });
-    cloudCityTilemap.addTilesetImage("Cloud City", "tiles");
-    for (let i = 0; i < cloudCityTilemap.layers.length; i++) {
-      const layer = cloudCityTilemap.createLayer(i, "Cloud City", 0, 0);
+
+    this.town = generateTown({ seed: this.seed() });
+    window.__TOWN__ = this.town;
+
+    // Registered into the cache rather than loaded from a file: the map does
+    // not exist until this line, so Preloader has nothing it could fetch.
+    this.cache.tilemap.remove(MAP_KEY);
+    this.cache.tilemap.add(MAP_KEY, {
+      format: Phaser.Tilemaps.Formats.TILED_JSON,
+      data: toTiledJSON(this.town),
+    });
+
+    const tilemap = this.make.tilemap({ key: MAP_KEY });
+    tilemap.addTilesetImage('Cloud City', 'tiles');
+    for (let i = 0; i < tilemap.layers.length; i++) {
+      const layer = tilemap.createLayer(i, 'Cloud City', 0, 0);
       if (layer) {
         layer.scale = 3;
       } else {
         console.error(`Layer ${i} could not be created.`);
       }
     }
-    const playerSprite = this.add.sprite(0, 0, "player");
-    playerSprite.scale = 1.5;
 
-    this.npcSprite = this.add.sprite(0, 0, "player");
-    this.npcSprite.scale = 1.5;
+    const characters = townCharacters(this.town);
+    const sprites = new Map<string, ExtendedSprite>();
+    this.npcSprites = [];
 
-    // this.npcSprite = this.add.sprite(0, 0, "player");
-    // this.npcSprite.scale = 1.5;
+    for (const character of characters) {
+      const sprite = this.add.sprite(0, 0, 'player') as ExtendedSprite;
+      sprite.scale = 1.5;
+      sprites.set(character.id, sprite);
+      if (character.id !== PLAYER_ID) this.npcSprites.push(sprite);
+    }
 
-    this.fishNpcSprite = this.add.sprite(0, 0, "player");
-    this.fishNpcSprite.scale = 1.5;
-
+    const playerSprite = sprites.get(PLAYER_ID)!;
     this.cameras.main.startFollow(playerSprite, true);
-    this.cameras.main.setFollowOffset(
-      -playerSprite.width,
-      -playerSprite.height,
-    );
-
-    // Sprites live here, the rest of each character lives in
-    // data/town-characters.ts, where a test can reach it.
-    const sprites: Record<string, Phaser.GameObjects.Sprite> = {
-      player: playerSprite,
-      npc: this.npcSprite,
-      fishNpc: this.fishNpcSprite,
-    };
+    this.cameras.main.setFollowOffset(-playerSprite.width, -playerSprite.height);
 
     const gridEngineConfig: GridEngineConfig = {
-      characters: TOWN_CHARACTERS.map((character) => ({
+      characters: characters.map((character) => ({
         ...character,
-        sprite: sprites[character.id],
+        sprite: sprites.get(character.id),
       })),
     };
 
-    this.gridEngine.create(cloudCityTilemap, gridEngineConfig);
+    this.gridEngine.create(tilemap, gridEngineConfig);
 
-    this.createTextBubble(this.npcSprite, "Enter the sand pit to start fishing! Go near it and press F!");
-    this.createTextBubble(this.fishNpcSprite, `You have caught a total of ${fishCaught} fish!`);
-    this.gridEngine.moveRandomly("npc", 1500, 3);
+    const greetings = [
+      'Enter the sand pit to start fishing! Go near it and press F!',
+      `You have caught a total of ${fishCaught} fish!`,
+    ];
+    characters
+      .filter((character) => character.id !== PLAYER_ID)
+      .forEach((character, position) => {
+        const sprite = sprites.get(character.id);
+        if (sprite) this.createTextBubble(sprite, greetings[position] ?? greetings[0]);
+        this.gridEngine.moveRandomly(character.id, 1500, 3);
+      });
 
-    this.gridEngine.moveRandomly("fishNpc", 1500, 3);
     window.__GRID_ENGINE__ = this.gridEngine;
 
     if (this.input.keyboard) {
@@ -97,7 +122,86 @@ export class TownScene extends Scene {
         string,
         Phaser.Input.Keyboard.Key
       >;
+      // Edge triggered. update() runs every frame, and a held F would restart
+      // the fishing scene dozens of times a second.
+      this.keys.F.on('down', () => this.interact());
     }
+  }
+
+  /** Whichever landmark the player is standing on or beside, if any. */
+  private landmarkUnderPlayer(): keyof TownMap['landmarks'] | null {
+    const player = this.gridEngine.getPosition(PLAYER_ID);
+    const near = (spot: Position) =>
+      Math.abs(spot.x - player.x) + Math.abs(spot.y - player.y) <= INTERACT_RANGE;
+
+    for (const [name, spot] of Object.entries(this.town.landmarks)) {
+      if (near(spot)) return name as keyof TownMap['landmarks'];
+    }
+    return null;
+  }
+
+  /**
+   * F. Every landmark does something now: the building and the tombstone used
+   * to reach a console.log, which from the player's side is a hotspot that does
+   * nothing at all.
+   */
+  private interact() {
+    if (this.notice) {
+      this.notice.destroy();
+      this.notice = undefined;
+      return;
+    }
+
+    switch (this.landmarkUnderPlayer()) {
+      case 'fishingPit':
+        this.scene.start('FishChipScene');
+        return;
+      case 'sign':
+        this.scene.start('CreditsScene');
+        return;
+      case 'building':
+        this.scene.start('MarketScene');
+        return;
+      case 'tombstone':
+        this.showNotice(
+          'Here lies Samson.\nHe caught the biggest fish in the bay\nand never told anyone where.',
+        );
+        return;
+      default:
+        return;
+    }
+  }
+
+  /** A dismissable panel for a landmark that does not warrant its own scene. */
+  private showNotice(text: string) {
+    const width = 460;
+    const height = 170;
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x000000, 0.82);
+    panel.fillRoundedRect(-width / 2, -height / 2, width, height, 16);
+
+    const body = this.add.text(0, -14, text, {
+      fontFamily: 'Arial',
+      fontSize: 20,
+      color: '#ffffff',
+      align: 'center',
+    });
+    body.setOrigin(0.5);
+
+    const hint = this.add.text(0, height / 2 - 30, 'Press F to close', {
+      fontFamily: 'Arial',
+      fontSize: 16,
+      color: '#c2b280',
+    });
+    hint.setOrigin(0.5);
+
+    const camera = this.cameras.main;
+    this.notice = this.add.container(camera.width / 2, camera.height / 2, [panel, body, hint]);
+    this.notice.setDepth(200);
+    // Pinned to the camera, not the world: the player can still walk while it
+    // is open, and a panel that slides off screen is worse than no panel.
+    this.notice.setScrollFactor(0);
   }
 
   createTextBubble(sprite: ExtendedSprite, text: string | string[]) {
@@ -110,7 +214,11 @@ export class TownScene extends Scene {
     bubble.fillRoundedRect(0, 0, bubbleWidth, bubbleHeight, 16);
     bubble.setDepth(99);
 
-    const content = this.add.text(100, 30, text, { fontFamily: 'Arial', fontSize: 16, color: '#000000' });
+    const content = this.add.text(100, 30, text, {
+      fontFamily: 'Arial',
+      fontSize: 16,
+      color: '#000000',
+    });
     content.setOrigin(0.5);
     content.setWordWrapWidth(bubbleWidth - bubblePadding * 2);
     content.setDepth(100);
@@ -124,10 +232,9 @@ export class TownScene extends Scene {
 
   updateTextBubblePosition(sprite: ExtendedSprite) {
     const container = sprite.textBubble;
-    if(container)
-    {
-    container.x = sprite.x;
-    container.y = sprite.y - sprite.height - container.height / 2;
+    if (container) {
+      container.x = sprite.x;
+      container.y = sprite.y - sprite.height - container.height / 2;
     }
   }
 
@@ -135,70 +242,6 @@ export class TownScene extends Scene {
     const cursors = this.cursor;
     const keys = this.keys;
 
-    function isWithinRangeOfWell(point: { x: number; y: number; }) {
-      // Define the bounds
-      const xMin = 2, xMax = 5;
-      const yMin = 10, yMax = 14;
-
-      // Check if the point is within the bounds
-      return point.x >= xMin && point.x <= xMax &&
-        point.y >= yMin && point.y <= yMax;
-    }
-
-    function isWithinRangeOfSign(point: { x: number; y: number; }) {
-      // Define the bounds
-      const xMin = 2, xMax = 5;
-      const yMin = 2, yMax = 5;
-
-      // Check if the point is within the bounds
-      return point.x >= xMin && point.x <= xMax &&
-        point.y >= yMin && point.y <= yMax;
-    }
-
-    function isWithinRangeOfBuilding(point: { x: number; y: number; }) {
-      // Define the bounds
-      const xMin = 13, xMax = 13;
-      const yMin = 6, yMax = 7;
-
-      // Check if the point is within the bounds
-      return point.x >= xMin && point.x <= xMax &&
-        point.y >= yMin && point.y <= yMax;
-    }
-
-    function isWithinRangeOfTombstone(point: { x: number; y: number; }) {
-      //  Define the bounds
-      const xMin = 7, xMax = 10
-      const yMin = 9, yMax = 10
-      // Check if the point is within the bounds
-      return point.x >= xMin && point.x <= xMax &&
-        point.y >= yMin && point.y <= yMax;
-    }
-
-
-
-    if (keys?.F.isDown) {
-      const position = this.gridEngine.getPosition(PLAYER_ID);
-
-      const withinRangeOfWell = isWithinRangeOfWell(position);
-      if (withinRangeOfWell) {
-        this.scene.start('FishChipScene');
-      }
-
-      const withinRangeOfSign = isWithinRangeOfSign(position);
-      if (withinRangeOfSign) {
-        this.scene.start('CreditsScene');
-      }
-
-      const withinRangeOfBuilding = isWithinRangeOfBuilding(position);
-      if (withinRangeOfBuilding) {
-        console.log('Enter the Building?');
-      }
-
-      const withinRangeOfTombstone = isWithinRangeOfTombstone(position);
-      if (withinRangeOfTombstone) {
-        console.log('Samson Statue!');
-      }
-    }
     // Arrow keys and WASD both drive the player.
     if (cursors?.left.isDown || keys?.A.isDown) {
       this.gridEngine.move(PLAYER_ID, Direction.LEFT);
@@ -210,12 +253,8 @@ export class TownScene extends Scene {
       this.gridEngine.move(PLAYER_ID, Direction.DOWN);
     }
 
-    // Update the speech bubble positions for both NPCs
-    if (this.npcSprite && this.npcSprite.textBubble) {
-      this.updateTextBubblePosition(this.npcSprite);
-    }
-    if (this.fishNpcSprite && this.fishNpcSprite.textBubble) {
-      this.updateTextBubblePosition(this.fishNpcSprite);
+    for (const sprite of this.npcSprites) {
+      if (sprite.textBubble) this.updateTextBubblePosition(sprite);
     }
   }
 }
