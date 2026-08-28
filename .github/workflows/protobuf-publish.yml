@@ -6,7 +6,10 @@ name: protobuf-publish
 on:
   push:
     branches: [main]
-    paths: ['packages/protobuf/**']
+    # The workflow file is listed alongside the schemas so a fix to the publish
+    # step itself reaches the runner. Without it a broken publish can only be
+    # repaired by an unrelated schema change or a manual dispatch.
+    paths: ['packages/protobuf/**', '.github/workflows/protobuf-publish.yml']
   workflow_dispatch:
 
 permissions:
