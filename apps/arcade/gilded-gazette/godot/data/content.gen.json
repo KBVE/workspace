@@ -1323,6 +1323,113 @@
       "source": "shared/data/items/brass_key.mdx"
     },
     {
+      "id": "carriage_lamp",
+      "name": "Carriage Lamp",
+      "kind": "weapon",
+      "carried": false,
+      "reveals": [
+        "a_lamp_was_off_its_bracket_before_the_lamps_went_down"
+      ],
+      "lede": "Brass, weighted in the base so it stands when the car sways, and heavy enough in the hand that nobody carries one further than the next bracket.",
+      "body": [],
+      "sections": {
+        "the_base": {
+          "heading": "The Base",
+          "paragraphs": [
+            "A dent in the rim that the company's fitter did not put there, and a smear inside the dent that has been wiped at rather than cleaned."
+          ],
+          "bullets": []
+        },
+        "the_bracket": {
+          "heading": "The Bracket",
+          "paragraphs": [
+            "Every lamp on the train sits in a bracket, and the brackets are numbered. One lamp is in a bracket that is not the one stamped on it."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "Railway property again, in a train full of it. The guard turns them down at ten and does not count them, because in thirty years there has never been a reason to."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/items/carriage_lamp.mdx"
+    },
+    {
+      "id": "laudanum",
+      "name": "Bottle of Laudanum",
+      "kind": "weapon",
+      "carried": false,
+      "owner": "weiss",
+      "reveals": [
+        "the_physician_dispenses_to_somebody_aboard",
+        "the_bottle_is_lighter_than_the_book_says"
+      ],
+      "lede": "Tincture of opium, dispensed in Vienna, in a brown bottle with a measure marked down the side.",
+      "body": [],
+      "sections": {
+        "the_measure": {
+          "heading": "The Measure",
+          "paragraphs": [
+            "The book in the doctor's bag records what was poured and when. The bottle is three doses lighter than the book has an entry for."
+          ],
+          "bullets": []
+        },
+        "who_it_is_for": {
+          "heading": "Who It Is For",
+          "paragraphs": [
+            "The label carries a name that is not Dr. Weiss's and not any name on the passenger list, in handwriting that is his."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "Declared at Calais as medical, which it is, and which is the reason nobody looked at how much of it there was."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/items/laudanum.mdx"
+    },
+    {
+      "id": "luggage_strap",
+      "name": "Luggage Strap",
+      "kind": "weapon",
+      "carried": false,
+      "reveals": [
+        "one_strap_is_missing_from_the_van_and_one_is_not_where_it_hangs"
+      ],
+      "lede": "Six feet of harness leather with a brass buckle, of which the guard's van holds a dozen and the register accounts for eleven.",
+      "body": [],
+      "sections": {
+        "the_leather": {
+          "heading": "The Leather",
+          "paragraphs": [
+            "Stretched along one section and nowhere else, the way leather goes when it has been pulled hard once rather than loaded often."
+          ],
+          "bullets": []
+        },
+        "where_they_hang": {
+          "heading": "Where They Hang",
+          "paragraphs": [
+            "On a rail inside the van door, in a row, and the gap in the row is not at the end where a man reaching in a hurry would take one from."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "Railway property, unremarkable, and the only thing aboard that could kill a man without anybody having brought it."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/items/luggage_strap.mdx"
+    },
+    {
       "id": "ornate_dagger",
       "name": "Ornate Dagger",
       "kind": "weapon",
@@ -1379,6 +1486,43 @@
       ],
       "sections": {},
       "source": "shared/data/items/pocket_watch.mdx"
+    },
+    {
+      "id": "service_revolver",
+      "name": "Service Revolver",
+      "kind": "weapon",
+      "carried": false,
+      "owner": "beaumont",
+      "reveals": [
+        "the_widow_travels_armed",
+        "one_chamber_was_fired_and_not_tonight"
+      ],
+      "lede": "Webley, service issue, and older than the marriage it came into. Carried in a travelling case fitted for it, which is not how a keepsake is carried.",
+      "body": [],
+      "sections": {
+        "the_cylinder": {
+          "heading": "The Cylinder",
+          "paragraphs": [
+            "Six chambers, five loaded. The sixth has been fired and not cleaned since, and the fouling is old enough to be about some other evening entirely."
+          ],
+          "bullets": []
+        },
+        "the_case": {
+          "heading": "The Case",
+          "paragraphs": [
+            "Lined in green baize with a recess cut for the revolver and a second recess, the same size, cut for something that is not in it."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "Sir Rupert's, entered on no declaration at Calais. Lady Beaumont says she did not know it was in the luggage, and knows which case it is in."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/items/service_revolver.mdx"
     },
     {
       "id": "telegram",
