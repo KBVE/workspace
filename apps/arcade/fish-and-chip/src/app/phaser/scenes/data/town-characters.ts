@@ -17,11 +17,13 @@ export type TownCharacter = CharacterDataHeadless & {
 export const PLAYER_ID = 'player';
 
 /**
- * Tiles per second. grid-engine defaults to 4, which is what the player walked
- * at while the map was 20x20; on a town four times that size it reads as
- * wading. The townsfolk stay slow on purpose -- they are meant to amble.
+ * Tiles per second. grid-engine's own default is 4, which is what the player
+ * walked at while the map was 20x20; on a bigger town it reads as wading.
+ * Twice the default overshot into skating, so this sits between the two: a
+ * 34-wide town crosses in about six seconds. The townsfolk stay slow on
+ * purpose -- they are meant to amble.
  */
-export const PLAYER_SPEED = 8;
+export const PLAYER_SPEED = 6;
 
 /** The wandering townsfolk, in the order the generator's npc spawns fill them. */
 export const NPC_IDS = ['npc', 'fishNpc'] as const;
