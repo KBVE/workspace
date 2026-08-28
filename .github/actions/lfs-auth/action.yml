@@ -1,0 +1,67 @@
+name: 'lfs auth'
+description: 'Gives the job a credential for the self-hosted Git LFS endpoint.'
+
+# Authenticates, and does not fetch. .lfsconfig points every LFS object in this
+# monorepo at Forgejo (git.kbve.com/KBVE/friendslop), which requires a
+# credential -- an anonymous batch request returns 401 -- and actions/checkout
+# only knows how to authenticate against GitHub, so `lfs: true` there cannot
+# fetch these blobs.
+#
+# Which blobs a job needs is a question the project graph already answers: a
+# project tagged 'lfs' has an `assets` task its build depends on, scoped to its
+# own source directory. So this action's whole job is to make that task able to
+# reach the store. Fetching here as well would mean two things deciding what to
+# download, and the one without the graph would always be the wrong one.
+#
+# Without a credential it reports and continues. Fork pull requests get no
+# secrets, and failing here would report a confusing auth error rather than
+# letting the build fail on the asset it actually needed.
+
+inputs:
+  user:
+    description: 'Forgejo username. Pass secrets.FORGEJO_USER.'
+    required: false
+    default: ''
+  token:
+    description: 'Forgejo token. Pass secrets.FORGEJO_TOKEN.'
+    required: false
+    default: ''
+
+outputs:
+  authenticated:
+    description: 'true when a credential was configured.'
+    value: ${{ steps.auth.outputs.authenticated }}
+
+runs:
+  using: composite
+  steps:
+    - id: auth
+      shell: bash
+      env:
+        FORGEJO_USER: ${{ inputs.user }}
+        FORGEJO_TOKEN: ${{ inputs.token }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${FORGEJO_TOKEN}" ] || [ -z "${FORGEJO_USER}" ]; then
+          echo "authenticated=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::No Forgejo credential; LFS blobs stay as pointers."
+          exit 0
+        fi
+
+        # The endpoint is declared once, at the repository root: git-lfs reads
+        # .lfsconfig from there only. Reading it back rather than hard-coding
+        # the host means moving the blob store is a one-line change.
+        url=$(git config -f .lfsconfig lfs.url)
+        host="${url%%/*}//$(echo "${url#*//}" | cut -d/ -f1)"
+
+        # Same mechanism actions/checkout uses for GitHub, scoped to this host
+        # so no other remote sees the header. It stays in the local git config
+        # for the rest of the job, which is the point -- the fetch happens
+        # later, inside whichever moon task needs it.
+        auth=$(printf '%s:%s' "${FORGEJO_USER}" "${FORGEJO_TOKEN}" | base64 | tr -d '\n')
+        echo "::add-mask::$auth"
+        git config --local "http.${host}/.extraheader" "AUTHORIZATION: basic ${auth}"
+
+        echo "authenticated=true" >> "$GITHUB_OUTPUT"
+        echo "Configured a Git LFS credential for ${host}."

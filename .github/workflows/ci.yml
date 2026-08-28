@@ -63,6 +63,16 @@ jobs:
         with:
           key: ${{ secrets.GIT_CRYPT_KEY }}
 
+      # Two games keep their art in the LFS store named in .lfsconfig, which is
+      # self-hosted and needs a credential. Their `assets` task does the
+      # fetching, scoped to the project moon says is affected; without this it
+      # cannot authenticate and the build fails on a pointer file where a model
+      # should be.
+      - uses: ./.github/actions/lfs-auth
+        with:
+          user: ${{ secrets.FORGEJO_USER }}
+          token: ${{ secrets.FORGEJO_TOKEN }}
+
       # Both of the next two steps exist to work around proto's rust plugin.
       # It shells out to rustup, then returns `installed: true` whatever the
       # result -- its own source says "Always mark as installed so that
@@ -83,6 +93,23 @@ jobs:
       # /etc/skel/.rustup, so the pinned version is always a fresh download.
       # Caching it keeps that to once per toolchain change rather than once
       # per job.
+      # The web export templates, which proto's Godot pin cannot install (see
+      # .proto/plugins/godot.toml). Only the web set is kept -- 85MB rather
+      # than the several gigabytes the full archive unpacks to -- so restoring
+      # it unconditionally is cheap, and it saves a 1.2GB download every time a
+      # Godot game is affected. Keyed on .prototools, which is where the engine
+      # version that decides the directory name lives.
+      #
+      # Deliberately not caching LFS blobs alongside it: the store is nearly
+      # half a gigabyte, the `assets` task fetches only the affected project's
+      # share, and restoring all of it on every job would cost more than it
+      # saves.
+      - name: Restore the Godot export templates
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-templates-${{ runner.os }}-${{ hashFiles('.prototools') }}
+
       - name: Restore the Rust toolchain
         id: rustup-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

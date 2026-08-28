@@ -47,7 +47,6 @@ jobs:
     outputs:
       project: ${{ steps.tag.outputs.project }}
       version: ${{ steps.tag.outputs.version }}
-      source: ${{ steps.tag.outputs.source }}
       tags: ${{ steps.tag.outputs.tags }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -81,8 +80,8 @@ jobs:
           # Always off. .lfsconfig points LFS at a self-hosted Forgejo, and
           # actions/checkout only knows how to authenticate against GitHub, so
           # `lfs: true` cannot fetch these blobs whatever the project. The
-          # lfs-pull step below does it, with a credential and scoped to the
-          # one project that needs its objects.
+          # credential comes from the step below, and the fetch from the
+          # project's own `assets` task.
           lfs: false
 
       # Some source in this repository is git-crypt encrypted and is compiled
@@ -93,16 +92,32 @@ jobs:
         with:
           key: ${{ secrets.GIT_CRYPT_KEY }}
 
-      # Scoped to this project's own tree. The blob store is shared across
-      # games and holds hundreds of objects; a release has no reason to
-      # download another game's character models. Skipped entirely for a
-      # project that has no LFS assets.
-      - uses: ./.github/actions/lfs-pull
-        if: contains(fromJSON(needs.resolve.outputs.tags), 'lfs')
+      # A credential, not a fetch. Which blobs to pull is decided by the
+      # project's own `assets` task, scoped to its source directory -- the blob
+      # store is shared across games and a release has no reason to download
+      # another game's character models. Unconditional because it costs
+      # nothing: a project with no LFS assets simply never asks.
+      - uses: ./.github/actions/lfs-auth
         with:
           user: ${{ secrets.FORGEJO_USER }}
           token: ${{ secrets.FORGEJO_TOKEN }}
-          include: '${{ needs.resolve.outputs.source }}/**'
+
+      # The web export templates, which proto's Godot pin cannot install (see
+      # .proto/plugins/godot.toml). Only the web set is kept -- 85MB rather
+      # than the several gigabytes the full archive unpacks to -- so restoring
+      # it unconditionally is cheap, and it saves a 1.2GB download every time a
+      # Godot game is affected. Keyed on .prototools, which is where the engine
+      # version that decides the directory name lives.
+      #
+      # Deliberately not caching LFS blobs alongside it: the store is nearly
+      # half a gigabyte, the `assets` task fetches only the affected project's
+      # share, and restoring all of it on every job would cost more than it
+      # saves.
+      - name: Restore the Godot export templates
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-templates-${{ runner.os }}-${{ hashFiles('.prototools') }}
 
       # Same workaround as ci.yml: proto's rust plugin can leave an empty
       # toolchain directory and still report success, so the toolchain is
