@@ -10,6 +10,9 @@ projects:
     # A new deploy target adds a line here.
     - 'services/api/*'
     - 'packages/*'
+    # Python packages sit a level deeper, grouped by language the way apps are
+    # grouped by kind. 'packages/*' is one level and does not reach them.
+    - 'packages/python/*'
     - 'crates/*'
     - 'tools/*'
   sources:

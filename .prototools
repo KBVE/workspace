@@ -3,6 +3,11 @@ pnpm = "11.24.0"
 rust = "1.98.0"
 moon = "2.5.3"
 godot = "4.7.2"
+# packages/python/kbve. Upper bound is the package's own requires-python
+# (>=3.12,<3.14); moon 2.5 has no built-in python toolchain plugin, so these
+# are proto-managed binaries the tasks call directly rather than a toolchain.
+python = "3.12.11"
+uv = "0.12.7"
 
 [plugins]
 # Local schema plugin; proto has no Godot tool built in or in the community
