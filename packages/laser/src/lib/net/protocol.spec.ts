@@ -14,6 +14,15 @@ import {
 	natureEffect,
 	genderGlyph,
 } from './protocol';
+import {
+	POS_SCALE,
+	VEL_SCALE,
+	decodeEphemeralPayload,
+	dequantizePos,
+	dequantizeVel,
+	quantizePos,
+	quantizeVel,
+} from './protocol';
 
 describe('simgrid JSON wire (serde externally-tagged)', () => {
 	it('joinFrame matches the server JoinMatch shape', () => {
@@ -149,5 +158,43 @@ describe('pet genetics (parity with simgrid genes.rs)', () => {
 		expect(genderGlyph(1)).toBe('\u2642');
 		expect(genderGlyph(2)).toBe('\u2640');
 		expect(genderGlyph(9)).toBe('');
+	});
+});
+
+describe('quantization', () => {
+	// Positions and velocities cross the wire as integers, so every value goes
+	// through these on the way out and back. The scales are part of the wire
+	// contract: changing one without the server is a desync, not a rounding
+	// difference.
+	it('round-trips a position through its scale', () => {
+		expect(dequantizePos(quantizePos(12.5))).toBe(12.5);
+		expect(quantizePos(1)).toBe(POS_SCALE);
+	});
+
+	it('round-trips a velocity through its scale', () => {
+		expect(dequantizeVel(quantizeVel(0.5))).toBe(0.5);
+		expect(quantizeVel(1)).toBe(VEL_SCALE);
+	});
+
+	// A velocity is sent as an i16, so it has to be clamped rather than wrapped
+	// -- an overflow flips a sprint into a sprint in the other direction.
+	it('clamps a velocity to the signed 16-bit range', () => {
+		expect(quantizeVel(10_000)).toBe(32767);
+		expect(quantizeVel(-10_000)).toBe(-32768);
+	});
+});
+
+describe('decodeEphemeralPayload', () => {
+	it('decodes a JSON payload carried as bytes', () => {
+		const bytes = [...new TextEncoder().encode('{"a":1}')];
+		expect(decodeEphemeralPayload<{ a: number }>(bytes)).toEqual({ a: 1 });
+	});
+
+	// A payload the client cannot read means the two sides disagree about the
+	// shape of this ephemeral kind. Returning null lets the caller skip the one
+	// event rather than the failure taking down whatever decoded it.
+	it('returns null for bytes that are not JSON', () => {
+		expect(decodeEphemeralPayload([0xff, 0xfe])).toBeNull();
+		expect(decodeEphemeralPayload([...new TextEncoder().encode('{')])).toBeNull();
 	});
 });
