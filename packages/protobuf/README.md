@@ -39,6 +39,10 @@ carries real modelling.
 - Identifiers use the wrapper types in `kbve/type/v1/id.proto`. A bare
   `string id` field is not acceptable in new schemas.
 - Timestamps use `google.protobuf.Timestamp`. Do not define your own.
+- Durations are an integer count of a named unit, not
+  `google.protobuf.Duration`. The Rust generator derives `Eq` on every message,
+  and `prost-types` implements `Eq` for `Timestamp` but not for `Duration`, so a
+  message holding one does not compile.
 - Removed fields are always `reserved`, both the number and the name.
 - File basenames are unique across the module. The C# generator flattens its
   output and names each file after the proto's basename, so two files sharing

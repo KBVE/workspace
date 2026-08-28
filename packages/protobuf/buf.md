@@ -22,6 +22,10 @@ own.
   alongside `v1`.
 - Identifiers use `kbve.type.v1.Ulid` / `Uuid`, never a bare `string id`.
 - Timestamps use `google.protobuf.Timestamp`.
+- Durations are an integer count of a named unit, not
+  `google.protobuf.Duration`. The Rust generator derives `Eq` on every message,
+  and `prost-types` implements `Eq` for `Timestamp` but not for `Duration`, so a
+  message holding one does not compile.
 - Removed fields are `reserved`, both number and name.
 - File basenames are unique across the module. The C# generator flattens its
   output and names each file after the proto's basename, so two files sharing
