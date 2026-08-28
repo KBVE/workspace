@@ -23,6 +23,16 @@ moon run kbve-py:build
 Python and uv are pinned in the workspace `.prototools`; `moon run kbve-py:install`
 (a dependency of every task above) syncs the venv from `uv.lock`.
 
+## Content and rendering (`kbve.mdx`, `kbve.svg`, `kbve.ai`)
+
+`kbve.svg` renders donut charts and DAGs to inline SVG at generation time, so a
+page ships no diagram JavaScript — a 75-edge Mermaid flowchart costs roughly 4
+seconds of blocked main thread. Output is MDX-safe. `kbve.mdx` is the Starlight
+writer and escaper those pages are assembled with, and `kbve.ai` wraps
+subprocess execution and Claude Code usage reporting.
+
+All three are stdlib-only and hold no repository paths.
+
 ## Blender toolchain (`kbve.blender`, `--extra blender`)
 
 Headless bakers, launched into Blender's own Python:
@@ -50,12 +60,20 @@ Blender brings its own interpreter, while these need Pillow and numpy.
 ## What is not here
 
 Ported from the Nx workspace, this package carried modules that read paths in
-that repository: `kbve.nx` (workspace graph, security audit, content routing),
-`kbve.unreal`, `kbve.argocd`, `kbve.osrs`, `kbve.seo`, `kbve.mdx`, `kbve.svg`,
-and `kbve.ai`. They were left behind along with 12 of the 18 console scripts
-they provided.
+`kbve.nx` is gone for good: it read the Nx workspace graph, and moon replaced
+it.
 
-`kbve.sprite` is gone as a package but not as code: its baker and image passes
-folded into `kbve.blender`, which is what they were. What stayed behind is
-`ship_footprint`, which regenerates collision data into
-`apps/agones/arpg/{web,server}` — an app tree that did not migrate.
+The rest are waiting on an app tree, not on a decision. Each hardcodes a path
+that has no equivalent here yet:
+
+| module | needs |
+| --- | --- |
+| `kbve.osrs`, `kbve.seo` | `apps/kbve/astro-kbve` content tree |
+| `kbve.argocd` | `apps/kube` |
+| `kbve.unreal` | `apps/rentearth/unreal-rentearth` |
+| `kbve.sprite.ship_footprint` | `apps/agones/arpg/{web,server}` |
+
+Porting them before their consumers would mean shipping paths already known to
+be wrong, so they stay upstream until there is something to point at. The rest
+of `kbve.sprite` did come across — its baker and image passes folded into
+`kbve.blender`, which is what they always were.

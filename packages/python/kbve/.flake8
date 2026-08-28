@@ -16,4 +16,10 @@ per-file-ignores =
 	# semicolon inside f"failed ({e}); skipped" reads as two statements. Both
 	# are inside string literals.
 	kbve/blender/model_sprites.py: E231, E702
+	# Same tokenizer bug, and the inline SVG hits it hardest: every CSS
+	# declaration in a style attribute reads as a bare colon, and so does
+	# every :.1f coordinate format spec.
+	kbve/svg/chart.py: E231, E702
+	kbve/svg/dag.py: E231, E702
+	tests/test_svg.py: E231
 	kbve/proto/*_pb2*.py: E501, E303, F401, E261, W504, E302, W291, E271, E211, E111, E225, E231, F541, E114, E128
