@@ -8,13 +8,17 @@ owners:
 
 tasks:
   # Fails when a moon.yml declares a tag labels.yml does not, which is the
-  # drift that matters -- moon has no tag allowlist of its own. Needs no
-  # network: the GitHub half is skipped when gh is unavailable.
+  # drift that matters -- moon has no tag allowlist of its own -- and when
+  # labels.lock.json no longer matches what those two would produce.
+  #
+  # Makes no API calls at all. Talking to GitHub is --remote, which CI has no
+  # reason to do: the question here is whether the files agree with each other.
   check:
     command: 'node sync.mjs'
     toolchains: ['node']
     inputs:
       - 'labels.yml'
+      - 'labels.lock.json'
       - 'sync.mjs'
       # Workspace-relative: a tag can be added in any project, so the check is
       # stale the moment any moon.yml changes.

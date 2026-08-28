@@ -122,10 +122,23 @@ Without it a typo would quietly mint a label and `tag/bevy` and `tag/bevvy`
 would both look official.
 
 ```bash
-moon run labels:check           # graph vs vocabulary; no network needed
-node tools/labels/sync.mjs      # also compare against GitHub, report only
-node tools/labels/sync.mjs --apply
+moon run labels:check                        # offline. No API calls at all
+node tools/labels/sync.mjs --write-lock      # after editing labels.yml or tags
+node tools/labels/sync.mjs --remote          # compare with GitHub, report only
+node tools/labels/sync.mjs --apply           # write to GitHub
 ```
+
+`labels.lock.json` is generated and committed. It holds the resolved label set
+and a `routes` map from every project source to the `area/*` and `tag/*` labels
+it implies, so tooling can turn changed paths into labels without running moon
+or calling the API. Regenerate it with `--write-lock`; the check fails if it is
+stale, which is why the default run touches no network.
+
+What it deliberately does **not** cache is GitHub's own label state. A snapshot
+of that goes stale the moment someone edits a label in the web UI, and a cache
+that can be quietly wrong is worse than none in a system built to catch drift.
+Everything in the lock is derived from files in this repository, so it is
+reproducible rather than remembered.
 
 Adding a tag is two deliberate lines: the entry in `labels.yml` and the
 `moon.yml` that uses it. Either alone fails the check or is reported as dead.

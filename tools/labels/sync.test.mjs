@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parseLabels } from './sync.mjs'
+import { parseLabels, routesFor, buildLock, LOCK } from './sync.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 
@@ -68,4 +68,42 @@ test('no label is declared and retired at once', () => {
     assert.ok(!declared.has(l.name), `${l.name} is both declared and retired`)
     assert.ok(!superseded.has(l.name), `${l.name} is both superseded and retired`)
   }
+})
+
+test('routes map a project to its area and tags', () => {
+  const routes = routesFor([
+    { source: 'apps/arcade/fish-and-chip', config: { tags: ['phaser', 'game'] } },
+    { source: 'crates/jedi', config: {} },
+  ])
+  assert.deepEqual(routes, [
+    { source: 'apps/arcade/fish-and-chip', labels: ['area/apps', 'tag/game', 'tag/phaser'] },
+    { source: 'crates/jedi', labels: ['area/crates'] },
+  ])
+})
+
+// The lock is compared byte for byte, so anything non-deterministic in it --
+// a timestamp, an unsorted list -- would make every run report it stale.
+test('the lock is reproducible and sorted', () => {
+  const families = parseLabels(readFileSync(join(HERE, 'labels.yml'), 'utf8'))
+  const projects = [
+    { source: 'crates/jedi', config: { tags: ['proto'] } },
+    { source: 'apps/arcade/x', config: { tags: ['game'] } },
+  ]
+  const a = JSON.stringify(buildLock(families, projects))
+  const b = JSON.stringify(buildLock(families, projects))
+  assert.equal(a, b)
+
+  const lock = buildLock(families, projects)
+  assert.deepEqual(lock.routes.map((r) => r.source), ['apps/arcade/x', 'crates/jedi'])
+  assert.deepEqual([...lock.labels].sort((x, y) => (x.name < y.name ? -1 : 1)), lock.labels)
+  assert.deepEqual([...lock.retire].sort(), lock.retire)
+})
+
+test('the committed lock matches what labels.yml would produce', () => {
+  const lock = JSON.parse(readFileSync(join(HERE, LOCK), 'utf8'))
+  const families = parseLabels(readFileSync(join(HERE, 'labels.yml'), 'utf8'))
+  const { retire, ...keep } = families
+  assert.equal(lock.labels.length, Object.values(keep).flat().length)
+  assert.deepEqual(lock.retire, retire.map((l) => l.name).sort())
+  for (const l of lock.labels) assert.ok(l.family, `${l.name} has no family`)
 })
