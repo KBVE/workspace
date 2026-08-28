@@ -27,6 +27,7 @@ use game::core::terrain::SEA_LEVEL;
 use game::systems::camera::CameraPlugin;
 use game::systems::debug::DebugPlugin;
 use game::systems::map::MapPlugin;
+use game::systems::museum::MuseumPlugin;
 use game::systems::trees::TreePlugin;
 use game::systems::ui::UiPlugin;
 use game::systems::units::UnitPlugin;
@@ -131,6 +132,7 @@ fn main() {
             UiPlugin,
             TreePlugin,
             UnitPlugin,
+            MuseumPlugin,
         ))
         .add_plugins(water_plugin())
         .run();

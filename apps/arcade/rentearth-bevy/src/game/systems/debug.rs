@@ -79,7 +79,10 @@ struct CaptureTarget(Handle<Image>);
 fn render_to_image(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
-    cameras: Query<Entity, With<Camera>>,
+    // The map's camera, not every camera. The museum has one of its own
+    // pointed at its own image, and pointing that at the capture instead loses
+    // both pictures.
+    cameras: Query<Entity, With<CameraRig>>,
 ) {
     let (width, height) = CAPTURE_SIZE;
 
@@ -137,6 +140,7 @@ fn screenshot_when_settled(
     mut frame: Local<u32>,
     mut taken: Local<bool>,
     mut rigs: Query<&mut CameraRig>,
+    museum: Option<Res<crate::game::systems::museum::MuseumView>>,
     mut exit: MessageWriter<AppExit>,
 ) {
     *frame += 1;
@@ -172,9 +176,18 @@ fn screenshot_when_settled(
         return;
     };
 
+    // The museum's own image when it is the thing being looked at. Its panel
+    // is interface, and interface does not reach an offscreen capture -- so
+    // capturing the window with the museum open gets a picture of the map with
+    // the museum invisibly in front of it.
+    let image = match (&museum, std::env::var("RENTEARTH_MUSEUM").is_ok()) {
+        (Some(museum), true) => museum.0.clone(),
+        _ => target.0.clone(),
+    };
+
     *taken = true;
     commands
-        .spawn(Screenshot::image(target.0.clone()))
+        .spawn(Screenshot::image(image))
         .observe(save_to_disk(path));
 }
 
