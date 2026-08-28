@@ -11,8 +11,7 @@ vite/    React front end; hosts the web export from public/godot
 
 Three runtimes in one project, in a fixed order: `shared/` compiles into both
 `godot/` and `vite/`, the Godot web export lands in `vite/public/godot`, then
-Vite builds around it. `moon run gilded-gazette:build` is that whole order;
-`CMakeLists.txt` encodes the same one for a local `cmake --build build --target ci`.
+Vite builds around it. `moon run gilded-gazette:build` is that whole order.
 
 ## Building
 
@@ -22,6 +21,12 @@ moon run gilded-gazette:e2e         # boots the built game in a browser
 moon run gilded-gazette:test-godot  # gdUnit4
 moon run gilded-gazette:dev         # Vite against whatever is in public/godot
 ```
+
+Two more rewrite files that are committed, so they run when asked and never on
+a push: `scene` rebuilds `godot/scenes/train/train.scn`, which is generated
+rather than hand-edited, and `godot-import` refreshes the script cache it needs
+first. The scene is a binary that does not regenerate byte-identically, so
+expect a diff even when nothing changed.
 
 Nothing has to be installed first. The editor is pinned in the workspace
 `.prototools` and installed by proto; its web export templates are a task

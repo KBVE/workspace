@@ -1,7 +1,8 @@
 # A Godot 4 game with a React front end. Three runtimes in one project, in a
 # fixed order: shared/ compiles into both godot/ and vite/, the Godot web export
-# lands in vite/public/godot, then vite builds around it. CMakeLists.txt encodes
-# the same order for a local `cmake --build build --target ci`.
+# lands in vite/public/godot, then vite builds around it. `build` is that whole
+# order, and the only description of it -- a CMakeLists.txt used to say the same
+# thing a second time, and had already drifted out of step with it.
 #
 # The web layer still carries its own package.json and package-lock.json under
 # vite/, outside the pnpm workspace globs. It is an npm island on purpose for
@@ -158,6 +159,32 @@ tasks:
     deps:
       - '~:install'
       - '~:export-templates'
+
+  # &authoring -> the two below rewrite files that are committed, so they run
+  #               when someone asks and never on a push. runInCI is off, which
+  #               also means moon will not run them when named in CI -- correct
+  #               here, and the reason nothing in the build depends on them.
+
+  # A new class_name is not in the global script cache until an import runs,
+  # and build_train_scene.gd saves a scene with NO script attached if the
+  # script it loads fails to parse. So import before building anything.
+  godot-import:
+    command: 'godot --headless --path godot --import'
+    options:
+      cache: false
+      runInCI: false
+
+  # scenes/train/train.scn is built, not hand-edited. OVERWRITE=1 or the
+  # builder refuses and writes train_generated.scn beside it instead.
+  scene:
+    command: 'godot --headless --path godot -s res://tools/build_train_scene.gd --quit-after 5'
+    env:
+      OVERWRITE: '1'
+    deps:
+      - '~:godot-import'
+    options:
+      cache: false
+      runInCI: false
 
   # Playwright ships no browser with the npm package. A task so that e2e can
   # depend on it rather than every caller remembering.
