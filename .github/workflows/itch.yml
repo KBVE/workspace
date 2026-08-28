@@ -2,30 +2,28 @@ name: itch
 
 # Publishes a game's web build to its itch.io page.
 #
-# This is a workflow rather than a moon task because the execution context
-# differs from ci.yml in both ways that justify one: it needs BUTLER_API_KEY,
-# and it runs on a release tag rather than on every push. The build itself is
-# still a moon task, so what CI checks and what ships are the same artifact
-# produced the same way.
+# Nothing here names a game. A `<project>@<version>` tag resolves to a node in
+# the project graph, and that node says everything this workflow needs to know:
+# whether the project ships to itch at all (the 'itch' tag), whether its assets
+# have to be fetched from the LFS store first (the 'lfs' tag), and -- through
+# the publish task inherited from the 'itch' tag -- which page it belongs on
+# and which task builds what ships.
 #
-# Adding a game is one entry in the matrix below. Everything that differs
-# between games lives there -- the moon build task, where that task leaves its
-# output, and the itch page and channel it belongs on. Nothing else in this
-# file names a project.
+# So adding a game is an edit to that game's own moon.yml and nothing else.
+# That is the property that has to hold at a hundred apps; the per-game matrix
+# this replaces was the same enumeration-outside-the-graph that the legacy
+# dispatch manifest was.
 #
-# The itch page slug is the one thing the project graph cannot answer: it lives
-# on itch, not in this repository, and `fish-and-chip` ships to a page called
-# `fishchip`. That is what the matrix is for. The version is not in it -- the
-# tag carries that, and it is verified against the project's own manifest
-# before anything is uploaded, so a channel can never be labelled with a
-# version the manifest never claimed.
+# Anything a single project needs installed belongs in that project's graph
+# too, as a task its build depends on -- see rentearth-bevy's `wasm-bindgen`.
+# A step here would put a game's name back in a shared file.
 on:
   push:
     tags: ['*@*']
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to publish, e.g. fish-and-chip@0.1.0'
+        description: 'Tag to publish, e.g. fish-and-chip@0.2.0'
         required: true
 
 permissions:
@@ -38,68 +36,73 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: publish ${{ matrix.project }} to itch.io
+  # Split from the publish job so that the gate is a job-level `if` and every
+  # step below it is unconditional. The alternative -- one job -- means
+  # repeating the same condition on each step, which is what the matrix version
+  # of this file did and what made it hard to read.
+  resolve:
+    name: resolve ${{ inputs.tag || github.ref_name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - project: fish-and-chip
-            build: fish-and-chip:build
-            dist: apps/arcade/fish-and-chip/dist
-            itch: kbve/fishchip
-            channel: html
-            # Optional. When set, the task boots the built game in a browser
-            # before anything is uploaded. Leave it off a game that has no such
-            # task and the gate simply skips.
-            e2e: fish-and-chip:e2e
-            # Its assets are plain git objects, and .lfsconfig points LFS at a
-            # private Forgejo the runner cannot reach -- asking for LFS here
-            # fails the checkout over files this game does not have.
-            lfs: false
-          # A wasm-bindgen bundle rather than a Vite one, but the channel is
-          # still `html`: itch treats any browser build the same way.
-          - project: rentearth-bevy
-            build: rentearth-bevy:build-web
-            dist: apps/arcade/rentearth-bevy/dist
-            itch: kbve/rentearth
-            channel: html
-            # The water textures are LFS objects. Without this they check out
-            # as pointer files and the game ships with placeholder water.
-            lfs: true
-    env:
-      TAG: ${{ inputs.tag || github.ref_name }}
-    # A tag names exactly one project, so every other matrix entry no-ops. The
-    # guard has to be repeated per step rather than set once on the job: the
-    # matrix context is not available in a job-level `if`.
+    timeout-minutes: 10
+    outputs:
+      project: ${{ steps.tag.outputs.project }}
+      version: ${{ steps.tag.outputs.version }}
+      source: ${{ steps.tag.outputs.source }}
+      tags: ${{ steps.tag.outputs.tags }}
     steps:
-      - name: Does this tag belong to ${{ matrix.project }}?
-        id: mine
-        run: |
-          if [ "${TAG%@*}" = "${{ matrix.project }}" ]; then
-            echo "mine=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "mine=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::$TAG is not a ${{ matrix.project }} release; nothing to do."
-          fi
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: steps.mine.outputs.mine == 'true'
-        with:
-          # Per game: see the matrix. Fetching LFS is not free of consequence
-          # here, because the objects live on a remote a public runner has no
-          # credentials for.
-          lfs: ${{ matrix.lfs }}
 
-      # rentearth-bevy's water shader lives in git-crypt encrypted source. A
-      # release has the key, so it ships the real shader rather than the
-      # keyless fallback the build would otherwise select.
+      - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
+        with:
+          auto-install: true
+
+      # Resolves the tag against the project graph and against the project's
+      # own manifest, and reports what it found. A mismatch means the version
+      # bump was never committed, and publishing it would label a channel with
+      # a version the manifest never claimed.
+      - name: Tag matches the manifest
+        id: tag
+        run: node tools/release/verify-tag.mjs "${{ inputs.tag || github.ref_name }}"
+
+      - name: Not an itch release
+        if: ${{ !contains(fromJSON(steps.tag.outputs.tags), 'itch') }}
+        run: |
+          echo "::notice::${{ steps.tag.outputs.project }} is not tagged 'itch'; nothing to publish."
+
+  publish:
+    name: publish ${{ needs.resolve.outputs.project }} to itch.io
+    needs: resolve
+    if: contains(fromJSON(needs.resolve.outputs.tags), 'itch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Always off. .lfsconfig points LFS at a self-hosted Forgejo, and
+          # actions/checkout only knows how to authenticate against GitHub, so
+          # `lfs: true` cannot fetch these blobs whatever the project. The
+          # lfs-pull step below does it, with a credential and scoped to the
+          # one project that needs its objects.
+          lfs: false
+
+      # Some source in this repository is git-crypt encrypted and is compiled
+      # rather than merely read, so a release has to decrypt it to ship the
+      # real thing. Reports and continues without the key, which is what makes
+      # a fork's build fail on the missing source rather than on an auth error.
       - uses: ./.github/actions/git-crypt-unlock
-        if: steps.mine.outputs.mine == 'true'
         with:
           key: ${{ secrets.GIT_CRYPT_KEY }}
+
+      # Scoped to this project's own tree. The blob store is shared across
+      # games and holds hundreds of objects; a release has no reason to
+      # download another game's character models. Skipped entirely for a
+      # project that has no LFS assets.
+      - uses: ./.github/actions/lfs-pull
+        if: contains(fromJSON(needs.resolve.outputs.tags), 'lfs')
+        with:
+          user: ${{ secrets.FORGEJO_USER }}
+          token: ${{ secrets.FORGEJO_TOKEN }}
+          include: '${{ needs.resolve.outputs.source }}/**'
 
       # Same workaround as ci.yml: proto's rust plugin can leave an empty
       # toolchain directory and still report success, so the toolchain is
@@ -109,7 +112,6 @@ jobs:
       # declares before it runs anything, so a TypeScript game's build asks for
       # cargo too and dies on `missing_executable` without this.
       - name: Install the pinned Rust toolchain
-        if: steps.mine.outputs.mine == 'true'
         run: |
           version="$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)"
           test -n "$version" || { echo "::error::no channel in rust-toolchain.toml"; exit 1; }
@@ -117,71 +119,22 @@ jobs:
             --profile minimal --component clippy --component rustfmt --force
           rustup target add wasm32-unknown-unknown --toolchain "$version"
 
-      # Pinned to the wasm-bindgen crate in Cargo.lock. A CLI newer or older
-      # than the crate emits a bundle that fails at import with no useful
-      # message; build-web.sh checks the pair and refuses to run on a mismatch.
-      - name: Install wasm-bindgen
-        if: steps.mine.outputs.mine == 'true' && matrix.project == 'rentearth-bevy'
-        run: |
-          version="$(sed -n '/^name = "wasm-bindgen"$/{n;s/^version = "\(.*\)"$/\1/p;q;}' Cargo.lock)"
-          name="wasm-bindgen-${version}-x86_64-unknown-linux-musl"
-          curl -fsSL -o wasm-bindgen.tar.gz \
-            "https://github.com/rustwasm/wasm-bindgen/releases/download/${version}/${name}.tar.gz"
-          tar xzf wasm-bindgen.tar.gz -C "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/${name}" >> "$GITHUB_PATH"
-
       - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
-        if: steps.mine.outputs.mine == 'true'
         with:
           auto-install: true
 
-      - name: Tag matches the manifest
-        if: steps.mine.outputs.mine == 'true'
-        run: node tools/release/verify-tag.mjs "$TAG"
-
-      - name: Build
-        if: steps.mine.outputs.mine == 'true'
-        run: moon run ${{ matrix.build }}
-
-      # itch serves an HTML build from an index.html at the root of the upload.
-      # Without this the push succeeds and the page shows itch's own "no index"
-      # error, which reads as a broken game rather than a broken upload.
-      - name: Build has an entry point
-        if: steps.mine.outputs.mine == 'true'
-        run: test -f "${{ matrix.dist }}/index.html"
-
-      # The last gate before a build reaches the public. Unit tests mock the
-      # engine away, so this is the only thing that proves the game starts,
-      # loads its assets, and reaches a playable scene -- served from a path
-      # prefix, the way itch serves it. Games without an `e2e` task skip it.
-      - name: Boot the built game
-        if: steps.mine.outputs.mine == 'true' && matrix.e2e != ''
-        run: moon run ${{ matrix.e2e }}
-
-      # butler is fetched from itch's own broth channel rather than a
-      # third-party action, so nothing outside itch and GitHub is trusted with
-      # the API key.
-      - name: Install butler
-        if: steps.mine.outputs.mine == 'true'
-        run: |
-          curl -fsSL -o butler.zip \
-            https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
-          unzip -q butler.zip -d "$RUNNER_TEMP/butler"
-          chmod +x "$RUNNER_TEMP/butler/butler"
-          echo "$RUNNER_TEMP/butler" >> "$GITHUB_PATH"
-
-      - name: Push build
-        if: steps.mine.outputs.mine == 'true'
+      # Builds and uploads. The task depends on whichever task produces the
+      # shipping artifact and on whatever gate the project put in front of a
+      # release, so what reaches the public is the artifact CI checked, built
+      # the same way. ITCH_DRY_RUN=0 is the opt-out: the task's default is a
+      # dry run so that `moon check` can never publish.
+      #
+      # The version comes from the tag, which the resolve job already checked
+      # against the manifest -- so a channel cannot be labelled with a version
+      # the project never claimed.
+      - name: Publish
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
-          ITCH_TARGET: ${{ matrix.itch }}:${{ matrix.channel }}
-        run: |
-          if [ -z "$BUTLER_API_KEY" ]; then
-            echo "::error::BUTLER_API_KEY is not set. Add it from https://itch.io/user/settings/api-keys."
-            exit 1
-          fi
-          # Split on the LAST @, the way verify-tag.mjs does, so a scoped
-          # project id keeps parsing.
-          butler push "${{ matrix.dist }}" "$ITCH_TARGET" \
-            --userversion "${TAG##*@}"
-          butler status "$ITCH_TARGET"
+          ITCH_DRY_RUN: '0'
+          ITCH_USERVERSION: ${{ needs.resolve.outputs.version }}
+        run: moon run ${{ needs.resolve.outputs.project }}:publish
