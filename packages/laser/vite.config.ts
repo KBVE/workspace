@@ -75,9 +75,10 @@ export default defineConfig({
       reportsDirectory: 'coverage',
       provider: 'v8',
       reporter: ['text-summary', 'json-summary'],
-      // Measured against the files the package ships, not only the ones a test
-      // happened to import -- otherwise deleting a spec raises the percentage.
-      all: true,
+      // `include` is what makes this measure the files the package ships
+      // rather than only the ones a test happened to import -- without it,
+      // deleting a spec would raise the percentage. (vitest 3 needed `all:
+      // true` alongside it; vitest 4 removed the option and made it default.)
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'src/**/*.{spec,test}.{ts,tsx}',

@@ -33,6 +33,13 @@ export class VirtualJoystick {
 	private _isActive = false;
 	private fixed: boolean;
 	private activePointer: Phaser.Input.Pointer | null = null;
+	/**
+	 * Scopes the input handlers to this joystick's lifetime. The input plugin
+	 * outlives the scene's create(), so handlers left attached after destroy()
+	 * keep running against Arcs Phaser has already torn down -- the next
+	 * pointerdown reads this.base.x off a destroyed object.
+	 */
+	private detach: (() => void) | null = null;
 
 	constructor(scene: Phaser.Scene, config?: VirtualJoystickConfig) {
 		this.scene = scene;
@@ -69,7 +76,7 @@ export class VirtualJoystick {
 	}
 
 	private setupInput(): void {
-		this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+		const onDown = (pointer: Phaser.Input.Pointer) => {
 			if (this.activePointer) return;
 
 			const dx = pointer.x - this.base.x;
@@ -85,17 +92,27 @@ export class VirtualJoystick {
 
 			this.activePointer = pointer;
 			this._isActive = true;
-		});
+		};
 
-		this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+		const onMove = (pointer: Phaser.Input.Pointer) => {
 			if (pointer !== this.activePointer) return;
 			this.updateThumb(pointer.x, pointer.y);
-		});
+		};
 
-		this.scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+		const onUp = (pointer: Phaser.Input.Pointer) => {
 			if (pointer !== this.activePointer) return;
 			this.resetThumb();
-		});
+		};
+
+		this.scene.input.on('pointerdown', onDown);
+		this.scene.input.on('pointermove', onMove);
+		this.scene.input.on('pointerup', onUp);
+
+		this.detach = () => {
+			this.scene.input.off('pointerdown', onDown);
+			this.scene.input.off('pointermove', onMove);
+			this.scene.input.off('pointerup', onUp);
+		};
 	}
 
 	private updateThumb(px: number, py: number): void {
@@ -158,6 +175,9 @@ export class VirtualJoystick {
 	}
 
 	destroy(): void {
+		this.detach?.();
+		this.detach = null;
+		this.resetThumb();
 		this.base.destroy();
 		this.thumb.destroy();
 	}
