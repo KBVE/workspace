@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
  */
 interface Compiled {
   passengers: { id: string; suspect?: boolean; victim?: boolean }[];
-  items: { id: string; kind: string }[];
+  items: { id: string; kind: string; model?: string }[];
   locations: { id: string; carriage?: number }[];
 }
 const content = JSON.parse(
@@ -26,7 +26,17 @@ const content = JSON.parse(
  * so adding a passenger to shared/data fails here until the sheet lists them.
  */
 const SUSPECTS = content.passengers.filter((p) => p.suspect).map((p) => p.id);
-const WEAPONS = content.items.filter((i) => i.kind === 'weapon').map((i) => i.id);
+/**
+ * The model is what makes a weapon nameable: it is what lets the run put the thing in
+ * a room to be found. TheNight draws from the same rule, so these are the weapons the
+ * answer can be.
+ */
+const WEAPONS = content.items
+  .filter((i) => i.kind === 'weapon' && i.model)
+  .map((i) => i.id);
+const UNMODELLED = content.items
+  .filter((i) => i.kind === 'weapon' && !i.model)
+  .map((i) => i.id);
 const ROOMS = content.locations.filter((l) => typeof l.carriage === 'number').map((l) => l.id);
 
 async function openNotebook(page: Page) {
@@ -60,6 +70,10 @@ test('the sheet leaves off what the answer can never be', async ({ page }) => {
   const victim = content.passengers.find((p) => p.victim)!;
   await expect(row(page, `suspect:${victim.id}`)).toHaveCount(0);
   await expect(row(page, 'room:platform')).toHaveCount(0);
+
+  // A weapon with no model cannot be put in a room, so nothing the player does could
+  // ever bear on it. Real content, and not an answer.
+  for (const id of UNMODELLED) await expect(row(page, `weapon:${id}`)).toHaveCount(0);
 });
 
 test('a pencil mark goes on, changes, and comes off', async ({ page }) => {

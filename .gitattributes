@@ -84,6 +84,25 @@ apps/arcade/gilded-gazette/godot/assets/cast/**/*.webp  filter=lfs diff=lfs merg
 apps/arcade/gilded-gazette/godot/assets/cast/**/*.exr   filter=lfs diff=lfs merge=lfs -text
 apps/arcade/gilded-gazette/godot/assets/cast/**/*.hdr   filter=lfs diff=lfs merge=lfs -text
 
+# Item models: weapons and the loose things left lying in a carriage. Same rules
+# as the cast above, and here for the same reason -- binary art that is rebuilt
+# rather than edited, so a diff of it is never read and every version of it would
+# otherwise sit in history forever.
+#
+# Not retroactive. ornate_dagger.glb went in as a plain object before this rule
+# existed and its early versions stay in history as one; what this changes is
+# every version from here.
+apps/arcade/gilded-gazette/godot/assets/items/**/*.glb   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/items/**/*.gltf  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/items/**/*.bin   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/items/**/*.blend filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/items/**/*.png   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/items/**/*.jpg   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/items/**/*.jpeg  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/items/**/*.webp  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/items/**/*.exr   filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/items/**/*.hdr   filter=lfs diff=lfs merge=lfs -text
+
 # --- git-lfs: rentearth textures ----------------------------------------
 # Binary art, kept out of git history. Below the `* text=auto` rule and
 # carrying -text, because a later rule wins per attribute and eol translation

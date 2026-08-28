@@ -205,13 +205,13 @@ export const item = z.object({
   ...prose,
 })
   /**
-   * &lying -> a thing on the floor of a room needs all three of a model to draw,
-   *           a room to be in, and a spot in that room. Any one of them alone is
-   *           an item that either never appears or appears in the wrong carriage,
-   *           and both of those read as a broken build rather than a content gap.
+   * &lying -> a thing standing in a particular room needs all three of a model to
+   *           draw, a room to be in, and a spot in that room. A model on its own is
+   *           not an error though: a weapon has a model and no room, because the run
+   *           draws where it was left rather than the content saying.
    */
-  .refine((i) => !(i.found || i.model) || (i.found && i.model && i.location), {
-    message: 'found/model: an item in the world needs a model, a location and a found spot',
+  .refine((i) => !i.found || (i.model && i.location), {
+    message: 'found: a spot in a room needs a model to put there and a location to put it in',
   })
   /**
    * &pockets -> a carried item is in the player's effects, so a copy of it lying

@@ -1358,6 +1358,150 @@
       "source": "shared/data/items/carriage_lamp.mdx"
     },
     {
+      "id": "escort_axe",
+      "name": "Hand Axe",
+      "kind": "weapon",
+      "carried": false,
+      "model": "escort_axe",
+      "reveals": [
+        "the_crate_was_opened_by_something_and_this_is_what_opens_crates"
+      ],
+      "lede": "Short-hafted, single-bitted, and the one thing in the van that has an honest reason to be there: a crate is opened with an axe or it is not opened.",
+      "body": [],
+      "sections": {
+        "the_bit": {
+          "heading": "The Bit",
+          "paragraphs": [
+            "Bright along the edge and dulled at the heel, which is wear from prying rather than from cutting."
+          ],
+          "bullets": []
+        },
+        "the_haft": {
+          "heading": "The Haft",
+          "paragraphs": [
+            "Wrapped where a hand goes, and the wrapping is newer than the wear under it."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "Railway tool or the Order's, depending on who is asked, and the two answers have been given by two people about the same axe."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/items/escort_axe.mdx"
+    },
+    {
+      "id": "escort_dagger",
+      "name": "Escort's Dagger",
+      "kind": "weapon",
+      "carried": false,
+      "model": "escort_dagger",
+      "reveals": [
+        "the_order_carries_arms_it_has_not_declared"
+      ],
+      "lede": "Plain, short, and issued rather than chosen: one of four the same, worn under the cloak where a coat would hide it.",
+      "body": [],
+      "sections": {
+        "the_blade": {
+          "heading": "The Blade",
+          "paragraphs": [
+            "No maker's mark and no ornament. The Order does not commission, it equips, and what it equips is the cheapest thing that will do the work."
+          ],
+          "bullets": []
+        },
+        "the_sheath": {
+          "heading": "The Sheath",
+          "paragraphs": [
+            "Sewn to the belt rather than hung from it, which is how a thing is carried by somebody expecting to need it in a corridor."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "Not on the manifest. Nothing the escort carries is on the manifest, and the warrant is why nobody at Calais asked."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/items/escort_dagger.mdx"
+    },
+    {
+      "id": "escort_hammer",
+      "name": "War Hammer",
+      "kind": "weapon",
+      "carried": false,
+      "model": "escort_hammer",
+      "reveals": [
+        "the_order_travels_equipped_for_something_it_will_not_name"
+      ],
+      "lede": "A head of steel on a short haft, weighted so far forward that it is useless for anything except what it is for.",
+      "body": [],
+      "sections": {
+        "the_head": {
+          "heading": "The Head",
+          "paragraphs": [
+            "Faced on one side and spiked on the other, and the spike has been ground back to a stub by somebody who wanted it to look like a mallet."
+          ],
+          "bullets": []
+        },
+        "why_it_is_aboard": {
+          "heading": "Why It Is Aboard",
+          "paragraphs": [
+            "Nobody has offered a reason. Dame Marchand answers questions about the cargo with the same sentence each time, and this is not the cargo."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "Under the same warrant as the rest, sealed in wax that is not any nation's."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/items/escort_hammer.mdx"
+    },
+    {
+      "id": "escort_sword",
+      "name": "Arming Sword",
+      "kind": "weapon",
+      "carried": false,
+      "model": "escort_sword",
+      "reveals": [
+        "a_blade_too_long_to_draw_in_a_corridor_was_drawn_somewhere"
+      ],
+      "lede": "A yard of straight steel, which is a yard more than the width of the corridor it would have to be swung in.",
+      "body": [],
+      "sections": {
+        "the_blade": {
+          "heading": "The Blade",
+          "paragraphs": [
+            "Sharpened along its whole length and lately, by somebody who did the work in a hurry and left the stone's grit in the fuller."
+          ],
+          "bullets": []
+        },
+        "where_it_was": {
+          "heading": "Where It Was",
+          "paragraphs": [
+            "Racked in the guard's van with three others, in a stand made for four. The leather at one station is compressed and at the rest it is not."
+          ],
+          "bullets": []
+        },
+        "provenance": {
+          "heading": "Provenance",
+          "paragraphs": [
+            "The Order's, under warrant, and the only weapon aboard that could not be concealed by anybody carrying it anywhere."
+          ],
+          "bullets": []
+        }
+      },
+      "source": "shared/data/items/escort_sword.mdx"
+    },
+    {
       "id": "laudanum",
       "name": "Bottle of Laudanum",
       "kind": "weapon",

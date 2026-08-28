@@ -61,6 +61,8 @@ export interface Item extends Prose {
   id: string;
   name: string;
   kind: 'document' | 'key' | 'personal' | 'weapon' | 'curio';
+  /** The glb under godot/assets/items, without the extension; absent when unmodelled. */
+  model?: string;
   carried: boolean;
   owner?: string;
   location?: LocationId;

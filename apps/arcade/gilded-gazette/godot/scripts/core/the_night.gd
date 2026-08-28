@@ -37,6 +37,11 @@ var victim_id: StringName = &""
 var culprit_id: StringName = &""
 var scene: StringName = &""
 
+## What it was done with. Drawn from the weapons the run is able to put in a room and
+## from no others: a weapon with no model cannot be found aboard, and an answer nobody
+## can find is a fifth of the accusation decided by luck.
+var weapon_id: StringName = &""
+
 ## Minutes after departure, not a wall clock: the journey is linear and the clock it is
 ## told in wraps past midnight. Before nought nobody is anywhere -- the train has not
 ## left, and a step index clamped to zero would put the Paris boarders on a platform
@@ -47,6 +52,22 @@ var murder_elapsed: int = -1
 ## aboard, or no longer anywhere.
 var _rooms: Dictionary = {}
 var _notes: Dictionary = {}
+
+
+## Every weapon the run could name, which is every weapon it could also put in a room.
+##
+## The model is the qualification, not the kind. A weapon with no model is real content
+## -- somebody owns it, it has a page -- but nothing can place it aboard, so a player
+## has no way to find it and naming it would be a guess between things they never saw.
+## The notebook draws its own column from this same rule, so what is listed and what
+## can be drawn are one set, the way the suspects are.
+static func weapons() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for item: Dictionary in GameContent.items():
+		if item.get("kind", "") == "weapon" and str(item.get("model", "")) != "":
+			out.append(StringName(item.get("id", "")))
+	out.sort()
+	return out
 
 
 ## Draws a night, or returns null if the content cannot support one -- no victim, or
@@ -99,6 +120,11 @@ func _draw(rng: RandomNumberGenerator, departure_minutes: int) -> bool:
 			victim_id = id
 	if victim_id.is_empty():
 		return false
+
+	var arsenal := weapons()
+	if arsenal.is_empty():
+		return false
+	weapon_id = arsenal[rng.randi_range(0, arsenal.size() - 1)]
 
 	murder_elapsed = rng.randi_range(EARLIEST, LATEST)
 	var murder_step := _step_of(murder_elapsed)

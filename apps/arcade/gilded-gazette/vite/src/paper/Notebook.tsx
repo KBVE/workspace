@@ -38,9 +38,17 @@ interface Column {
 const suspects = () =>
   passengers.filter((p) => p.suspect).map((p) => ({ id: p.id, label: listedAs(p) }));
 
+/**
+ * The weapons the run can name, which are the ones it can also put in a room: the
+ * model is the qualification, not the kind. TheNight draws from this same rule.
+ *
+ * A weapon with no model is real content -- somebody owns it, it has a page -- but
+ * nothing can place it aboard, so listing it would put a row on the sheet that no
+ * evidence can ever bear on and no run can ever be about.
+ */
 const weapons = () =>
   items
-    .filter((i: Item) => i.kind === 'weapon')
+    .filter((i: Item) => i.kind === 'weapon' && i.model)
     .map((i) => ({ id: i.id, label: i.name }));
 
 /**
@@ -80,7 +88,7 @@ export function Notebook() {
       key: 'weapon',
       title: 'With What',
       rows: weapons(),
-      thin: 'Only one has been found so far.',
+      thin: 'Only one of these has turned up aboard so far.',
     },
     { key: 'room', title: 'Where', rows: rooms() },
   ];

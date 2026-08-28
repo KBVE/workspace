@@ -120,6 +120,39 @@ func test_every_sighting_is_a_line_somebody_wrote() -> void:
 				).contains([night.note_for(id, elapsed)])
 
 
+## Every weapon the sheet lists has to be one the run can name, for the same reason
+## every suspect does. The rule is the model: a weapon with no model cannot be put in
+## a room, so it cannot be found, so naming it would be a guess between things the
+## player never saw.
+func test_the_weapon_is_drawn_from_what_can_be_found_aboard() -> void:
+	var arsenal := TheNight.weapons()
+	assert_array(arsenal).override_failure_message(
+		"no weapon has a model, so no night can say what it was done with"
+	).is_not_empty()
+	for id: StringName in arsenal:
+		var item := GameContent.by_id("items", String(id))
+		assert_str(str(item.get("model", ""))).override_failure_message(
+			"%s is drawable but has no model to put in a room" % id
+		).is_not_empty()
+	for s in SEEDS:
+		assert_array(arsenal).override_failure_message(
+			"seed %d drew a weapon that is not in the arsenal" % s
+		).contains([_night(s).weapon_id])
+
+
+## And no weapon is a long shot, on the same reasoning as the suspects.
+func test_every_weapon_can_be_the_answer() -> void:
+	var seen := {}
+	for s in FAIRNESS_SEEDS:
+		var w := _night(s).weapon_id
+		seen[w] = int(seen.get(w, 0)) + 1
+	for id: StringName in TheNight.weapons():
+		assert_int(int(seen.get(id, 0))).override_failure_message(
+			"%s was never drawn in %d nights, so the sheet lists it for nothing"
+			% [id, FAIRNESS_SEEDS]
+		).is_greater(0)
+
+
 func test_the_answer_is_not_the_same_every_run() -> void:
 	var drawn := {}
 	for s in SEEDS:

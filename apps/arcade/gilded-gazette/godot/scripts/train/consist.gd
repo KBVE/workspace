@@ -439,12 +439,40 @@ func _furnishing_offset(placement: Dictionary) -> Vector3:
 ## thing about a prop that is not shared. The mesh and its texture still are, so this
 ## costs a material bind and not a copy of the crate.
 func _light_the_prop(instance: MeshInstance3D) -> void:
-	var lit := ShaderMaterial.new()
-	lit.shader = load("res://shaders/prop.gdshader")
-	lit.set_shader_parameter("tex_albedo", _albedo_of(instance.mesh))
-	lit.set_shader_parameter("baked_tint", _lamplight(instance.position))
+	var tint := _lamplight(instance.position)
+	var shared: ShaderMaterial = null
 	for surface in range(instance.mesh.get_surface_count()):
-		instance.set_surface_override_material(surface, lit)
+		var texture := _albedo_of(instance.mesh, surface)
+		if texture == null:
+			instance.set_surface_override_material(surface,
+				_flat_lit(instance.mesh, surface, tint))
+			continue
+		if shared == null:
+			shared = ShaderMaterial.new()
+			shared.shader = load("res://shaders/prop.gdshader")
+			shared.set_shader_parameter("tex_albedo", texture)
+			shared.set_shader_parameter("baked_tint", tint)
+		instance.set_surface_override_material(surface, shared)
+
+
+## An untextured surface, lit the way a textured one is.
+##
+## Low-poly packs carry no textures and no UV map at all: a weapon is five or six
+## materials, each a flat colour. There is nothing to sample, so the multiply
+## [code]prop.gdshader[/code] does between an albedo and the lamp tint is done here
+## between a colour and the same tint, and the result is unshaded for the same reason
+## the shader is -- the walls are baked and a prop that answered to the real lamps
+## would be the one thing in the carriage lit twice.
+##
+## Per surface, because the colours are what tell the steel from the grip. Collapsing
+## them into one would be collapsing the model.
+func _flat_lit(mesh: Mesh, surface: int, tint: Color) -> StandardMaterial3D:
+	var source := mesh.surface_get_material(surface) as BaseMaterial3D
+	var colour := Color.WHITE if source == null else source.albedo_color
+	var flat := StandardMaterial3D.new()
+	flat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flat.albedo_color = Color(colour.r * tint.r, colour.g * tint.g, colour.b * tint.b)
+	return flat
 
 
 ## The texture a mesh is drawn with, taken off the material it arrived wearing.
@@ -453,10 +481,10 @@ func _light_the_prop(instance: MeshInstance3D) -> void:
 ## atlas, so for the library this returns the same texture every time and the bind is
 ## shared. An item is its own model with its own image and answers with that instead,
 ## which is why this asks the mesh rather than caching one atlas for the whole train.
-func _albedo_of(mesh: Mesh) -> Texture2D:
-	if mesh == null or mesh.get_surface_count() == 0:
+func _albedo_of(mesh: Mesh, surface: int = 0) -> Texture2D:
+	if mesh == null or surface >= mesh.get_surface_count():
 		return null
-	var src := mesh.surface_get_material(0) as BaseMaterial3D
+	var src := mesh.surface_get_material(surface) as BaseMaterial3D
 	return null if src == null else src.albedo_texture
 
 

@@ -3,12 +3,21 @@
     blender -b <source>.blend -P tools/import-item-model.py -- \
         --out godot/assets/items/ornate_dagger.glb
 
-The assets worth using come as a .blend plus a 1k PBR set -- diffuse, normal,
-roughness, metallic -- and none of that survives contact with this game. Props
-here are drawn by shaders/prop.gdshader, which takes one albedo texture and a
-baked lamp tint and has no channel to put a normal map in; the other three maps
-would be exported, downloaded by every browser, and then ignored. So this keeps
-the diffuse, resizes it, drops the rest, and writes one self-contained glb.
+Two kinds of asset arrive, and both end up as the same thing.
+
+A scanned one comes as a .blend plus a 1k PBR set -- diffuse, normal, roughness,
+metallic -- and none of that survives contact with this game. Props here are
+drawn by shaders/prop.gdshader, which takes one albedo and a baked lamp tint and
+has no channel to put a normal map in; the other three maps would be exported,
+downloaded by every browser, and then ignored. So this keeps the diffuse,
+resizes it, and drops the rest.
+
+A modelled one -- Quaternius and most low-poly packs -- has no textures and no UV
+map at all: colour is a flat base colour per material, six or so to a weapon.
+There is nothing to resize and nothing to drop, so those materials are carried
+through as they are. Consist lights an untextured surface with its own flat
+colour times the same lamp tint, which is what prop.gdshader does to a textured
+one, so the two kinds sit in a room together without looking like two kinds.
 
 The geometry gets the same treatment, and for the same reason. A downloaded
 asset is modelled for a render, so it arrives with a few thousand triangles on
@@ -49,7 +58,12 @@ def parse() -> argparse.Namespace:
     p.add_argument('--texture-size', type=int, default=256,
                    help='square size the albedo is resized to')
     p.add_argument('--triangles', type=int, default=400,
-                   help='triangle budget; the mesh is collapsed down to it')
+                   help='triangle budget; the mesh is collapsed down to it. 0 leaves '
+                        'the geometry alone, which is what a low-poly pack wants -- it '
+                        'is already at its intended budget and collapsing hard-edged '
+                        'flat-shaded geometry is visible damage rather than a saving')
+    p.add_argument('--size', type=float, default=0.0,
+                   help='longest dimension in metres; 0 keeps the asset as authored')
     p.add_argument('--stand', action='store_true',
                    help='keep the asset upright instead of laying it down')
     return p.parse_args(args_after_double_dash())
@@ -130,6 +144,15 @@ def main() -> None:
     obj.name = name
     obj.data.name = name
 
+    # Modelled packs are authored in whatever unit suited the pack -- this one
+    # ships a three-metre dagger -- and a room measured in metres has no way to
+    # guess which. Naming the real length is the only reliable answer, and it is
+    # a fact about the object rather than about the file it came in.
+    if opts.size > 0:
+        longest = max(obj.dimensions)
+        if longest > 0:
+            obj.scale = tuple(opts.size / longest for _ in range(3))
+
     if not opts.stand:
         obj.rotation_euler = (-1.5707963267948966, 0.0, 0.0)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
@@ -142,7 +165,7 @@ def main() -> None:
     # before it measures its own ratio: a ratio worked out against a mesh of
     # quads asks for half the reduction it looks like it is asking for.
     before = triangles_in(obj.data)
-    if before > opts.triangles:
+    if opts.triangles > 0 and before > opts.triangles:
         shrink = obj.modifiers.new('budget', 'DECIMATE')
         shrink.decimate_type = 'COLLAPSE'
         shrink.ratio = opts.triangles / before
@@ -159,10 +182,12 @@ def main() -> None:
     bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
     obj.location = (0.0, 0.0, 0.0)
 
+    # A material with no image is a flat colour and is already as small as it
+    # gets; only a textured one has anything here worth doing.
     for slot in obj.material_slots:
         image = albedo_of(slot.material)
         if image is None:
-            raise SystemExit(f'material "{slot.name}" has no image feeding Base Color')
+            continue
         image.scale(opts.texture_size, opts.texture_size)
         # Packed, so the exporter embeds the resized pixels rather than
         # re-reading the 1k file off disk and shipping that instead.
