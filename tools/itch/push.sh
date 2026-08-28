@@ -40,6 +40,11 @@ fi
 if [ -z "$version" ] && [ -f Cargo.toml ]; then
   version=$(sed -n '/^\[package\]/,/^\[/{s/^version *= *"\([^"]*\)".*/\1/p;}' Cargo.toml | head -1)
 fi
+for godot in project.godot godot/project.godot; do
+  [ -n "$version" ] && break
+  [ -f "$godot" ] || continue
+  version=$(sed -n '/^\[application\]/,/^\[/{s|^config/version *= *"\([^"]*\)".*|\1|p;}' "$godot" | head -1)
+done
 [ -n "$version" ] || die "No version to label the build with. Set ITCH_USERVERSION, or add a version to package.json or Cargo.toml."
 
 if [ "${ITCH_DRY_RUN:-}" = "1" ]; then

@@ -66,6 +66,32 @@ export function cargoVersion(text) {
  * deciding which release mechanism a tag belongs to is a graph lookup rather
  * than a list of project ids in a workflow.
  */
+/**
+ * Reads the version out of a Godot project manifest.
+ *
+ * A Godot game's version is `config/version` in project.godot, and nothing
+ * generates a package.json or Cargo.toml beside it. Adding one would mean two
+ * places claiming a version and no mechanism keeping them equal, which is the
+ * exact failure this whole script exists to catch.
+ *
+ * Scoped to [application], the section Godot writes config/version into, so a
+ * `config/version` under some other section cannot be picked up instead.
+ */
+export function godotVersion(text) {
+  let inApplication = false;
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('[')) {
+      inApplication = trimmed === '[application]';
+      continue;
+    }
+    if (!inApplication) continue;
+    const match = trimmed.match(/^config\/version\s*=\s*"([^"]+)"/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
 export function projectNode(project, cwd = process.cwd()) {
   const out = execFileSync('moon', ['query', 'projects', '--id', project], {
     cwd,
@@ -117,9 +143,24 @@ export function manifestVersion(root, source) {
     return { file: `${source}/package.json`, version };
   }
 
+  // Both layouts: a bare Godot project, and one that is a subdirectory of a
+  // project with other runtimes beside it -- gilded-gazette is a Godot game
+  // and a Vite front end in one moon project.
+  for (const candidate of ['project.godot', 'godot/project.godot']) {
+    const godot = join(root, source, candidate);
+    if (!existsSync(godot)) continue;
+    const version = godotVersion(readFileSync(godot, 'utf8'));
+    if (version === null) {
+      throw new TagError(
+        `${source}/${candidate} has no config/version in [application].`,
+      );
+    }
+    return { file: `${source}/${candidate}`, version };
+  }
+
   throw new TagError(
-    `${source} has no Cargo.toml or package.json, so there is no version to ` +
-      `check the tag against.`,
+    `${source} has no Cargo.toml, package.json or project.godot, so there is ` +
+      `no version to check the tag against.`,
   );
 }
 

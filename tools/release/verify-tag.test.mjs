@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTag, cargoVersion, TagError } from './verify-tag.mjs';
+import { parseTag, cargoVersion, godotVersion, TagError } from './verify-tag.mjs';
 
 test('parses a project tag', () => {
   assert.deepEqual(parseTag('rentearth-api@0.2.0'), {
@@ -49,4 +49,21 @@ test('reports an inherited version rather than returning nothing', () => {
 test('recognises the table form of inheritance', () => {
   const manifest = ['[package]', 'version = { workspace = true }'].join('\n');
   assert.deepEqual(cargoVersion(manifest), { inherited: true });
+});
+
+test('reads a Godot project version', () => {
+  const manifest = [
+    '[application]',
+    'config/name="Gilded Gazette"',
+    'config/version="0.1.12"',
+  ].join('\n');
+  assert.equal(godotVersion(manifest), '0.1.12');
+});
+
+test('only reads config/version from [application]', () => {
+  // Godot writes it there. A key of the same name under another section is a
+  // different setting, and validating a tag against it would pass or fail for
+  // a reason no one could find.
+  const manifest = ['[editor]', 'config/version="9.9.9"'].join('\n');
+  assert.equal(godotVersion(manifest), null);
 });
