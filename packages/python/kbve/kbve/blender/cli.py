@@ -113,6 +113,33 @@ def turf_main() -> None:
     sys.exit(code)
 
 
+def model_sprites_main() -> None:
+    """Launcher for the ARPG sprite baker.
+
+    Unlike the others this forwards its arguments verbatim rather than naming
+    them: model_sprites.py parses eight of its own with argparse, and
+    restating them here would be a second list to keep in step. Only --blender
+    is consumed, so parse_known_args is what keeps --model and friends intact.
+    """
+    p = argparse.ArgumentParser(
+        prog="kbve-model-sprites",
+        description="Bake a model to a sheet of facing sprites (args are passed to the baker).",
+        add_help=False)
+    p.add_argument("--blender", default=None, help="path to blender binary")
+    a, rest = p.parse_known_args()
+
+    # `kbve-model-sprites -- --model x.obj` was the documented spelling when
+    # this was its own entry point, because it used to be run through uv. The
+    # separator means nothing to a console script, so it is tolerated and
+    # dropped rather than forwarded as an argument the baker would reject.
+    if rest and rest[0] == "--":
+        rest = rest[1:]
+
+    blender = find_blender(a.blender)
+    code = run_in_blender(HERE / "model_sprites.py", rest, blender)
+    sys.exit(code)
+
+
 # Default entry when invoked bare; kept generic in case more tools are added.
 def main() -> None:
     retarget_main()

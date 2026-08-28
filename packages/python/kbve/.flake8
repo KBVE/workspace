@@ -11,4 +11,9 @@ exclude =
 max-line-length = 120
 extend-ignore = E203, E221
 per-file-ignores =
+	# pycodestyle mis-tokenizes f-string contents under PEP 701 (py3.12): the
+	# format spec in f"frame_{idx:03d}.png" reads as a bare colon, and a
+	# semicolon inside f"failed ({e}); skipped" reads as two statements. Both
+	# are inside string literals.
+	kbve/blender/model_sprites.py: E231, E702
 	kbve/proto/*_pb2*.py: E501, E303, F401, E261, W504, E302, W291, E271, E211, E111, E225, E231, F541, E114, E128

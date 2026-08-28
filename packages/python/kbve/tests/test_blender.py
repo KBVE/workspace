@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from kbve.blender import cli, pack_orm
+from kbve.blender import cli, pack_orm, skin_variant, sprite_postprocess
 
 
 # ── find_blender ─────────────────────────────────────────────────────
@@ -197,6 +197,115 @@ def test_vat_main_defaults_match_the_documented_ones(monkeypatch):
     seen = _capture(monkeypatch, "kbve-blender-vat", cli.vat_main,
                     ["--src", "s.fbx", "--out", "d"])
     assert seen["passthrough"][2:4] == ["1200", "32"]
+
+
+# ── model_sprites_main ───────────────────────────────────────────────
+
+def test_model_sprites_main_forwards_verbatim(monkeypatch):
+    """The baker parses its own eight flags; the wrapper must not restate them."""
+    seen = _capture(
+        monkeypatch, "kbve-model-sprites", cli.model_sprites_main,
+        ["--model", "x.obj", "--skin", "s.jpg", "--out", "d",
+         "--frames", "16", "--res", "256"])
+    assert seen["module"].name == "model_sprites.py"
+    assert seen["passthrough"] == [
+        "--model", "x.obj", "--skin", "s.jpg", "--out", "d",
+        "--frames", "16", "--res", "256",
+    ]
+
+
+def test_model_sprites_main_drops_a_leading_separator(monkeypatch):
+    """`kbve-model-sprites -- --model x` was the documented spelling under uv.
+
+    A console script has no separator to strip, so a forwarded '--' would reach
+    the baker's argparse as an argument and be rejected.
+    """
+    seen = _capture(
+        monkeypatch, "kbve-model-sprites", cli.model_sprites_main,
+        ["--", "--model", "x.obj"])
+    assert seen["passthrough"] == ["--model", "x.obj"]
+
+
+def test_model_sprites_main_consumes_only_blender(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(
+        sys, "argv",
+        ["kbve-model-sprites", "--blender", "/opt/b", "--model", "x.obj"])
+    monkeypatch.setattr(
+        cli, "run_in_blender",
+        lambda module, passthrough, blender: seen.update(
+            passthrough=passthrough, blender=blender) or 0)
+    with pytest.raises(SystemExit):
+        cli.model_sprites_main()
+    assert seen["blender"] == "/opt/b"
+    assert seen["passthrough"] == ["--model", "x.obj"]
+
+
+# ── skin_variant ─────────────────────────────────────────────────────
+
+def _run_skin_variant(monkeypatch, argv):
+    monkeypatch.setattr(sys, "argv", ["kbve-skin-variant", *argv])
+    skin_variant.main()
+
+
+def test_skin_variant_kills_the_glow_channel(monkeypatch, tmp_path):
+    """A dominant green pixel is masked; a neutral one is left alone."""
+    from PIL import Image
+
+    src = tmp_path / "skin.png"
+    # Left pixel glows green, right pixel is mid grey.
+    Image.frombytes("RGB", (2, 1), bytes([10, 200, 10, 120, 120, 120])).save(src)
+    out = tmp_path / "off.png"
+
+    # No feather, so the mask edge cannot bleed one pixel into the other.
+    _run_skin_variant(monkeypatch,
+                      ["--in", str(src), "--out", str(out), "--feather", "0"])
+
+    with Image.open(out) as im:
+        glow, neutral = im.getpixel((0, 0)), im.getpixel((1, 0))
+    assert glow[1] < 200, "the green channel should have been knocked down"
+    assert neutral == (120, 120, 120), "a non-glowing pixel must be untouched"
+
+
+def test_skin_variant_targets_the_named_channel(monkeypatch, tmp_path):
+    """--hue red on a green-glowing image should change nothing."""
+    from PIL import Image
+
+    src = tmp_path / "skin.png"
+    Image.frombytes("RGB", (1, 1), bytes([10, 200, 10])).save(src)
+    out = tmp_path / "off.png"
+
+    _run_skin_variant(monkeypatch,
+                      ["--in", str(src), "--out", str(out),
+                       "--hue", "red", "--feather", "0"])
+
+    with Image.open(out) as im:
+        assert im.getpixel((0, 0)) == (10, 200, 10)
+
+
+# ── sprite_postprocess ───────────────────────────────────────────────
+
+def test_bake_shadow_returns_a_frame_sized_image():
+    from PIL import Image
+
+    frame = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    frame.paste((255, 0, 0, 255), (12, 12, 20, 20))
+
+    shadow = sprite_postprocess.bake_shadow(
+        frame, 32, 0.4, 0.05, 0.55, 0.0, 0.0, 0.04, 0.06)
+
+    assert shadow.size == frame.size
+    assert shadow.mode == "RGBA"
+
+
+def test_bake_shadow_is_derived_from_the_silhouette():
+    """An empty frame has no silhouette, so there is nothing to cast."""
+    from PIL import Image
+
+    empty = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    shadow = sprite_postprocess.bake_shadow(
+        empty, 32, 0.4, 0.05, 0.55, 0.0, 0.0, 0.04, 0.06)
+    assert shadow.getbbox() is None
 
 
 # ── pack_orm ─────────────────────────────────────────────────────────
