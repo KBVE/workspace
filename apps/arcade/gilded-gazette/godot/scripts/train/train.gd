@@ -236,6 +236,7 @@ func _ready() -> void:
 	_apply_render_budget()
 	# React's ui:restart and an in-world loss take the same path
 	Ecs.world.add_callable(GameEvents.UI_RESTART, _on_ui_restart)
+	Ecs.world.add_callable(GameEvents.UI_ACCUSE, _on_ui_accuse)
 
 	# a full gap, so the run does not open on a knock
 	_jolt_countdown = randf_range(JOLT_GAP.x, JOLT_GAP.y)
@@ -436,6 +437,26 @@ func _on_ui_restart(_event: GameEvent) -> void:
 	Session.begin()
 	Journal.clear()
 	_begin()
+
+
+## The end of the run, and the only place the drawn answer is ever read. An accusation
+## already made is not re-made: the run is over either way, and a second name would
+## overwrite the first with no record that the player had already been wrong.
+func _on_ui_accuse(event: GameEvent) -> void:
+	if _run.outcome != &"start":
+		return
+	var payload: Variant = event.data
+	var who := ""
+	if payload is Dictionary:
+		who = str(payload.get("who", ""))
+	if who.is_empty() or GameContent.by_id("passengers", who).is_empty():
+		push_warning("train: accused '%s', who is not aboard." % who)
+		return
+	Journal.record(StateBits.JournalKind.ACCUSED, "player", who)
+	# The night stops when the accusation is made. Whatever the passengers do after it,
+	# nobody is watching any more.
+	Session.time_of_day.running = false
+	_notify_level("won" if Session.accuses_correctly(StringName(who)) else "lost")
 
 
 func _notify_level(outcome: String) -> void:

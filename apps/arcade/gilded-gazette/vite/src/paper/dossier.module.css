@@ -207,3 +207,28 @@
 }
 
 .link:hover { color: #6b2018; }
+
+/* Set beside the name rather than under it: naming somebody is a different act from
+   reading about them, and a reader who meant to open a dossier must not end a run. */
+.accuse {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.accuse:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.accuse:disabled {
+  cursor: default;
+  opacity: 0.2;
+}

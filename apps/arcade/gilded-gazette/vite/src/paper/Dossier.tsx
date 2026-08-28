@@ -16,6 +16,7 @@ import {
   clockOf,
   effectsOf,
   factsAbout,
+  ids,
   isSuspect,
   labels,
   roomOf,
@@ -29,6 +30,8 @@ import {
   type FactRow,
   type Placement,
 } from '../research/world';
+import { useSend } from '../state/gameStore';
+import { useRunningOrder } from '../state/paperStore';
 import styles from './dossier.module.css';
 
 export function Dossier() {
@@ -117,6 +120,11 @@ function Scrubber() {
 }
 
 function Manifest({ focus }: { focus: number }) {
+  const send = useSend();
+  const order = useRunningOrder();
+  // One name, once. The run is over the moment it is given, and a second would talk a
+  // wrong answer into a right one with nothing recording that the reader had been wrong.
+  const settled = order ? order.outcome !== 'start' : false;
   const manifest = useRecord(() =>
     roster().map((passengerEid) => ({
       passengerEid,
@@ -151,6 +159,15 @@ function Manifest({ focus }: { focus: number }) {
               <span className={styles.personWhere}>
                 {currentRooms[rowIndex] ? roomName(currentRooms[rowIndex]!) : '—'}
               </span>
+            </button>
+            <button
+              className={styles.accuse}
+              data-testid={`accuse-${ids[passenger.passengerEid]}`}
+              disabled={settled}
+              title={settled ? 'The enquiry is closed.' : `Name ${passenger.name}`}
+              onClick={() => send('ui:accuse', { who: ids[passenger.passengerEid] })}
+            >
+              Name
             </button>
           </li>
         ))}

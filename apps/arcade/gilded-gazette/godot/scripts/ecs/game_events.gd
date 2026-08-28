@@ -147,6 +147,13 @@ const UI_PAUSE := &"ui_pause"
 ## Payload: none. Reaches JS as "ui:restart".
 const UI_RESTART := &"ui_restart"
 
+## The player named somebody. The run's one irreversible move: the answer is drawn per
+## run, so this is the only moment the game compares what the player worked out against
+## what happened. A second name is ignored, because the run is already over.
+##
+## Payload: {"who": string}. Reaches JS as "ui:accuse".
+const UI_ACCUSE := &"ui_accuse"
+
 ## React asked to leave the game scene for the main menu, think of it as a quick escape
 ## hatch.
 ##
@@ -204,6 +211,7 @@ const WIRE_FIELDS: Dictionary[String, Array] = {
 const INBOUND_BUS: Dictionary[String, StringName] = {
 	"ui:pause": UI_PAUSE,
 	"ui:restart": UI_RESTART,
+	"ui:accuse": UI_ACCUSE,
 	"ui:main_menu": UI_MAIN_MENU,
 	"ui:load_scene": UI_LOAD_SCENE,
 }

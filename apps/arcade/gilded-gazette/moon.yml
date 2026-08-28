@@ -122,6 +122,11 @@ tasks:
       - 'vite/index.html'
       - 'vite/vite.config.ts'
       - 'vite/tsconfig*.json'
+      # &export -> vite copies public/ into dist, so the Godot build is an input to
+      #            this one. Without it a change to nothing but the game is a cache
+      #            hit here, dist keeps the previous wasm, and what gets tested and
+      #            shipped is the export from before the change.
+      - 'vite/public/**/*'
     outputs:
       - 'vite/dist'
 

@@ -137,6 +137,14 @@
       "payload": {},
       "description": "React , jest or playwright requested to restart the current run or murder or clue scene."
     },
+    "UI_ACCUSE": {
+      "bus": "ui_accuse",
+      "wire": "ui:accuse",
+      "payload": {
+        "who": "string"
+      },
+      "description": "The player named somebody. The run's one irreversible move: the answer is drawn per run, so this is the only moment the game compares what the player worked out against what happened. A second name is ignored, because the run is already over."
+    },
     "UI_MAIN_MENU": {
       "bus": "ui_main_menu",
       "wire": "ui:main_menu",
