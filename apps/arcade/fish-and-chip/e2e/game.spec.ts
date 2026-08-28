@@ -264,18 +264,63 @@ test.describe('fish and chip', () => {
 		await page.evaluate(() => window.__GRID_ENGINE__?.setPosition('player', { x: 1, y: 1 }));
 		await page.locator('canvas').click({ position: { x: 10, y: 10 } });
 
+		// Timing starts at the first step, not at the keypress. Getting a held
+		// key from Playwright into Phaser costs game time that the player spends
+		// standing still, and on a slow runner that dead time is a large enough
+		// share of a short window to sink the average on its own.
+		await page.keyboard.down('d');
+		await expect.poll(async () => (await position())!.x, { timeout: 60_000 }).toBeGreaterThan(1);
+		const startedAt = await gameClock();
+		const startedFrom = (await position())!.x;
+
 		// Two game-seconds, however long the runner takes to produce them. Long
 		// enough that the tile the player is midway through when the key comes
 		// up is worth well under a tile per second of error.
-		const started = await gameClock();
-		await page.keyboard.down('d');
 		await expect
-			.poll(async () => (await gameClock()) - started, { timeout: 60_000 })
+			.poll(async () => (await gameClock()) - startedAt, { timeout: 60_000 })
 			.toBeGreaterThanOrEqual(2_000);
 		await page.keyboard.up('d');
 
-		const seconds = ((await gameClock()) - started) / 1_000;
-		const travelled = (await position())!.x - 1;
+		const seconds = ((await gameClock()) - startedAt) / 1_000;
+		const travelled = (await position())!.x - startedFrom;
+		expect(travelled / seconds).toBeGreaterThanOrEqual(5);
+	});
+
+	// The same walk on a machine that cannot keep up. CI runs on a shared
+	// runner drawing through swiftshader, where a wall-clock second buys about
+	// half a second of game time -- which is how the first version of the test
+	// above came to fail on CI while passing on every developer machine.
+	//
+	// This pins the measurement itself: throttled hard enough that the two
+	// clocks visibly disagree, the walk still has to come out at the speed the
+	// player is configured with.
+	test('walks at the same speed on a machine that cannot keep up', async ({ page }) => {
+		await booted(page);
+		const session = await page.context().newCDPSession(page);
+		await session.send('Emulation.setCPUThrottlingRate', { rate: 40 });
+
+		await page.evaluate(() => window.__FISHCHIP_GAME__?.scene.start('TownScene'));
+		await expect.poll(() => activeScenes(page), { timeout: 60_000 }).toContain('TownScene');
+
+		const position = () =>
+			page.evaluate(() => window.__GRID_ENGINE__?.getPosition('player') ?? null);
+		const gameClock = () => page.evaluate(() => window.__TOWN_ELAPSED_MS__ ?? 0);
+		await expect.poll(position, { timeout: 60_000 }).not.toBeNull();
+
+		await page.evaluate(() => window.__GRID_ENGINE__?.setPosition('player', { x: 1, y: 1 }));
+		await page.locator('canvas').click({ position: { x: 10, y: 10 } });
+
+		await page.keyboard.down('d');
+		await expect.poll(async () => (await position())!.x, { timeout: 60_000 }).toBeGreaterThan(1);
+		const startedAt = await gameClock();
+		const startedFrom = (await position())!.x;
+		await expect
+			.poll(async () => (await gameClock()) - startedAt, { timeout: 60_000 })
+			.toBeGreaterThanOrEqual(2_000);
+		await page.keyboard.up('d');
+
+		const seconds = ((await gameClock()) - startedAt) / 1_000;
+		const travelled = (await position())!.x - startedFrom;
 		expect(travelled / seconds).toBeGreaterThanOrEqual(5);
 	});
 });
