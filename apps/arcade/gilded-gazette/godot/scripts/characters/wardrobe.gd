@@ -345,9 +345,9 @@ const HAIR_TINTS: Array[Color] = [
 	Color(0.70, 0.70, 0.72),
 ]
 
-## The seven who are evidence. A named passenger has to be recognisable two carriages
-## later, so their clothes are written down rather than rolled, and every piece here is
-## one [constant POOL] ships.
+## The eight who are evidence, the victim among them. A named passenger has to be
+## recognisable two carriages later, so their clothes are written down rather than
+## rolled, and every piece here is one [constant POOL] ships.
 ##
 ## [code]palette[/code] takes the same shape as [constant PALETTES]; [code]tints[/code]
 ## overrides single slots on top of it. Accessories are named by model and checked
@@ -370,6 +370,24 @@ const CAST := {
 		},
 		"skin_tint": Color(0.96, 0.92, 0.88),
 		"hair_tint": Color(0.72, 0.72, 0.74),
+	},
+	## Dressed for a colder country than this line crosses, in a coat that has been
+	## good and is not now. No accessory: nothing about him was meant to be looked at,
+	## which is the point of him.
+	&"vasek": {
+		"stature_metres": 1.76,
+		"body": &"regular_male",
+		"outfit": &"male_ranger",
+		"hair": &"simple_parted",
+		"beard": &"beard",
+		"palette": {
+			SLOT_TORSO: Color(0.34, 0.32, 0.28),
+			SLOT_LEGS: Color(0.29, 0.27, 0.24),
+			SLOT_FEET: Color(0.22, 0.19, 0.17),
+			"accent": Color(0.46, 0.42, 0.35),
+		},
+		"skin_tint": Color(0.84, 0.76, 0.68),
+		"hair_tint": Color(0.28, 0.24, 0.22),
 	},
 	&"carrow": {
 		"stature_metres": 1.55,
