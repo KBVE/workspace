@@ -39,6 +39,7 @@ const SEATED_NODDING_CLIP := "Sitting_Nodding"
 const SEATED_TALKING_CLIP := "Sitting_Talking"
 const SEATING_CLIP := "Sitting_Enter"
 const RISING_CLIP := "Sitting_Exit"
+const DEAD_CLIP := "Death01"
 
 const BLEND_POSITION_PARAMETER := "parameters/gait/blend_position"
 const TIME_SCALE_PARAMETER := "parameters/pace/scale"
@@ -295,7 +296,7 @@ func _build_animation() -> void:
 	# the blend space has no say in.
 	var posture := AnimationNodeTransition.new()
 	posture.xfade_time = POSTURE_CROSSFADE_SECONDS
-	posture.input_count = 11
+	posture.input_count = 12
 	posture.set_input_name(0, CPosture.AFOOT)
 	posture.set_input_name(1, CPosture.LAUNCHING)
 	posture.set_input_name(2, CPosture.AIRBORNE)
@@ -307,6 +308,7 @@ func _build_animation() -> void:
 	posture.set_input_name(8, CPosture.SEATED_TALKING)
 	posture.set_input_name(9, CPosture.SEATING)
 	posture.set_input_name(10, CPosture.RISING)
+	posture.set_input_name(11, CPosture.DEAD)
 
 	var blend_tree := AnimationNodeBlendTree.new()
 	blend_tree.add_node(&"gait", gait)
@@ -322,6 +324,7 @@ func _build_animation() -> void:
 	blend_tree.add_node(&"seated_talking", _clip(SEATED_TALKING_CLIP))
 	blend_tree.add_node(&"seating", _clip(SEATING_CLIP))
 	blend_tree.add_node(&"rising", _clip(RISING_CLIP))
+	blend_tree.add_node(&"dead", _clip(DEAD_CLIP))
 	blend_tree.connect_node(&"pace", 0, &"gait")
 	blend_tree.connect_node(&"posture", 0, &"pace")
 	blend_tree.connect_node(&"posture", 1, &"launch")
@@ -334,6 +337,7 @@ func _build_animation() -> void:
 	blend_tree.connect_node(&"posture", 8, &"seated_talking")
 	blend_tree.connect_node(&"posture", 9, &"seating")
 	blend_tree.connect_node(&"posture", 10, &"rising")
+	blend_tree.connect_node(&"posture", 11, &"dead")
 	blend_tree.connect_node(&"output", 0, &"posture")
 
 	animation_tree = AnimationTree.new()

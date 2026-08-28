@@ -29,6 +29,10 @@ const CLIPS_BY_SOURCE := {
 		"Idle", "Jump_Start", "Jump", "Jump_Land",
 		"Sitting_Idle", "Sitting_Idle02", "Sitting_Idle03", "Sitting_Nodding",
 		"Sitting_Talking", "Sitting_Enter", "Sitting_Exit",
+		## Played once and left on its last frame, which is a body on the floor.
+		## The fall is worth baking rather than posing: the clip ends where the
+		## weight took it, and a pose authored by hand never quite does.
+		"Death01",
 	],
 	"animations/UAL2.glb": [
 		"Walk_Fwd", "Walk_Bwd", "Walk_L", "Walk_R",

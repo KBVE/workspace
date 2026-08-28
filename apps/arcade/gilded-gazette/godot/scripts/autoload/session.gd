@@ -72,8 +72,11 @@ func _ready() -> void:
 			.add(CCharacterRig.new()).add(errand).add(_walking_locomotion()).add(CGait.new()) \
 			.add(CPosture.new()).add(CSeating.new()).add(_seated_idle(identity.content_id))
 		# The conductor is on his rounds all night and never sits down, which is the one
-		# thing everybody who has ever taken this train agrees about him.
-		if identity.content_id != ROUNDS_OF_THE_TRAIN:
+		# thing everybody who has ever taken this train agrees about him. The victim is
+		# kept out for the opposite reason: a pastime is somebody settling in for the
+		# evening, and his evening has a shape of its own.
+		if identity.content_id != ROUNDS_OF_THE_TRAIN \
+				and not passenger.get("victim", false):
 			entity.add(_pastime(identity.content_id))
 
 	for sworn: Dictionary in ESCORT:

@@ -20,6 +20,16 @@ func _on_update(delta: float) -> void:
 
 func _step(locomotion: CLocomotion, posture: CPosture, seating: CSeating,
 		idle: CSeatedIdle, rig: CharacterRig, delta: float) -> void:
+	if posture.dead:
+		# Outranks the sit-down, which otherwise outranks everything: a body that was
+		# put down in a compartment must not stand up to take a seat in it.
+		posture.state = CPosture.DEAD
+		posture.was_airborne = false
+		posture.landing_seconds_left = 0.0
+		if posture.state != posture.requested:
+			posture.requested = posture.state
+			rig.set_posture(posture.state)
+		return
 	if seating.moving():
 		# the sit-down and the stand-up outrank even the sitting: they are one-shots
 		# that have to be allowed to run, and [SSeating] holds the body for exactly as

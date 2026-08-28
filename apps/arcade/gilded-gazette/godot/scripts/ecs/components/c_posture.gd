@@ -29,11 +29,20 @@ const SEATED_TALKING := &"seated_talking"
 const SEATING := &"seating"
 const RISING := &"rising"
 
+## Face down where the fall left him. The clip runs once and stops on its last frame,
+## so this is a state the body enters and does not leave: there is no transition out of
+## it and nothing asks for one.
+const DEAD := &"dead"
+
 const SEATED_STATES: Array[StringName] = [
 	SEATED, SEATED_SHIFTING, SEATED_SETTLED, SEATED_NODDING,
 ]
 
 var state: StringName = AFOOT
+
+## Outranks every other answer this component can give. Set once, by [SPassengerPlace],
+## when the victim's timeline runs out; a body does not stand, sit, walk or land.
+var dead: bool = false
 
 ## What the rig was last told, so a state that has not changed is not requested again.
 ## Asking a transition for the state it is already in restarts the crossfade, and a

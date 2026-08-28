@@ -80,3 +80,41 @@ func test_a_passenger_is_nowhere_before_they_board() -> void:
 
 func test_dupont_boards_first_and_is_aboard_from_departure() -> void:
 	assert_str(_place("dupont", 16 * 60 + 30)).is_not_equal("")
+
+
+## The victim needs a posture to be put down in, which the placement helper above
+## deliberately does not give its passengers: the system has to keep placing people
+## that have no rig.
+func _place_body(content_id: String, minutes: int) -> Dictionary:
+	var identity := CIdentity.new()
+	identity.content_id = content_id
+	var place := CLocation.new()
+	var posture := CPosture.new()
+	_scope.spawn().add(CPassenger.new()).add(identity).add(place).add(posture)
+	_time.minutes_past_midnight = minutes
+	_system._on_update(0.0)
+	return {"where": place.location_id, "dead": posture.dead}
+
+
+func test_the_victim_keeps_his_evening_until_it_stops() -> void:
+	var between_the_cars := _place_body("vasek", 23 * 60 + 20)
+	assert_str(between_the_cars["where"]).is_equal("vestibule")
+	assert_bool(between_the_cars["dead"]).override_failure_message(
+		"he is alive at twenty past eleven and walks his timeline like anybody"
+	).is_false()
+
+
+func test_the_victim_stays_where_his_timeline_stops() -> void:
+	# 01:00 in berth 7 is his last step, and 01:30 is half an hour later on a journey
+	# that departed at 16:05 -- the wrap past midnight is the easy thing to get wrong.
+	var found := _place_body("vasek", 1 * 60 + 30)
+	assert_str(found["where"]).is_equal("cabin")
+	assert_bool(found["dead"]).is_true()
+
+
+func test_nobody_else_is_ever_put_down() -> void:
+	# Only a victim's timeline means anything by ending. Everyone else simply stays
+	# where their last step left them, and goes on being a person there.
+	var late := _place_body("carrow", 2 * 60)
+	assert_str(late["where"]).is_equal("cabin")
+	assert_bool(late["dead"]).is_false()
