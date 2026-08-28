@@ -19,6 +19,10 @@ moon run fish-and-chip:test
   mount from leaving an orphaned canvas and game loop behind.
 - `src/app/phaser/scenes/` is the game itself. `Preloader` runs first and every
   other scene is registered after it.
+- `src/app/phaser/world/` generates the town. `generateTown` is a pure function
+  of a seed, so it is unit tested without a canvas; `palette.ts` holds the tile
+  ids, every one of them read out of the authored map or measured off the
+  tileset rather than guessed.
 - `src/app/phaser/scenes/data/score.ts` is the only writer of persisted score
   state: `totalFish` (what the town NPC reports) and `highScores` (the top five
   runs), both nanostores persistent atoms. GameOver banks a run through
@@ -42,6 +46,17 @@ remote; two megabytes of web-sized sprites and one ogg are not worth that.
 
 Art credits, as listed in `CreditsScene`: ArchanDroid (sprites), Nezt50 (tiles),
 Retornodomal (menus), BChip (music and animations).
+
+## The town
+
+The map is generated per run, not loaded. `?seed=<number>` pins it -- worth
+knowing before reporting a bad town, because otherwise nobody else can reach
+the map you saw.
+
+Four landmarks, all captioned in-world and all triggered with `F` when you are
+standing on or beside them: the sand pit starts the fishing minigame, the sign
+shows credits, the market shows your all-time catch and high scores, and the
+grave has something to read.
 
 ## Publishing
 

@@ -27,11 +27,14 @@ export const WALL = {
 } as const;
 
 /**
- * Walkable sand. 368 covers most of the authored map's floor; the rest are the
- * variants it speckles in, kept in frequency order so the generator can weight
- * toward the common one and still break up the flatness.
+ * Walkable sand. 368 covers most of the authored map's floor and 413 is the
+ * variant it speckles in most often.
+ *
+ * Deliberately short, and deliberately free of any gid in MARKERS. A wider set
+ * read as scattered litter rather than ground texture, and reusing a marker gid
+ * as floor made the fishing pit invisible -- it drew as one more speckle.
  */
-export const SAND = [368, 413, 414, 371, 372, 363, 453, 409] as const;
+export const SAND = [368, 413] as const;
 export const SAND_PRIMARY = SAND[0];
 
 /**
@@ -42,8 +45,13 @@ export const SAND_PRIMARY = SAND[0];
 export const BUILDING = {
 	width: 3,
 	height: 4,
-	/** Top-left gid; each row below it is +TILESET_COLUMNS. */
-	origin: 442,
+	// Top-left gid; each row below it is +TILESET_COLUMNS.
+	//
+	// Column 33, row 9: the left edge of the sandstone block, measured off the
+	// tileset rather than estimated. Sandstone runs columns 33-35 and the blue
+	// block starts at 36, so 442 (the authored map's building) put two columns
+	// of blue in the middle of a desert, and 440 still caught one.
+	origin: 439,
 	/** Offset of the walkable doorway within the stamp. */
 	door: { x: 1, y: 3 },
 } as const;
@@ -51,7 +59,10 @@ export const BUILDING = {
 /** Solid scenery scattered on the object layer: rocks, crates, cacti. */
 export const PROPS = [1102, 1103, 1066, 1067, 1111, 1112] as const;
 
-/** Marks a point of interest on the ground. Walkable -- the player stands on it. */
+/**
+ * Marks a point of interest on the ground. Walkable -- the player stands on it.
+ * None of these may appear in SAND, or the landmark stops being findable.
+ */
 export const MARKERS = {
 	/** The sand pit that starts the fishing minigame. */
 	fishingPit: 453,

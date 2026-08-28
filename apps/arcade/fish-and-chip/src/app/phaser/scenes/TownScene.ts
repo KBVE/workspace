@@ -114,6 +114,8 @@ export class TownScene extends Scene {
         this.gridEngine.moveRandomly(character.id, 1500, 3);
       });
 
+    this.labelLandmarks(tilemap.tileWidth * 3);
+
     window.__GRID_ENGINE__ = this.gridEngine;
 
     if (this.input.keyboard) {
@@ -125,6 +127,37 @@ export class TownScene extends Scene {
       // Edge triggered. update() runs every frame, and a held F would restart
       // the fishing scene dozens of times a second.
       this.keys.F.on('down', () => this.interact());
+    }
+  }
+
+  /**
+   * A caption over each landmark. One 16px tile in a town this size is not
+   * findable by looking, and a hotspot the player never finds is the same as
+   * one that does nothing -- which is what the building and the tombstone were.
+   */
+  private labelLandmarks(tileSize: number) {
+    const captions: Record<string, string> = {
+      fishingPit: 'Sand Pit  [F]',
+      sign: 'Sign  [F]',
+      tombstone: 'Grave  [F]',
+      building: 'Market  [F]',
+    };
+
+    for (const [name, spot] of Object.entries(this.town.landmarks)) {
+      const label = this.add.text(
+        spot.x * tileSize + tileSize / 2,
+        spot.y * tileSize - tileSize / 2,
+        captions[name] ?? name,
+        {
+          fontFamily: 'Arial',
+          fontSize: 18,
+          color: '#ffffff',
+          stroke: '#000000',
+          strokeThickness: 5,
+        },
+      );
+      label.setOrigin(0.5);
+      label.setDepth(150);
     }
   }
 

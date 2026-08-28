@@ -16,6 +16,16 @@ tasks:
     # Publishing what CI never built would defeat the point of checking it, so
     # the artifact comes from the same build task.
     deps: ['~:build']
+    env:
+      # Dry run unless something explicitly opts out. `moon check` runs this
+      # task -- it has no outputs, so moon treats it as checkable -- and a task
+      # that uploads to a public itch page by default is one `moon check --all`
+      # away from publishing a work in progress. The dry run still verifies the
+      # target, the dist directory, the index.html, and the version, so the
+      # check is worth running; it just stops before butler.
+      #
+      # The release workflow sets ITCH_DRY_RUN=0.
+      ITCH_DRY_RUN: '1'
     options:
       # Never on a push: this task uploads to a public page. It runs from the
       # release workflow, on a tag, and nowhere else.

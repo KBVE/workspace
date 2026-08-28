@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { collidableGids } from './palette';
+import { MARKERS, SAND, collidableGids } from './palette';
 import { generateTown, toTiledJSON, unreachableLandmarks, type TownMap } from './generate';
 
 const SEEDS = [1, 2, 7, 42, 99, 1234, 8675309];
@@ -59,6 +59,12 @@ describe('generateTown', () => {
 		// And the tile the player walks in from stays clear.
 		expect(solid.has(tileAt(map, 'buildings', door.x, door.y + 1))).toBe(false);
 		expect(solid.has(tileAt(map, 'objects', door.x, door.y + 1))).toBe(false);
+	});
+
+	// A marker that is also a floor tile is a landmark the player cannot see.
+	it('never uses a landmark tile as ordinary floor', () => {
+		const sand = new Set<number>(SAND);
+		for (const gid of Object.values(MARKERS)) expect(sand.has(gid)).toBe(false);
 	});
 
 	it('is bigger than the hand-authored map it replaces', () => {
