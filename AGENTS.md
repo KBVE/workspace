@@ -122,6 +122,35 @@ each project's `moon.yml`, so whoever owns the touched projects is requested.
 `release.yml` verifies and publishes, and `itch.yml` ships game builds to itch.
 Releasing is not something to do on the way to merging a branch.
 
+## Releases
+
+A tag is `<moon project id>@<semver>` -- `rentearth-bevy@0.1.1` -- so it
+resolves to a node in the project graph rather than to a lookup table.
+`tools/release/verify-tag.mjs` rejects a tag whose version disagrees with the
+project's own manifest, which is the one thing a human cannot keep in step by
+hand.
+
+Notes are generated, and this is why commit scopes have to be right.
+`tools/release/notes.mjs` takes the previous tag *for that project* and lists
+the commits in the range that touched the project's source:
+
+```bash
+node tools/release/notes.mjs rentearth-bevy@0.1.1
+```
+
+Path decides whether a commit is in the release, scope decides which heading it
+lands under -- a `perf(ci)` commit that changed a game's build is in that
+game's notes, printed with its scope because that is telling the reader
+something. A subject that is not a conventional commit is filed under Internal
+rather than dropped, so nothing goes missing quietly.
+
+`release.yml` writes that into a **draft** release. The editorial pass is still
+worth doing; the transcription is not.
+
+Every tag keeps its release. Old tags are history, not state -- the version in
+the manifest says which one is current. Delete a tag only when it was pushed by
+mistake and shipped nothing.
+
 ## Labels
 
 `tools/labels/labels.yml` is the source of truth for every label this
