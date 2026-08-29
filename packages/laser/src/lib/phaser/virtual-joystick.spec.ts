@@ -214,9 +214,7 @@ describe('VirtualJoystick', () => {
 			for (const arc of scene.arcs) expect(arc.destroy).toHaveBeenCalled();
 		});
 
-		// The input plugin outlives the scene's create(), so handlers left
-		// attached keep running against destroyed Arcs -- the next pointerdown
-		// reads this.base.x off an object Phaser has torn down.
+		// Handlers left attached read this.base.x off a destroyed Arc.
 		it('detaches its input handlers', () => {
 			const joystick = make();
 			joystick.destroy();

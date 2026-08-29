@@ -23,13 +23,10 @@ import {
 	type ClientMessage,
 } from './protocol';
 
-// The decoders are stubbed and the encoder is not. What this file is about is
-// the routing between them -- which frame becomes which typed event -- and
-// stubbing decodeServerEvent is the only way to hand the client a frame
-// without a ServerEvent encoder, which is a server-side concern and does not
-// exist here. encodeClientMessage stays real so the outbound path is exercised
-// end to end; it is wrapped only so a test can read back the message that was
-// encoded rather than assert on bytes.
+// Decoders stubbed, encoder real. There is no ServerEvent encoder here -- that
+// is a server concern -- so decodeServerEvent is the only seam for handing the
+// client a frame. encodeClientMessage is wrapped, not replaced, so a test can
+// read back the message without the outbound path being mocked away.
 const decodeServerEvent = vi.fn();
 const encodeClientMessage = vi.fn();
 /** Every payload decoder, by export name, stubbed so a test can steer it. */
@@ -221,11 +218,8 @@ describe('GameClient', () => {
 		});
 
 
-		// Every ephemeral kind, its decoder and the event it becomes. The routing
-		// is one long else-if chain, so a kind wired to the wrong decoder -- or
-		// to a neighbour's event -- is a one-token mistake that typechecks. Two
-		// of the eighteen were covered before this; the chain is only as good as
-		// its least-used branch.
+		// One else-if chain of eighteen, so a kind wired to a neighbour's decoder
+		// or event is a one-token mistake that typechecks.
 		const routes: [string, number, string, string][] = [
 			['inventory', EPHEMERAL_INVENTORY, 'decodeInventory', 'inventory'],
 			['combat', EPHEMERAL_COMBAT, 'decodeCombat', 'combat'],

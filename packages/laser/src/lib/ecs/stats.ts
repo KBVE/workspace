@@ -50,18 +50,16 @@ export function canAfford(p: Pool, eid: number, amount: number): boolean {
 }
 
 // Remove up to `amount`, clamped at 0; returns how much was actually taken.
-//
-// A negative amount takes nothing. Without that floor the subtraction inverts
-// and the pool gains value -- past its own max -- from a call named drain, and
-// the return value reports a negative amount as successfully taken.
+// A negative amount takes nothing -- without the floor the subtraction inverts
+// and the pool gains value, past its max, from a call named drain.
 export function drain(p: Pool, eid: number, amount: number): number {
 	const taken = Math.max(0, Math.min(p.value[eid], amount));
 	p.value[eid] -= taken;
 	return taken;
 }
 
-// Add `amount`, clamped at max. A negative amount adds nothing: the clamp only
-// looks at max, so a negative restore would drain, and keep going past zero.
+// Add `amount`, clamped at max. A negative amount adds nothing: the max clamp
+// alone would let it drain past zero.
 export function restore(p: Pool, eid: number, amount: number): void {
 	p.value[eid] = Math.min(p.max[eid], p.value[eid] + Math.max(0, amount));
 }
@@ -69,18 +67,16 @@ export function restore(p: Pool, eid: number, amount: number): void {
 // Regenerate every pooled entity toward its max by regen*dt. Cheap: one query per
 // pool, skips entities already full or with zero regen.
 //
-// A negative regen is how a damage-over-time effect is expressed through the
-// same field, so the result is floored at 0 as well as capped at max. Without
-// the floor such an entity accumulates negative value forever, which every
-// `frac` and `canAfford` downstream then reads as a valid pool.
+// A negative regen is a damage-over-time effect through the same field, so the
+// result is floored at 0 as well as capped at max -- otherwise the pool goes
+// negative forever and `frac` and `canAfford` read that as valid.
 export function regenPools(world: World, dt: number): void {
 	for (const { comp, pool } of POOLS) {
 		for (const eid of query(world, [comp])) {
 			const r = pool.regen[eid];
 			if (r === 0) continue;
 			const m = pool.max[eid];
-			// A draining pool still has work to do once it is full, so only a
-			// regenerating one can be skipped here.
+			// A draining pool is not done at full -- that is where it starts.
 			if (r > 0 && pool.value[eid] >= m) continue;
 			pool.value[eid] = Math.max(
 				0,

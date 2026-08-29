@@ -1,24 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 
 /**
- * Phaser probes a canvas 2D context when it is first evaluated, and jsdom hands
- * back null, so importing the real engine here fails on the engine rather than
- * on anything in this package. Every runtime `Phaser.*` reference in laser sits
- * inside a function body, so the module only has to be importable for the
- * phaser barrel to be evaluated and its re-exports checked -- which is what
- * this file is for. Behaviour that needs the engine is covered by the specs
- * beside each module.
+ * Phaser probes a canvas 2D context on evaluation and jsdom returns null, so
+ * the real engine fails on itself here. Every runtime `Phaser.*` reference in
+ * laser is inside a function body, so an importable module is all the barrel
+ * check needs.
  */
 vi.mock('phaser', () => ({ default: {} }));
 
 /**
- * Barrels and re-export modules, checked by importing them.
- *
- * A barrel is where a rename goes wrong quietly: entrypoints.spec.ts reads the
- * files statically and never evaluates one, tsc is happy with a re-export of
- * something that exists at build time, and the failure surfaces as `undefined`
- * in a consumer's app. Evaluating each barrel and asserting the named exports
- * are actually bound is the cheap way to catch that here instead.
+ * Barrels, checked by importing them. entrypoints.spec.ts reads these files
+ * statically and never evaluates one, so a re-export of a renamed symbol
+ * typechecks and surfaces as `undefined` in a consumer's app.
  */
 
 describe('lib/i18n barrel', () => {
@@ -72,8 +65,6 @@ describe('lib/webgl/pom barrel', () => {
 });
 
 describe('lib/physics/rapier', () => {
-	// A thin re-export of an optional peer, and the only thing standing between
-	// `@kbve/laser/phaser` and a rapier import that resolves to undefined.
 	it('re-exports the connector', async () => {
 		const rapier = await import('./lib/physics/rapier');
 		expect(rapier).toHaveProperty('RAPIER');
@@ -82,8 +73,7 @@ describe('lib/physics/rapier', () => {
 });
 
 describe('lib/ecs/bitecs', () => {
-	// `export *` from a peer: the seam every ECS module imports through, so a
-	// bitecs rename lands here first.
+	// `export *` from a peer -- a bitecs rename lands here first.
 	it('re-exports the bitecs surface the ECS modules use', async () => {
 		const bitecs = await import('./lib/ecs/bitecs');
 		for (const name of [
@@ -101,14 +91,9 @@ describe('lib/ecs/bitecs', () => {
 });
 
 /**
- * The five published entry points, evaluated.
- *
- * entrypoints.spec.ts reads these files as text -- that is what lets it prove
- * the optional peers stay behind their subpaths without installing every one.
- * The cost is that a barrel naming an export that no longer exists passes that
- * check and fails in a consumer's build. Importing each one closes it, and is
- * also the only place the `exports` map is exercised the way an installed
- * package uses it.
+ * The five published entry points, evaluated rather than read. Reading them is
+ * what lets entrypoints.spec.ts check the peer split without installing every
+ * peer; the cost is that a barrel naming a missing export passes it.
  */
 describe('published entry points', () => {
 	it('@kbve/laser exposes the renderer-agnostic surface', async () => {
@@ -125,8 +110,7 @@ describe('published entry points', () => {
 		expect(laser.laserAds).toBeTypeOf('object');
 		expect(laser.openExternal).toBeTypeOf('function');
 
-		// Nothing in the barrel may be a hole. A re-export of a name that has
-		// been renamed away resolves to undefined rather than throwing.
+		// A re-export of a renamed symbol resolves to undefined, not an error.
 		const holes = Object.entries(laser)
 			.filter(([, v]) => v === undefined)
 			.map(([k]) => k);

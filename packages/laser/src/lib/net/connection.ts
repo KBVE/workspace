@@ -64,23 +64,14 @@ export function defaultCloseReason(
 export class ReconnectingSocket {
 	private ws: WebSocket | null = null;
 	/**
-	 * Scopes one attempt's listeners. close() aborts it, which detaches them
-	 * before the browser delivers the socket's own close event -- otherwise
-	 * that event reports the shutdown a second time, on top of the one close()
-	 * already reported, and every consumer tears down twice.
+	 * Scopes one attempt's listeners. close() aborts it, so the socket's own
+	 * close event does not report a shutdown close() has already reported.
 	 */
 	private attempt: AbortController | null = null;
 	private closed = false;
 	private attempts = 0;
 	private everOpened = false;
-	/**
-	 * setTimeout's handle, whatever the host calls it. Typed off the global
-	 * rather than as a number because this runs in a worker as well as on the
-	 * main thread -- `ecs` and `mecs` exist as React-free entry points so sim
-	 * and netcode can live off the main thread -- and there is no `window`
-	 * there. `window.setTimeout` threw on the first reconnect and the socket
-	 * stayed dead with nothing scheduled to revive it.
-	 */
+	/** Typed off the global: a worker has no `window` and no numeric handle. */
 	private timer: ReturnType<typeof setTimeout> | undefined;
 	private state: ConnectionState = { status: 'connecting', attempts: 0 };
 	private readonly opts: Required<
@@ -127,9 +118,8 @@ export class ReconnectingSocket {
 			reason: this.state.reason,
 		});
 
-		// Aborting the previous attempt's controller before replacing it keeps a
-		// socket that failed to open from holding listeners for the life of the
-		// client.
+		// Or a socket that failed to open holds its listeners for the life of
+		// the client.
 		this.attempt?.abort();
 		this.attempt = new AbortController();
 		const { signal } = this.attempt;
@@ -142,11 +132,10 @@ export class ReconnectingSocket {
 					: this.opts.url;
 			ws = new WebSocket(url);
 		} catch (error) {
-			// The URL may come from a factory, which exists so a token can be
-			// refreshed per attempt -- so it can hand back something the
-			// WebSocket constructor rejects. Left to escape, this attempt would
-			// end with no socket, no close event and no retry timer: the state
-			// stays 'connecting' forever with nothing alive to move it.
+			// The URL factory refreshes a token per attempt, so it can hand back
+			// something the constructor rejects. Left to escape, the attempt ends
+			// with no socket, no close event and no retry -- stuck on
+			// 'connecting' with nothing alive to move it.
 			this.onAttemptEnded(
 				error instanceof Error ? error.message : String(error),
 			);
@@ -186,10 +175,9 @@ export class ReconnectingSocket {
 	}
 
 	/**
-	 * One attempt is over, for any reason short of a deliberate close: decide
-	 * between retrying and going terminal. Shared by the close event and by a
-	 * constructor that threw, because the two failures are the same event as
-	 * far as a caller is concerned.
+	 * One attempt is over, short of a deliberate close: retry, or go terminal.
+	 * Shared by the close event and by a constructor that threw -- to a caller
+	 * the two are the same failure.
 	 */
 	private onAttemptEnded(reason: string): void {
 		if (this.opts.shouldReconnect && !this.opts.shouldReconnect()) {
@@ -217,9 +205,8 @@ export class ReconnectingSocket {
 	close(): void {
 		this.closed = true;
 		clearTimeout(this.timer);
-		// Detach before closing. The browser delivers a close event for a socket
-		// it was told to close, and handling it would report the shutdown a
-		// second time on top of the setState below.
+		// Detach first: the browser fires close for a socket it was told to
+		// close, and handling it would report the shutdown twice.
 		this.attempt?.abort();
 		this.attempt = null;
 		this.ws?.close();

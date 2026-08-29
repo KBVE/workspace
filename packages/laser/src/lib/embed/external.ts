@@ -11,23 +11,18 @@ export function getExternalOpener(): ExternalOpener | null {
 }
 
 /**
- * Schemes a link is allowed to use. Everything else is refused.
- *
- * These URLs arrive from server data -- a promo creative, a link someone typed
- * in chat -- and `noopener,noreferrer` is not a defence against all of them. It
- * stops the opened page reaching back through `window.opener`; it does nothing
- * about `javascript:`, which opens no page at all and instead runs in the
- * caller's own origin, or about `data:`, which loads attacker-authored markup
- * that a user then sees under the game's own window.
+ * These URLs arrive from server data -- a promo creative, a link typed in chat
+ * -- and `noopener,noreferrer` does not cover all of them. It stops the opened
+ * page reaching back through `window.opener`; it does nothing about
+ * `javascript:`, which runs in the caller's own origin instead of opening a
+ * page, or `data:`, which shows attacker-authored markup under the game's
+ * window.
  */
 const ALLOWED_PROTOCOLS = new Set(['http:', 'https:']);
 
 /**
- * Whether `url` is safe to hand to a browser or an embed host.
- *
- * Resolved against the current document, so an ordinary relative path stays
- * usable: it resolves to the page's own http(s) origin and passes. Anything
- * that cannot be parsed at all is refused rather than guessed at.
+ * Resolved against the current document rather than string-matched, so a
+ * relative path still passes -- it resolves to the page's own http(s) origin.
  */
 export function isSafeExternalUrl(url: string): boolean {
 	const base =
@@ -40,9 +35,8 @@ export function isSafeExternalUrl(url: string): boolean {
 }
 
 export function openExternal(url: string): void {
-	// Checked before the opener, not after. An embed host is handed the URL
-	// verbatim -- Discord's openExternalLink, for one -- so validating only the
-	// browser path would leave the host as an unguarded way through.
+	// Before the opener, not after: an embed host is handed the URL verbatim,
+	// so guarding only the browser path would leave the host a way through.
 	if (!isSafeExternalUrl(url)) {
 		console.warn('[laser/embed] refused to open a non-http(s) URL', url);
 		return;
@@ -58,10 +52,8 @@ export function openExternal(url: string): void {
 
 export function onExternalClick(url: string) {
 	return (e: { preventDefault: () => void }) => {
-		// An unsafe URL has its navigation cancelled whether or not an opener is
-		// installed: letting the anchor follow it is the very thing being
-		// prevented. A safe URL with no opener is left alone, because then the
-		// anchor's own navigation is the correct behaviour.
+		// Cancelled with or without an opener: letting the anchor follow an
+		// unsafe URL is the thing being prevented.
 		if (!isSafeExternalUrl(url)) {
 			e.preventDefault();
 			console.warn('[laser/embed] refused to follow a non-http(s) URL', url);

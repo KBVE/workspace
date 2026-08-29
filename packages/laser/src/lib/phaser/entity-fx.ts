@@ -6,10 +6,8 @@ export function flashEntity(
 	sprite: Phaser.GameObjects.Sprite,
 	hitColor = 0xff6b6b,
 ): void {
-	// The flash runs for 180ms after a hit, and a hit is the likeliest thing to
-	// destroy the sprite before it ends. A destroyed GameObject has had its
-	// internals torn down, so tinting one throws from inside a timer callback,
-	// where the stack says nothing about what caused it.
+	// A hit is the likeliest thing to destroy the sprite inside these 180ms,
+	// and tinting a destroyed GameObject throws from inside a timer callback.
 	const alive = () => sprite.active && sprite.scene;
 
 	sprite.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
@@ -62,10 +60,8 @@ export function drawHealthBar(
 	maxHp: number,
 	width = 26,
 ): void {
-	// maxHp of 0 makes hp/maxHp NaN, and NaN passes through both clamps
-	// untouched -- Math.min and Math.max return it as-is -- so the fill width
-	// would reach fillRect as NaN and the bar would render as garbage. An
-	// entity with no max health is not exotic; it is one not yet given stats.
+	// NaN passes through both clamps untouched, so a maxHp of 0 would reach
+	// fillRect as a NaN width. An entity with no max is one not yet given stats.
 	const pct = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
 	g.clear();
 	g.fillStyle(0x000000, 0.6);
@@ -107,10 +103,8 @@ export interface CameraZoomOptions {
 /**
  * Wire +/- keys and the mouse wheel to clamped main-camera zoom.
  *
- * Returns a disposer. A scene that restarts calls this again, and the input
- * plugin outlives the scene's create(), so without one every restart leaves
- * another set of handlers attached and one keypress zooms by the number of
- * restarts so far.
+ * Returns a disposer. The input plugin outlives the scene's create(), so a
+ * restarting scene otherwise stacks handlers and zooms by the restart count.
  */
 export function attachCameraZoom(
 	scene: Phaser.Scene,

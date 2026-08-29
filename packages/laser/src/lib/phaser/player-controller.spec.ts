@@ -164,9 +164,8 @@ describe('PlayerController', () => {
 });
 
 /**
- * A scene whose cursor keys and WASD keys a test can hold down. The factory
- * above hands out a fresh cursor object per call, which is right for the
- * construction tests and no use for driving movement.
+ * A scene whose keys a test can hold down. The factory above returns a fresh
+ * cursor object per call, which cannot be driven.
  */
 function createDrivableScene() {
 	const cursors = {
@@ -228,10 +227,8 @@ function createDrivableScene() {
 }
 
 describe('PlayerController movement', () => {
-	// Eight directions, each reachable by arrows or by WASD, and the diagonals
-	// are checked before the cardinals -- so a wrong order turns a diagonal into
-	// whichever cardinal the chain happens to reach first. The keys tell the
-	// whole story, and none of these branches ran before.
+	// Diagonals are tested before cardinals, so a wrong order turns a diagonal
+	// into whichever cardinal the chain reaches first.
 	const cases: [string, string[], string][] = [
 		['left arrow', ['left'], 'left'],
 		['right arrow', ['right'], 'right'],

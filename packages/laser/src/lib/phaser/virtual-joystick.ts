@@ -34,10 +34,8 @@ export class VirtualJoystick {
 	private fixed: boolean;
 	private activePointer: Phaser.Input.Pointer | null = null;
 	/**
-	 * Scopes the input handlers to this joystick's lifetime. The input plugin
-	 * outlives the scene's create(), so handlers left attached after destroy()
-	 * keep running against Arcs Phaser has already torn down -- the next
-	 * pointerdown reads this.base.x off a destroyed object.
+	 * The input plugin outlives the scene's create(), so handlers left attached
+	 * after destroy() read this.base.x off an Arc Phaser has torn down.
 	 */
 	private detach: (() => void) | null = null;
 

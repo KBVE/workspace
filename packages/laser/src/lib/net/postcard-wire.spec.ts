@@ -773,9 +773,8 @@ describe('decodeServerEvent', () => {
 		expect(event).toEqual({ Reject: { reason: 'bad token' } });
 	});
 
-	// A variant this client has no case for means the server is ahead of it.
-	// Throwing is what lets GameClient report the mismatch rather than acting on
-	// a half-read frame whose remaining bytes now mean nothing.
+	// An unknown variant means the server is ahead. Throwing is what lets
+	// GameClient report it rather than act on a half-read frame.
 	it('throws on a variant it does not know', () => {
 		expect(() => decodeServerEvent(frame((w) => w.variant(99)))).toThrow(
 			/unknown ServerEvent variant 99/,
@@ -811,9 +810,9 @@ describe('decodeCorpse', () => {
 });
 
 describe('encodeClientMessage: inputs with no client method', () => {
-	// These variants exist on the wire and GameClient has no wrapper for them,
-	// so nothing else encodes one. A variant index that drifts from the server's
-	// enum is decoded as a different message entirely.
+	// GameClient has no wrapper for these, so nothing else encodes one. A
+	// variant index that drifts from the server's enum decodes as another
+	// message entirely.
 	const encoded = (input: unknown) =>
 		cobsDecode(
 			encodeClientMessage({

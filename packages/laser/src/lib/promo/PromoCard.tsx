@@ -23,11 +23,9 @@ export interface AdCardProps {
  */
 export function AdCard({ creative, onOpen, style, className }: AdCardProps) {
 	const accent = creative.accent ?? ACCENT;
-	// A creative is host-supplied data, so its url is no more trustworthy than
-	// any other string off the wire. `rel="noopener noreferrer"` says nothing
-	// about a `javascript:` href, which runs in this page rather than opening
-	// one. An unsafe url leaves the card rendered and inert: the alternative is
-	// a hole in a boot screen where an ad used to be.
+	// A creative is host-supplied, and rel="noopener noreferrer" says nothing
+	// about a `javascript:` href. An unsafe url renders the card inert rather
+	// than leaving a hole in the boot screen.
 	const safe = isSafeExternalUrl(creative.url);
 	return (
 		<a

@@ -12,9 +12,7 @@ const { registerPomMaterial } = await import('./PomMaterial');
 
 describe('pomMaterial registration', () => {
 	it('registers the element as soon as the module is evaluated', () => {
-		// The import above is the whole assertion: nothing in this file called
-		// registerPomMaterial before now, so the catalogue entry can only have
-		// come from module evaluation.
+		// Nothing here has called it, so the entry came from module evaluation.
 		expect(extend).toHaveBeenCalledWith(
 			expect.objectContaining({ PomMaterial: expect.anything() }),
 		);
@@ -29,14 +27,9 @@ describe('pomMaterial registration', () => {
 });
 
 /**
- * The registration above is an import side effect, and it is invisible to a
- * bundler: the r3f entry re-exports constants and types from PomMaterial and
- * nothing that references the material itself, so a build told this package is
- * side-effect free is free to drop the module and leave `<pomMaterial>`
- * unknown at render time -- with no error until something tries to render it.
- *
- * Adding `"sideEffects": false` is therefore not a safe optimisation here, and
- * it is exactly the kind of change that looks safe in review.
+ * That registration is invisible to a bundler, so `"sideEffects": false` would
+ * let a build drop the module and leave `<pomMaterial>` unknown at render time
+ * -- with no error until something renders it. See PomMaterial.tsx.
  */
 describe('package side-effect declaration', () => {
 	it('does not claim the package is free of side effects', () => {
