@@ -15,7 +15,7 @@ def runner():
 # ── TaskRunner basics ────────────────────────────────────────────────
 
 def test_task_runner_empty(runner):
-    results = asyncio.get_event_loop().run_until_complete(
+    results = asyncio.run(
         runner.run_all()
     )
     assert results == []
@@ -26,7 +26,7 @@ def test_task_runner_single(runner):
         return 42
 
     runner.add("calc", job)
-    results = asyncio.get_event_loop().run_until_complete(
+    results = asyncio.run(
         runner.run_all()
     )
     assert len(results) == 1
@@ -43,7 +43,7 @@ def test_task_runner_multiple(runner):
         return "b"
 
     runner.add("a", a).add("b", b)
-    results = asyncio.get_event_loop().run_until_complete(
+    results = asyncio.run(
         runner.run_all()
     )
     assert len(results) == 2
@@ -55,7 +55,7 @@ def test_task_runner_failure(runner):
         raise ValueError("broken")
 
     runner.add("fail", failing)
-    results = asyncio.get_event_loop().run_until_complete(
+    results = asyncio.run(
         runner.run_all()
     )
     assert results[0].state == TaskState.FAILED
@@ -67,7 +67,7 @@ def test_task_runner_timeout(runner):
         await asyncio.sleep(10)
 
     runner.add("slow", slow, timeout=0.01)
-    results = asyncio.get_event_loop().run_until_complete(
+    results = asyncio.run(
         runner.run_all()
     )
     assert results[0].state == TaskState.TIMEOUT
@@ -84,7 +84,7 @@ def test_task_runner_sequential(runner):
         order.append("second")
 
     runner.add("first", first).add("second", second)
-    results = asyncio.get_event_loop().run_until_complete(
+    results = asyncio.run(
         runner.run_sequential()
     )
     assert order == ["first", "second"]
@@ -99,7 +99,7 @@ def test_task_runner_sequential_continues_on_failure(runner):
         return "fine"
 
     runner.add("fail", failing).add("ok", ok)
-    results = asyncio.get_event_loop().run_until_complete(
+    results = asyncio.run(
         runner.run_sequential()
     )
     assert results[0].state == TaskState.FAILED
@@ -119,7 +119,7 @@ def test_task_runner_duration(runner):
         return True
 
     runner.add("job", job)
-    results = asyncio.get_event_loop().run_until_complete(
+    results = asyncio.run(
         runner.run_all()
     )
     assert results[0].duration_ms >= 0
