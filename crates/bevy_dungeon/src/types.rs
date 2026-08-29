@@ -884,6 +884,31 @@ pub struct SessionState {
     /// Enemy groups that survived a fled combat and are tracking the party.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pursuers: Vec<PursuitGroup>,
+    /// What conversations have already established.
+    #[serde(default)]
+    pub dialogue_memory: DialogueMemory,
+}
+
+/// What the party has said and heard.
+///
+/// Conversation graphs ask about this: a flag an earlier choice set, a node
+/// that should only ever play once, a choice already taken. Without somewhere
+/// to keep it every conversation replays its opening line forever, which is
+/// the thing entry conditions exist to prevent.
+#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+pub struct DialogueMemory {
+    /// World-state flags, set by dialogue effects.
+    #[serde(default)]
+    pub flags: std::collections::HashSet<String>,
+    /// Nodes already entered, keyed as `"<graph>/<node>"`.
+    #[serde(default)]
+    pub seen_nodes: std::collections::HashSet<String>,
+    /// Choices already taken, keyed as `"<graph>/<node>/<choice>"`.
+    #[serde(default)]
+    pub taken: std::collections::HashSet<String>,
+    /// How many conversations have been opened per graph ref.
+    #[serde(default)]
+    pub visits: std::collections::HashMap<String, i32>,
 }
 
 /// Enemy group pursuing the party after a successful flee.
@@ -904,6 +929,44 @@ impl SessionState {
     }
 
     /// Get a player's state by user ID.
+    /// The player state a dialogue condition is evaluated against.
+    ///
+    /// Flags, visits and the once-only sets come from [`DialogueMemory`]; the
+    /// level comes from the player doing the talking.
+    ///
+    /// Quest conditions are deliberately not populated. The schema addresses a
+    /// quest by ULID and this journal keys them by slug ref, so anything filled
+    /// in here would be matched against keys that never collide -- a condition
+    /// that silently never holds is worse than one that visibly does not yet.
+    pub fn dialogue_context(&self, actor: PlayerId) -> bevy_dialogue::DialogueContext {
+        bevy_dialogue::DialogueContext {
+            flags: self.dialogue_memory.flags.clone(),
+            level: i32::from(self.player(actor).level),
+            visits: self.dialogue_memory.visits.clone(),
+            taken: self.dialogue_memory.taken.clone(),
+            seen_nodes: self.dialogue_memory.seen_nodes.clone(),
+            ..Default::default()
+        }
+    }
+
+    /// Apply one dialogue effect to the session.
+    ///
+    /// Only the flag effects are wired. The rest -- granting items, moving the
+    /// party, opening a shop -- reach systems this type does not own, and are
+    /// left unhandled rather than half-handled so that a graph relying on one
+    /// fails visibly instead of appearing to work.
+    pub fn apply_dialogue_effect(&mut self, effect: &bevy_dialogue::DialogueEffect) {
+        use bevy_dialogue::DialogueEffectKind;
+        let Some(flag) = effect.flag.as_ref() else {
+            return;
+        };
+        if effect.kind == DialogueEffectKind::SetFlag as i32 {
+            self.dialogue_memory.flags.insert(flag.clone());
+        } else if effect.kind == DialogueEffectKind::ClearFlag as i32 {
+            self.dialogue_memory.flags.remove(flag);
+        }
+    }
+
     pub fn player(&self, uid: PlayerId) -> &PlayerState {
         self.players
             .get(&uid)
@@ -1114,6 +1177,7 @@ mod tests {
             enemies_had_first_strike: false,
             quest_journal: QuestJournal::default(),
             active_dialogue: None,
+            dialogue_memory: Default::default(),
 
             pursuers: Vec::new(),
         };
@@ -1204,6 +1268,7 @@ mod tests {
             enemies_had_first_strike: false,
             quest_journal: QuestJournal::default(),
             active_dialogue: None,
+            dialogue_memory: Default::default(),
 
             pursuers: Vec::new(),
         };
@@ -1378,6 +1443,7 @@ mod tests {
             enemies_had_first_strike: false,
             quest_journal: QuestJournal::default(),
             active_dialogue: None,
+            dialogue_memory: Default::default(),
 
             pursuers: Vec::new(),
         };
@@ -1444,6 +1510,7 @@ mod tests {
             enemies_had_first_strike: false,
             quest_journal: QuestJournal::default(),
             active_dialogue: None,
+            dialogue_memory: Default::default(),
 
             pursuers: Vec::new(),
         };

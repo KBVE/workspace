@@ -266,7 +266,7 @@ fn handle_craft(session: &mut SessionState, item_ref: &str, actor: PlayerId) -> 
 fn handle_dialogue_navigate(
     session: &mut SessionState,
     node_id: &str,
-    _actor: PlayerId,
+    actor: PlayerId,
 ) -> Vec<String> {
     let mut logs = Vec::new();
 
@@ -277,10 +277,23 @@ fn handle_dialogue_navigate(
     } else {
         // node_id is the NPC ref — start a new dialogue
         let npc_ref = node_id.to_owned();
-        let tree = match proto_bridge::get_npc_dialogue_tree(&npc_ref) {
-            Some(t) => t,
+        let graph = match proto_bridge::get_npc_dialogue_graph(&npc_ref) {
+            Some(g) => g,
             None => {
                 logs.push("This NPC has nothing to say.".to_owned());
+                return logs;
+            }
+        };
+        // Which node a conversation opens on is the graph's decision, not the
+        // NPC's: entries are tried in priority order and the first one whose
+        // condition holds wins. A graph with no eligible entry is not offered,
+        // which is a different thing from an NPC with no graph -- the first is
+        // "not now", the second is "never".
+        let ctx = session.dialogue_context(actor);
+        let opening = match bevy_dialogue::entry_node(graph, &ctx) {
+            Some(n) => n.id.clone(),
+            None => {
+                logs.push("They have nothing to say to you right now.".to_owned());
                 return logs;
             }
         };
@@ -290,22 +303,22 @@ fn handle_dialogue_navigate(
         session.active_dialogue = Some(super::types::ActiveDialogue {
             npc_ref: npc_ref.clone(),
             npc_name,
-            current_node_id: tree.entry_node_id.clone(),
+            current_node_id: opening.clone(),
         });
-        (npc_ref, tree.entry_node_id.clone())
+        (npc_ref, opening)
     };
 
-    // Look up the dialogue tree and target node
-    let tree = match proto_bridge::get_npc_dialogue_tree(&npc_ref) {
-        Some(t) => t,
+    // Look up the conversation graph and target node
+    let graph = match proto_bridge::get_npc_dialogue_graph(&npc_ref) {
+        Some(g) => g,
         None => {
             session.active_dialogue = None;
-            logs.push("Dialogue tree not found.".to_owned());
+            logs.push("Conversation graph not found.".to_owned());
             return logs;
         }
     };
 
-    let node = match proto_bridge::get_dialogue_node(tree, &target_node_id) {
+    let node = match proto_bridge::get_dialogue_node(graph, &target_node_id) {
         Some(n) => n,
         None => {
             session.active_dialogue = None;
@@ -325,10 +338,26 @@ fn handle_dialogue_navigate(
         .as_ref()
         .map(|d| d.npc_name.as_str())
         .unwrap_or("???");
-    logs.push(format!("**{}**: {}", speaker, node.text));
+    // A node carries several lines only for RANDOM_LINE; every other kind uses
+    // the first. Speaking all of them would turn one line into a monologue.
+    if let Some(text) = node.texts.first() {
+        logs.push(format!("**{}**: {}", speaker, text));
+    }
 
-    // If the node has no options, end the dialogue
-    if node.options.is_empty() {
+    // Applied on arrival, before the player can choose anything -- that is what
+    // makes "you have met him" true the moment he speaks.
+    for effect in &node.on_enter {
+        session.apply_dialogue_effect(effect);
+    }
+    session
+        .dialogue_memory
+        .seen_nodes
+        .insert(bevy_dialogue::node_key(graph, &node.id));
+
+    // A node with no choices to offer is the end of the conversation, whether
+    // it is an END node or simply a line nobody can reply to.
+    let ctx = session.dialogue_context(actor);
+    if bevy_dialogue::choices(graph, node, &ctx).is_empty() {
         session.active_dialogue = None;
         logs.push("*The conversation ends.*".to_owned());
     }
@@ -3345,6 +3374,7 @@ mod tests {
             enemies_had_first_strike: false,
             quest_journal: QuestJournal::default(),
             active_dialogue: None,
+            dialogue_memory: Default::default(),
             pursuers: Vec::new(),
         }
     }

@@ -261,6 +261,7 @@
     "bevy_cam",
     "bevy_chat",
     "bevy_db",
+    "bevy_dialogue",
     "bevy_dungeon",
     "bevy_inventory",
     "bevy_items",
@@ -362,6 +363,12 @@
     },
     {
       "source": "crates/bevy_db",
+      "labels": [
+        "area/crates"
+      ]
+    },
+    {
+      "source": "crates/bevy_dialogue",
       "labels": [
         "area/crates"
       ]

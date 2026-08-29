@@ -7,6 +7,7 @@
 
 use std::sync::LazyLock;
 
+use bevy_dialogue::{DialogueDb, DialogueGraph};
 use bevy_items::{
     EquipSlot as ProtoEquipSlot, GearSpecialType, ItemDb, StatusEffectKind, UseEffectType,
     inventory_adapter::ProtoItemKind,
@@ -39,6 +40,22 @@ static INVENTORY_INIT: LazyLock<()> = LazyLock::new(|| {
 
 /// Embedded JSON snapshot of the NPC database — generated from the Astro dev server.
 const NPCDB_JSON: &str = include_str!("../data/npcdb.json");
+
+/// The conversation graphs. Hand-authored, unlike the databases either side of
+/// it: npcdb.json and itemdb.json are generated, so a conversation written into
+/// one would be overwritten the next time content synced.
+///
+/// Enum fields are written as numbers rather than as the names the schema
+/// gives them. Canonical proto JSON spells an enum out -- and prost's generated
+/// types take an i32 and no serde adapter for it -- so a graph saying
+/// "DIALOGUE_NODE_KIND_CHOICE" fails to load. The numbers are stable on the
+/// wire, so this is safe; it is only unpleasant to read.
+const DIALOGUE_JSON: &str = include_str!("../data/dialogue.json");
+
+/// The global dialogue database, loaded once from the embedded JSON.
+static DIALOGUE_DB: LazyLock<DialogueDb> = LazyLock::new(|| {
+    DialogueDb::from_json(DIALOGUE_JSON).expect("embedded dialogue.json must be valid")
+});
 
 /// The global proto NPC database, loaded once from the embedded JSON.
 static NPC_DB: LazyLock<NpcDb> =
@@ -696,26 +713,47 @@ pub fn npc_xp_reward(npc_ref: &str) -> i32 {
         .unwrap_or(0)
 }
 
-// ── Proto-driven dialogue trees ───────────────────────────────────────
+// ── Proto-driven conversation graphs ──────────────────────────────────
 
-/// Look up an NPC's dialogue tree. Returns None if the NPC has no dialogue tree,
-/// or if the NPC ref is not found in the database.
-pub fn get_npc_dialogue_tree(npc_ref: &str) -> Option<&'static bevy_npc::DialogueTree> {
+/// Access the underlying [`DialogueDb`].
+pub fn dialogue_db() -> &'static DialogueDb {
+    &DIALOGUE_DB
+}
+
+/// The conversation graph an NPC speaks, if it has one.
+///
+/// Resolved two ways, in order. An NPC that names graphs in
+/// `dialogue_graph_refs` gets the first of those that exists -- that is the
+/// schema's own mechanism, and the one that lets several NPCs share a
+/// conversation. Failing that, a graph whose ref equals the NPC's ref is
+/// treated as belonging to it.
+///
+/// The convention exists because npcdb.json is generated: an author who wants
+/// to give an existing NPC something to say cannot add a field to a file that
+/// is about to be overwritten, but they can write a graph named after it.
+pub fn get_npc_dialogue_graph(npc_ref: &str) -> Option<&'static DialogueGraph> {
     let npc = find_npc_by_ref(npc_ref)?;
-    npc.dialogue_tree.as_ref().filter(|dt| !dt.nodes.is_empty())
+    npc.dialogue_graph_refs
+        .iter()
+        .filter_map(|id| bevy_dialogue::ulid_text(Some(id)))
+        .find_map(|ulid| DIALOGUE_DB.get_by_ulid(&ulid))
+        .or_else(|| DIALOGUE_DB.get(npc_ref))
 }
 
-/// Find a specific dialogue node within an NPC's dialogue tree.
+/// Find a node within a graph.
 pub fn get_dialogue_node<'a>(
-    tree: &'a bevy_npc::DialogueTree,
+    graph: &'a DialogueGraph,
     node_id: &str,
-) -> Option<&'a bevy_npc::DialogueNode> {
-    tree.nodes.iter().find(|n| n.id == node_id)
+) -> Option<&'a bevy_dialogue::DialogueNode> {
+    bevy_dialogue::node(graph, node_id)
 }
 
-/// Check if an NPC has any dialogue tree defined.
+/// Whether an NPC has a conversation at all.
+///
+/// Distinct from having nothing to say right now: a graph decides for itself
+/// which of its entry points applies, and none of them may.
 pub fn npc_has_dialogue(npc_ref: &str) -> bool {
-    get_npc_dialogue_tree(npc_ref).is_some()
+    get_npc_dialogue_graph(npc_ref).is_some()
 }
 
 // ── Proto-driven faction reputation ───────────────────────────────────
@@ -2319,5 +2357,61 @@ mod recipe_order_tests {
                 "recipe order changed between calls — a positional key would craft the wrong row"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod dialogue_tests {
+    use super::*;
+
+    #[test]
+    fn the_embedded_graphs_load() {
+        assert!(
+            !dialogue_db().is_empty(),
+            "dialogue.json must contain at least one graph"
+        );
+    }
+
+    #[test]
+    fn a_graph_named_after_an_npc_belongs_to_it() {
+        // npcdb.json is generated, so an author cannot add dialogue_graph_refs
+        // to it. Naming the graph after the NPC is the way in.
+        let graph = get_npc_dialogue_graph("the-shattered-king")
+            .expect("the shattered king has a conversation");
+        assert_eq!(graph.r#ref, "the-shattered-king");
+        assert!(npc_has_dialogue("the-shattered-king"));
+    }
+
+    #[test]
+    fn an_npc_without_a_graph_has_nothing_to_say() {
+        assert!(get_npc_dialogue_graph("cave-spider").is_none());
+        assert!(!npc_has_dialogue("cave-spider"));
+    }
+
+    #[test]
+    fn the_opening_line_changes_once_you_have_met_him() {
+        let graph = get_npc_dialogue_graph("the-shattered-king").unwrap();
+        let mut ctx = bevy_dialogue::DialogueContext::default();
+
+        let first = bevy_dialogue::entry_node(graph, &ctx).expect("a first meeting");
+        assert_eq!(first.id, "first_meeting");
+
+        // Entering that node sets the flag, which is what the higher-priority
+        // entry is waiting for.
+        ctx.flags.insert("met_shattered_king".into());
+        let second = bevy_dialogue::entry_node(graph, &ctx).expect("a second meeting");
+        assert_eq!(second.id, "again");
+    }
+
+    #[test]
+    fn the_farewell_ends_the_conversation() {
+        let graph = get_npc_dialogue_graph("the-shattered-king").unwrap();
+        let farewell = get_dialogue_node(graph, "farewell").expect("a farewell node");
+        assert_eq!(bevy_dialogue::next_node(farewell), None);
+        assert!(
+            bevy_dialogue::choices(graph, farewell, &bevy_dialogue::DialogueContext::default())
+                .is_empty(),
+            "nothing to reply to means the conversation is over"
+        );
     }
 }

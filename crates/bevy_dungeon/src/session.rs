@@ -61,6 +61,7 @@ pub fn start_solo(owner: PlayerId, name: &str, class: ClassType) -> SessionState
         enemies_had_first_strike: false,
         quest_journal: QuestJournal::default(),
         active_dialogue: None,
+        dialogue_memory: Default::default(),
         pursuers: Vec::new(),
     }
 }

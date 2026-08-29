@@ -2207,11 +2207,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_dialogue"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "kbve-proto",
+ "prost",
+ "serde",
+ "serde_json",
+ "ulid",
+]
+
+[[package]]
 name = "bevy_dungeon"
 version = "0.1.0"
 dependencies = [
  "bevy_battle",
  "bevy_behavior",
+ "bevy_dialogue",
  "bevy_inventory",
  "bevy_items",
  "bevy_mapdb",
@@ -2807,10 +2820,11 @@ name = "bevy_npc"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "kbve-proto",
  "prost",
- "prost-build",
  "serde",
  "serde_json",
+ "ulid",
 ]
 
 [[package]]

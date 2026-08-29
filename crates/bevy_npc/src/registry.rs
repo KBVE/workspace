@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use prost::Message;
 
-use crate::proto::npc;
+use crate::proto::{Rarity, npc};
 
 /// Stable numeric identifier for an NPC, derived from its ref.
 ///
@@ -78,11 +78,7 @@ impl NpcDb {
         let id = ProtoNpcId::from_ref(&npc.r#ref);
         let name: Arc<str> = Arc::from(npc.name.as_str());
         let ref_key = npc.r#ref.clone();
-        let ulid_key = if npc.id.is_empty() {
-            None
-        } else {
-            Some(npc.id.clone())
-        };
+        let ulid_key = kbve_proto::ulid_text(npc.id.as_ref());
 
         self.display_names.insert(id, name);
         self.by_ref.insert(ref_key, id);
@@ -139,7 +135,7 @@ impl NpcDb {
     }
 
     /// Find all NPCs matching a rarity tier.
-    pub fn find_by_rarity(&self, rarity: npc::NpcRarity) -> impl Iterator<Item = &npc::Npc> {
+    pub fn find_by_rarity(&self, rarity: Rarity) -> impl Iterator<Item = &npc::Npc> {
         let r = rarity as i32;
         self.by_id.values().filter(move |npc| npc.rarity == r)
     }
@@ -174,7 +170,7 @@ impl NpcDb {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::proto::npc::{Npc, NpcRarity};
+    use crate::proto::{Rarity, npc::Npc};
 
     fn sample(slug: &str, name: &str) -> Npc {
         Npc {
@@ -250,19 +246,19 @@ mod tests {
     fn find_by_rarity_returns_iterator() {
         let mut db = NpcDb::default();
         let mut a = sample("a", "Alpha");
-        a.rarity = NpcRarity::Common as i32;
+        a.rarity = Rarity::Common as i32;
         let mut b = sample("b", "Beta");
-        b.rarity = NpcRarity::Epic as i32;
+        b.rarity = Rarity::Epic as i32;
         let mut c = sample("c", "Gamma");
-        c.rarity = NpcRarity::Common as i32;
+        c.rarity = Rarity::Common as i32;
         db.insert(a);
         db.insert(b);
         db.insert(c);
 
         // Iterator API: count without allocating a Vec.
-        let common_count = db.find_by_rarity(NpcRarity::Common).count();
+        let common_count = db.find_by_rarity(Rarity::Common).count();
         assert_eq!(common_count, 2);
-        let epic_count = db.find_by_rarity(NpcRarity::Epic).count();
+        let epic_count = db.find_by_rarity(Rarity::Epic).count();
         assert_eq!(epic_count, 1);
     }
 
@@ -281,13 +277,19 @@ mod tests {
 
     #[test]
     fn ulid_lookup_only_when_set() {
+        const ULID_TEXT: &str = "01HQ000000000000000000000A";
         let mut db = NpcDb::default();
         let mut npc = sample("a", "Alpha");
-        npc.id = "01HQ000000000000000000000A".into();
+        // Built from the canonical text so the assertion below exercises the
+        // round-trip: the schema stores sixteen bytes, the lookup takes the
+        // twenty-six characters a content file would have written.
+        npc.id = Some(kbve_proto::kbve::r#type::v1::Ulid {
+            value: ulid::Ulid::from_string(ULID_TEXT).unwrap().to_bytes().to_vec(),
+        });
         db.insert(npc);
         db.insert(sample("b", "Beta")); // no ulid
 
-        assert!(db.get_by_ulid("01HQ000000000000000000000A").is_some());
+        assert!(db.get_by_ulid(ULID_TEXT).is_some());
         assert!(db.get_by_ulid("nope").is_none());
         // "b" has no ulid — must not be reachable via get_by_ulid.
         assert_eq!(db.by_ulid.len(), 1);

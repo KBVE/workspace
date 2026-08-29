@@ -6,6 +6,27 @@
 
 include!("../../../gen/rust/mod.rs");
 
+/// Mirror of kbve-proto's helper.
+///
+/// The generated `Ulid` names `crate::UlidText`, so whichever crate includes
+/// the tree has to provide one. Kept minimal here: this crate exists to prove
+/// the output compiles, not to be used.
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct UlidText(String);
+
+impl From<UlidText> for kbve::r#type::v1::Ulid {
+    fn from(_: UlidText) -> Self {
+        Self::default()
+    }
+}
+
+impl From<kbve::r#type::v1::Ulid> for UlidText {
+    fn from(_: kbve::r#type::v1::Ulid) -> Self {
+        Self(String::new())
+    }
+}
+
 /// The service code, which nothing else includes.
 ///
 /// The tonic plugin runs with `no_include`, so the generated clients and

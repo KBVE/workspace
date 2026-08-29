@@ -12,6 +12,36 @@ include!(concat!(
 
 pub use kbve::*;
 
+/// A ULID in its textual form, which is how JSON carries one.
+///
+/// The generated `Ulid` holds sixteen bytes, and serde would otherwise write
+/// them as an array of numbers -- unreadable, and not what any content file
+/// contains. `Ulid` is declared to convert through this type, so JSON sees the
+/// twenty-six characters and the wire still carries the bytes.
+///
+/// Anything that is not a valid ULID decodes to an empty value rather than
+/// failing the whole document. A content file with one bad id should lose that
+/// id, not the file.
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct UlidText(String);
+
+impl From<UlidText> for kbve::r#type::v1::Ulid {
+    fn from(text: UlidText) -> Self {
+        let value = ulid::Ulid::from_string(&text.0)
+            .map(|u| u.to_bytes().to_vec())
+            .unwrap_or_default();
+        Self { value }
+    }
+}
+
+impl From<kbve::r#type::v1::Ulid> for UlidText {
+    fn from(id: kbve::r#type::v1::Ulid) -> Self {
+        Self(ulid_text(Some(&id)).unwrap_or_default())
+    }
+}
+
+
 /// A ULID's textual form, or `None` when there is not one to render.
 ///
 /// The schema carries a ULID as its sixteen bytes rather than its twenty-six

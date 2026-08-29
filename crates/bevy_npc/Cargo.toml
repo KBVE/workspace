@@ -27,13 +27,14 @@ bevy = ["dep:bevy"]
 creature = ["bevy"]
 
 [dependencies]
+kbve-proto = { path = "../kbve-proto" }
 bevy = { workspace = true, features = ["bevy_state"], optional = true }
 prost = { workspace = true, features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 
-[build-dependencies]
-prost-build = { workspace = true }
+[dev-dependencies]
+ulid = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true
