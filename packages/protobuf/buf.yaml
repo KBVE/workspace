@@ -17,7 +17,14 @@ lint:
   # over the websocket path in RedisWsMessage as well as over gRPC. Their names
   # describe what they are; SendCommandRequest would describe only one of the
   # two transports that carry them.
+  #
+  # CityStateStatus has no unspecified value because it has no unspecified
+  # state: a city-state nobody has spoken to is hostile. Adding a zero value
+  # would mean renumbering the rest, and the numbers are in saved games on both
+  # sides of the Unity/Rust boundary.
   ignore_only:
+    ENUM_ZERO_VALUE_SUFFIX:
+      - kbve/empire/v1/empire.proto
     RPC_REQUEST_STANDARD_NAME:
       - kbve/redis/v1/redis.proto
     RPC_RESPONSE_STANDARD_NAME:

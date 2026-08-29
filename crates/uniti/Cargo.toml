@@ -17,14 +17,8 @@ readme = "README.md"
 # rlib so integration tests under tests/ can link the crate directly.
 crate-type = ["cdylib", "staticlib", "rlib"]
 
-[build-dependencies]
-csbindgen = "1.9"
-prost-build = { workspace = true }
-# Vendored protoc so cross-compile environments (cross, ndk, xwin) don't
-# need a system-installed protobuf-compiler.
-protoc-bin-vendored = "3"
-
 [dependencies]
+kbve-proto = { path = "../kbve-proto" }
 serde = { workspace = true, features = ["derive"] }
 # bundled = compile SQLite C source in — zero system-lib deps at runtime,
 # works cross-platform inside the Unity cdylib without needing the host to

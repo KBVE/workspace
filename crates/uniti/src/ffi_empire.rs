@@ -23,7 +23,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use prost::Message;
 
-use crate::proto::empire::{CityStateRecord, CityStateStatusValue, EmpireSnapshot};
+use crate::proto::empire::{CityStateRecord, CityStateStatus, EmpireSnapshot};
 
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
@@ -221,13 +221,13 @@ pub unsafe extern "C" fn uniti_empire_async_stop() {
 /// Per-city mood drift + status recompute. Sticky end-states bail
 /// early so diplomacy decisions don't auto-revert.
 fn drift_city(city: &mut CityStateRecord) {
-    let status = CityStateStatusValue::try_from(city.status)
-        .unwrap_or(CityStateStatusValue::CityStateStatusNeutral);
+    let status = CityStateStatus::try_from(city.status)
+        .unwrap_or(CityStateStatus::Neutral);
     if matches!(
         status,
-        CityStateStatusValue::CityStateStatusVassal
-            | CityStateStatusValue::CityStateStatusAnnexed
-            | CityStateStatusValue::CityStateStatusRazed
+        CityStateStatus::Vassal
+            | CityStateStatus::Annexed
+            | CityStateStatus::Razed
     ) {
         return;
     }
@@ -239,10 +239,10 @@ fn drift_city(city: &mut CityStateRecord) {
     }
 
     city.status = if city.mood < HOSTILE_MAX {
-        CityStateStatusValue::CityStateStatusHostile as i32
+        CityStateStatus::Hostile as i32
     } else if city.mood >= ALLIED_MIN {
-        CityStateStatusValue::CityStateStatusAllied as i32
+        CityStateStatus::Allied as i32
     } else {
-        CityStateStatusValue::CityStateStatusNeutral as i32
+        CityStateStatus::Neutral as i32
     };
 }
