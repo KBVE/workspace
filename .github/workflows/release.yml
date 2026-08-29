@@ -8,11 +8,17 @@ name: release
 # maintained dispatch manifest: the graph already knows every project's source
 # directory, so the only thing left to state is the version.
 #
-# Tagging is deliberate and manual on purpose. GitHub generates release notes
-# by diffing against the chronologically previous tag, which in a monorepo
-# interleaves every other project's commits, so the notes have to be written by
-# hand to be worth reading. What a human cannot do reliably by hand is keep the
-# tag and the manifest in step, which is the job below.
+# Tagging is deliberate and manual on purpose. What a human cannot do reliably
+# by hand is keep the tag and the manifest in step, which is the first job
+# below.
+#
+# GitHub's own generated notes diff against the chronologically previous tag,
+# which in a monorepo interleaves every other project's commits -- which is why
+# the notes here are built by notes.mjs instead. It takes the previous tag *for
+# this project* and asks which commits in that range touched the project's
+# source, so the notes describe the artifact rather than the calendar. The
+# release is created as a draft: the editorial pass is still worth doing, but
+# not the transcription.
 on:
   push:
     tags: ['*@*']
@@ -34,8 +40,18 @@ jobs:
     name: verify tag
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Overrides the read-only default at the top of the file. Only this job
+    # writes, and only to create the draft release below.
+    permissions:
+      contents: write
     steps:
+      # Full history and every tag: notes.mjs walks the range between this tag
+      # and the previous tag for the same project, and neither the range nor
+      # the tag list exists in the shallow single-ref checkout the action does
+      # by default. The symptom would be empty notes, not an error.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
       - uses: moonrepo/setup-toolchain@261c62cb5b0f580c7be7c8cd0f023a2e96756095 # v0.6.4
         with:
@@ -48,6 +64,28 @@ jobs:
       - name: Tag matches the manifest
         id: tag
         run: node tools/release/verify-tag.mjs "${{ inputs.tag || github.ref_name }}"
+
+      # Push only. A workflow_dispatch run is asking whether a tag is valid,
+      # and checks out a branch rather than the tag -- creating a release from
+      # it would publish notes for a range that was never tagged.
+      - name: Draft the release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          node tools/release/notes.mjs "$TAG" > notes.md
+          cat notes.md >> "$GITHUB_STEP_SUMMARY"
+          # Re-running the workflow on a tag that already has a release should
+          # refresh the notes, not fail on the second create. Only the body is
+          # rewritten: a draft someone has since edited by hand is the one case
+          # this would overwrite, and it is why the release stays a draft until
+          # a person publishes it.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" --draft --title "$TAG" --notes-file notes.md
+          fi
 
       # itch.yml runs on the same tags and publishes the ones that belong to a
       # game. Saying "no publish target" for those would read as a broken
