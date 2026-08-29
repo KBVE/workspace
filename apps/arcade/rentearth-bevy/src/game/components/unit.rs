@@ -38,6 +38,12 @@ pub mod equipment {
     pub const HELM: u32 = 1;
     pub const SPEAR: u32 = 2;
     pub const SHIELD: u32 = 4;
+    /// A metal head on the spear. Its own bit rather than its own weapon: a
+    /// sharpened shaft and an ironed one are the same stick to everything
+    /// except the two pixels at the end of it, and a militia carrying the
+    /// first alongside a line carrying the second is the distinction worth
+    /// being able to draw.
+    pub const SPEAR_TIP: u32 = 8;
 }
 
 /// What a quad in the unit mesh is a picture of.
