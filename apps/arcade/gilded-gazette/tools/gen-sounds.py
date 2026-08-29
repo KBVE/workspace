@@ -3,22 +3,17 @@
 
     python3 tools/gen-sounds.py
 
-Writes 16-bit mono WAVs into godot/assets/audio. Nothing here is sampled from
-anywhere: every sound is a few hundred lines of arithmetic over a fixed seed, so
-regenerating produces byte-identical files and the repository does not grow a new
-copy of the same noise each time somebody runs it.
+Writes 16-bit mono WAVs into godot/assets/audio, off a fixed seed, so regenerating
+produces byte-identical files and the repository does not grow a new copy of the same
+noise every time somebody runs it.
 
-Why generate at all. A murder mystery on a night train needs perhaps eight sounds,
-none of them heard closely: bogies under the floor, gas in the lamps, a door on its
-hinge, feet on carriage board. Licensed samples for that are a folder of megabytes in
-Git LFS, an attribution file, and a licence to re-check every time the game is
-published. These are kilobytes, ours, and tuned by editing the number rather than by
-finding another recording.
+A night train needs a dozen sounds, none of them heard closely. Licensed samples for
+that are a folder of megabytes in LFS, an attribution file and a licence to re-check
+at every publish; these are kilobytes, ours, and tuned by editing the number.
 
-The ear is unfussy about texture down here and very fussy about envelope. What makes a
-door read as a door is the creak rising and stopping dead against the jamb; what makes
-a footstep read as board rather than stone is a short body resonance under the click.
-So the shaping is where the detail is, and the source is almost always noise.
+The ear is unfussy about texture down here and very fussy about envelope -- a door
+reads as a door because the creak stops dead against the jamb -- so the shaping is
+where the detail is and the source is almost always noise.
 """
 
 import math
@@ -43,12 +38,8 @@ def noise(n, rng):
 
 
 def low_pass(samples, cutoff_hz):
-    """One-pole, which is all the shaping any of this needs.
-
-    A steeper filter would be a better filter and a worse tool: everything here is
-    heard through a carriage floor or over an engine, and the difference between six
-    and twenty-four decibels an octave is not audible at that distance.
-    """
+    """One-pole. Everything here is heard through a carriage floor, where the
+    difference between six and twenty-four decibels an octave is not audible."""
     a = 1.0 - math.exp(-2.0 * math.pi * cutoff_hz / RATE)
     out = []
     held = 0.0
@@ -78,11 +69,8 @@ def resonate(samples, hz, q):
 
 
 def envelope(samples, attack_s, decay_s, curve=2.0):
-    """Struck: up fast, then down as a power curve rather than a straight line.
-
-    Linear decay is the sound of a fade, not of something stopping. The power is what
-    makes a footstep land instead of being turned down.
-    """
+    """Struck: up fast, then down a power curve. Linear decay is the sound of a fade
+    rather than of something stopping."""
     n = len(samples)
     attack = max(1, int(attack_s * RATE))
     decay = max(1, int(decay_s * RATE))
@@ -98,11 +86,8 @@ def envelope(samples, attack_s, decay_s, curve=2.0):
 
 
 def seamless(samples, blend_s=0.25):
-    """Folds the tail back over the head so a loop has no seam at the join.
-
-    A loop that clicks is the one flaw nobody stops hearing, and it is heard as a fault
-    in the game rather than in the file: the lamps are what seem to be ticking.
-    """
+    """Folds the tail over the head so the join has no seam. A loop that clicks is
+    heard as a fault in the game rather than in the file: the lamps seem to tick."""
     blend = min(int(blend_s * RATE), len(samples) // 2)
     out = list(samples[:-blend])
     for i in range(blend):
@@ -143,12 +128,8 @@ def write(name, samples):
 # --- the sounds -------------------------------------------------------------
 
 def carriage_rumble(rng):
-    """Bogies under the floor: everything below the voice, and nothing above it.
-
-    Heard for the whole run, so it has to survive being heard for the whole run. The
-    beat between two near-identical low tones is what keeps it from settling into a
-    hum the ear stops registering and starts resenting.
-    """
+    """Bogies under the floor. Heard for the whole run, so two near-identical low tones
+    beat against each other rather than settling into a hum."""
     n = int(3.0 * RATE)
     body = low_pass(noise(n, rng), 90.0)
     body = low_pass(body, 140.0)
@@ -161,12 +142,9 @@ def carriage_rumble(rng):
 
 
 def rail_joints(rng):
-    """The knock of the wheels over the fishplates, four to the loop.
-
-    Rail was laid in lengths and the gap between them is what a train is heard on. Kept
-    as its own loop rather than mixed into the rumble so it can be quieter in a saloon
-    than in the guard's van, which is the actual difference between the two rooms.
-    """
+    """The knock of the wheels over the fishplates, four to the loop. Its own loop
+    rather than mixed into the rumble, so a saloon can ride quieter than a service
+    car -- which is the actual difference between the two rooms."""
     n = int(2.4 * RATE)
     out = [0.0] * n
     for knock in range(4):
@@ -189,11 +167,8 @@ def gas_hiss(rng):
 
 
 def footstep(rng, hz, name):
-    """Board, not stone. The click is the heel and the ring under it is the carriage.
-
-    Two of them, alternating, because a walk made of one sample is a limp: the ear
-    picks up the repeat long before it picks up the sound.
-    """
+    """Board, not stone: the click is the heel and the ring under it is the carriage.
+    Two of them, because the ear picks up a repeat long before it picks up a sound."""
     n = int(0.22 * RATE)
     heel = envelope(high_pass(noise(n, rng), 2200.0), 0.0005, 0.045, 3.0)
     board = envelope(resonate(noise(n, rng), hz, 12.0), 0.001, 0.16, 2.4)
@@ -201,11 +176,8 @@ def footstep(rng, hz, name):
 
 
 def door_open(rng):
-    """The hinge, which is the whole sound: a rising complaint that stops.
-
-    Swept rather than static. A creak at one pitch is a tone; what makes it a hinge is
-    that it climbs as the leaf goes round and gives out before it gets anywhere.
-    """
+    """The hinge, which is the whole sound. A creak at one pitch is a tone; what makes
+    it a hinge is that it climbs as the leaf goes round and gives out."""
     n = int(0.62 * RATE)
     source = noise(n, rng)
     out = []
@@ -239,11 +211,8 @@ def door_shut(rng):
 
 
 def door_locked(rng):
-    """Two pulls on a handle that does not give.
-
-    Reported rather than silent, for the same reason [SDoor] reports it: a locked door
-    that says nothing is indistinguishable from one the player failed to reach.
-    """
+    """Two pulls on a handle that does not give. Heard rather than silent, because a
+    locked door that says nothing is one the player thinks they failed to reach."""
     n = int(0.44 * RATE)
     out = [0.0] * n
     for i, at_s in enumerate((0.0, 0.17)):
@@ -269,6 +238,35 @@ def paper(rng):
     return normalise(out, 0.55)
 
 
+def cushion(rng):
+    """Getting down onto a bench: fabric giving, then the frame taking the weight."""
+    n = int(0.5 * RATE)
+    fabric = envelope(high_pass(noise(n, rng), 1400.0), 0.02, 0.34, 1.5)
+    frame = envelope(resonate(noise(n, rng), 118.0, 8.0), 0.03, 0.3, 2.0)
+    return normalise(mix([s * 0.5 for s in fabric], frame), 0.5)
+
+
+def rising(rng):
+    """And off it again: the frame lets go before the fabric does."""
+    n = int(0.42 * RATE)
+    frame = envelope(resonate(noise(n, rng), 132.0, 9.0), 0.005, 0.16, 2.6)
+    fabric = envelope(high_pass(noise(n, rng), 1600.0), 0.05, 0.3, 1.3)
+    return normalise(mix(frame, [s * 0.45 for s in fabric]), 0.5)
+
+
+def verdict(rng, hz, decay, detune, name):
+    """A struck bell, for the moment the envelope is opened. The same strike twice:
+    right is in tune with itself, wrong has a crack in it -- partials beating slowly
+    against each other, which nobody has to be told the meaning of."""
+    n = int(decay * 1.2 * RATE)
+    struck = noise(int(0.006 * RATE), rng) + [0.0] * (n - int(0.006 * RATE))
+    body = []
+    for partial, weight in ((1.0, 1.0), (2.01, 0.5), (2.98, 0.28), (4.16, 0.14)):
+        rung = resonate(struck, hz * partial * detune ** partial, 340.0 * partial)
+        body.append([s * weight for s in rung])
+    return name, normalise(envelope(mix(*body), 0.001, decay, 1.4), 0.7)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     rng = random.Random(SEED)
@@ -282,6 +280,14 @@ def main():
     write("door_shut", door_shut(rng))
     write("door_locked", door_locked(rng))
     write("paper", paper(rng))
+    write("sit", cushion(rng))
+    write("rise", rising(rng))
+    for hz, decay, detune, name in (
+        (392.0, 2.4, 1.0, "verdict_right"),
+        (233.0, 2.0, 1.006, "verdict_wrong"),
+    ):
+        bell_name, samples = verdict(rng, hz, decay, detune, name)
+        write(bell_name, samples)
 
 
 if __name__ == "__main__":

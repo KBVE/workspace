@@ -1,12 +1,9 @@
 # GdUnitTestSuite
 extends GdUnitTestSuite
 
-## What a body on its feet and going nowhere does with itself.
-##
-## The seated half of the cast has had this since [SSeatedIdle]; the standing half --
-## the conductor between legs of his rounds, four knights on a two-hour watch, anybody
-## waiting at a door -- stood in the middle of the walk blend space playing the same
-## loop in step with each other for as long as they were still.
+## What a body on its feet and going nowhere does with itself. The standing half of the
+## cast stood in the middle of the walk blend space, in step with each other, for as
+## long as they were still.
 
 const SCENE := "res://scenes/train/train.scn"
 

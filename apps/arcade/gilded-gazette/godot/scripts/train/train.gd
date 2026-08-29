@@ -493,6 +493,29 @@ func _open_the_enquiry() -> void:
 	if Session.night == null:
 		return
 	Ecs.notify(GameEvents.ENQUIRY_OPENED, {"victim": String(Session.night.victim_id)})
+	_take_the_statements()
+
+
+## What everybody says about where they were.
+##
+## Which account each passenger gives is drawn per run, so React cannot read it out of
+## the compiled content: the content holds every account they might have given and
+## nothing about which one they did. Without this the case board has nothing to place
+## anybody from, and every room on it reads as empty until the player walks in.
+##
+## A claim of never having been somewhere is not sent. It is a real thing to say and the
+## generator respects it, but there is nowhere to put a man on the strength of it.
+func _take_the_statements() -> void:
+	for passenger: Dictionary in GameContent.passengers():
+		var who := StringName(passenger.get("id", ""))
+		for claim: Dictionary in Session.night.claims_of(who):
+			if claim.get("never", false):
+				continue
+			Ecs.notify(GameEvents.TESTIMONY, {
+				"who": String(who),
+				"where": str(claim.get("where", "")),
+				"at": Session.night.minutes_of(claim.get("from", "")),
+			})
 
 
 ## Puts the drawn weapon in the drawn room, which is the only evidence in the train

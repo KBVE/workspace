@@ -131,6 +131,28 @@ const NOTICE_READ := &"notice_read"
 ## string, "at": number}. Reaches JS as "journal:entry".
 const JOURNAL_ENTRY := &"journal_entry"
 
+## One thing a passenger says about where they were, sent as the enquiry opens.
+##
+## Which account each passenger gives is drawn per run, so the browser cannot read it
+## out of the compiled content: the content holds every account they might have given
+## and nothing about which one they did. Without this the case board has nothing to
+## place anybody from and every room reads as empty until the player walks in and sees
+## for themselves.
+##
+## One event per claim rather than one per passenger, because a claim is a room and an
+## hour and the wire carries flat payloads. `at` is minutes past midnight, the hour they
+## put themselves there from; a claim with no start runs from the moment they boarded.
+## Claims of never having been somewhere are not sent -- there is nowhere to place a man
+## on the strength of them.
+##
+## This is testimony, not observation. What is actually true is what the player sees for
+## themselves, which arrives as a journal entry and outranks this wherever the two
+## disagree.
+##
+## Payload: {"who": string, "where": string, "at": number}. Reaches JS as
+## "enquiry:testimony".
+const TESTIMONY := &"testimony"
+
 ## The answer, and what the player said it was. Sent once, immediately after an
 ## accusation lands, and at no other moment.
 ##
@@ -229,6 +251,7 @@ const OUTBOUND_WIRE: Dictionary[StringName, String] = {
 	RENDER_BUDGET: "render:budget",
 	NOTICE_READ: "notice:read",
 	JOURNAL_ENTRY: "journal:entry",
+	TESTIMONY: "enquiry:testimony",
 	VERDICT: "game:verdict",
 	ENQUIRY_OPENED: "enquiry:opened",
 }
@@ -249,6 +272,7 @@ const WIRE_FIELDS: Dictionary[String, Array] = {
 	"render:budget": ["shrink", "detail"],
 	"notice:read": ["id"],
 	"journal:entry": ["id", "kind", "actor", "target", "place", "at"],
+	"enquiry:testimony": ["who", "where", "at"],
 	"game:verdict": ["who", "weapon", "room", "named_who", "named_weapon", "named_room"],
 	"enquiry:opened": ["victim"],
 }

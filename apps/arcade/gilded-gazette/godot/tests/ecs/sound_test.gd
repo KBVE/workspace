@@ -1,13 +1,8 @@
 # GdUnitTestSuite
 extends GdUnitTestSuite
 
-## The train's voice.
-##
-## Nothing here listens to anything: a headless run has no audio driver and [SSound] is
-## switched off in one, which is deliberate. What is checked is the deciding -- that the
-## bank is complete, that a door is heard on the crossing rather than while it is across,
-## that feet go down by distance covered rather than on a timer, and that a loop is
-## stopped rather than merely quietened when it goes out of earshot.
+## The train's voice. Nothing here listens to anything -- a headless run has no audio
+## driver and [SSound] is switched off in one. What is checked is the deciding.
 
 const SCENE := "res://scenes/train/train.scn"
 
@@ -189,37 +184,31 @@ func test_a_door_is_heard_once_on_the_way_open() -> void:
 	var runner := scene_runner(SCENE)
 	await runner.simulate_frames(20)
 	var sound := _sound()
-	var door: CDoor = Ecs.world.multi_view([CDoor, ECSViewComponent])[0][&"CDoor"]
+	# One door, and its own record. The train has ten carriages of them and passengers
+	# walking through: asserting on the whole dictionary passes alone and fails in a
+	# full run, where somebody has already been through a door before this starts.
+	var entry: Dictionary = Ecs.world.multi_view([CDoor, ECSViewComponent])[0]
+	var door: CDoor = entry[&"CDoor"]
+	var id: int = entry["entity"].get_instance_id()
 
-	# Nothing is written down until something crosses: a train of shut doors that have
-	# always been shut has never been heard, and recording them as shut would be a
-	# frame's worth of state saying nothing happened.
 	door.swing = 0.0
 	sound._swing(Vector3.ZERO)
-	assert_int(sound._door_was_open.size()).override_failure_message(
-		"a door that has not moved was recorded as having done something").is_equal(0)
+	sound._door_was_open[id] = false
 
 	door.swing = 1.0
 	sound._swing(Vector3.ZERO)
-	var opened := 0
-	for was_open: bool in sound._door_was_open.values():
-		if was_open:
-			opened += 1
-	assert_int(opened).override_failure_message(
-		"the leaf swung wide and the door was never heard to open").is_equal(1)
+	assert_bool(sound._door_was_open[id]).override_failure_message(
+		"the leaf swung wide and the door was never heard to open").is_true()
 
 	# Held open is not opening again. The crossing is the sound, not the state.
-	var before := sound._door_was_open.duplicate()
+	door.swing = 0.9
 	sound._swing(Vector3.ZERO)
-	assert_dict(sound._door_was_open).override_failure_message(
-		"a door standing open was heard to open a second time").is_equal(before)
+	assert_bool(sound._door_was_open[id]).is_true()
 
 	door.swing = 0.0
 	sound._swing(Vector3.ZERO)
-	for was_open: bool in sound._door_was_open.values():
-		assert_bool(was_open).override_failure_message(
-			"the leaf came back to the jamb and the door was never heard to shut"
-		).is_false()
+	assert_bool(sound._door_was_open[id]).override_failure_message(
+		"the leaf came back to the jamb and the door was never heard to shut").is_false()
 
 
 ## Between the two thresholds is neither, so a leaf that wobbles is silent rather than
@@ -228,17 +217,18 @@ func test_a_leaf_between_the_thresholds_says_nothing() -> void:
 	var runner := scene_runner(SCENE)
 	await runner.simulate_frames(20)
 	var sound := _sound()
-	var door: CDoor = Ecs.world.multi_view([CDoor, ECSViewComponent])[0][&"CDoor"]
+	var entry: Dictionary = Ecs.world.multi_view([CDoor, ECSViewComponent])[0]
+	var door: CDoor = entry[&"CDoor"]
+	var id: int = entry["entity"].get_instance_id()
 
 	door.swing = 0.0
 	sound._swing(Vector3.ZERO)
-	var shut := sound._door_was_open.duplicate()
+	sound._door_was_open[id] = false
 
 	door.swing = (SSound.SWUNG_SHUT + SSound.SWUNG_OPEN) * 0.5
 	sound._swing(Vector3.ZERO)
-	assert_dict(sound._door_was_open).override_failure_message(
-		"a door halfway through its swing was reported as having crossed"
-	).is_equal(shut)
+	assert_bool(sound._door_was_open[id]).override_failure_message(
+		"a door halfway through its swing was reported as having crossed").is_false()
 
 
 ## Stopped, not turned down. A silent player is a voice held for something nobody can

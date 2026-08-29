@@ -1,12 +1,9 @@
 # GdUnitTestSuite
 extends GdUnitTestSuite
 
-## The one wiring point between the menus, the ECS and React.
-##
-## Untested until now, and it is the piece every other piece talks through: a command
-## from the browser that does not map, a scene that streams in behind a menu, a run
-## state that stops being published -- none of those fail loudly, they just leave the
-## page showing something that is no longer true.
+## The one wiring point between the menus, the ECS and React. Nothing here fails
+## loudly: a command that does not map, a scene streaming in behind a menu, a run state
+## that stops being published all just leave the page showing what is no longer true.
 
 ## Streamed but never waited on. The request goes to the loader pool either way; what
 ## these are about is the intent to swap to it, which is the part that can be dropped.

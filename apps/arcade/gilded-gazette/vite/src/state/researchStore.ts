@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { installGodotBridge } from '../godot/bridge';
-import { ingest, recordFact, scrubTo, span } from '../research/world';
+import { ingest, recordClaim, recordFact, scrubTo, span } from '../research/world';
 
 interface ResearchStore {
   open: boolean;
@@ -65,6 +65,24 @@ export const toggleResearch = (): void =>
 const bridge = installGodotBridge();
 
 bridge.on('enquiry:opened', ({ victim }) => set({ victim }));
+
+// What everybody says, which is the only thing on the board until the player has been
+// somewhere and seen otherwise. Drawn per run, so it arrives rather than being read.
+bridge.on('enquiry:testimony', ({ who, where, at }) => {
+  // &before -> whether the board was following the latest hour has to be read before
+  //            the span is widened, or `to` has already moved past `at` and a board
+  //            that was live never scrubs again. The journal handler below is the
+  //            same shape for the same reason.
+  const wasLive = useResearchStore.getState().at >= useResearchStore.getState().to;
+  recordClaim(who, where, at);
+  set({ from: span.from, to: span.to });
+  if (wasLive) {
+    scrubTo(span.to);
+    set({ at: span.to });
+  }
+  bumpRecord();
+  bumpClock();
+});
 
 bridge.on('journal:entry', (entry) => {
   const wasLive = useResearchStore.getState().at >= useResearchStore.getState().to;

@@ -121,6 +121,16 @@
       },
       "description": "One fact the run has produced: a conversation, an item used, a room entered.\n\n`id` is a ULID, so entries sort by creation without comparing any other field. `kind` is a JournalKind. `actor` and `target` are content ids (`beaumont`, `telegram`) or empty. `at` is in-world minutes past midnight, which is what the player reasons about; the ULID carries the real ordering."
     },
+    "TESTIMONY": {
+      "bus": "testimony",
+      "wire": "enquiry:testimony",
+      "payload": {
+        "who": "string",
+        "where": "string",
+        "at": "number"
+      },
+      "description": "One thing a passenger says about where they were, sent as the enquiry opens.\n\nWhich account each passenger gives is drawn per run, so the browser cannot read it out of the compiled content: the content holds every account they might have given and nothing about which one they did. Without this the case board has nothing to place anybody from and every room reads as empty until the player walks in and sees for themselves.\n\nOne event per claim rather than one per passenger, because a claim is a room and an hour and the wire carries flat payloads. `at` is minutes past midnight, the hour they put themselves there from; a claim with no start runs from the moment they boarded. Claims of never having been somewhere are not sent -- there is nowhere to place a man on the strength of them.\n\nThis is testimony, not observation. What is actually true is what the player sees for themselves, which arrives as a journal entry and outranks this wherever the two disagree."
+    },
     "VERDICT": {
       "bus": "verdict",
       "wire": "game:verdict",

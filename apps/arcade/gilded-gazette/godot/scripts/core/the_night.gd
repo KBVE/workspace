@@ -58,6 +58,10 @@ var _notes: Dictionary = {}
 ## content holds every account they might have given and this holds the one they did.
 var _alibis: Dictionary = {}
 
+## The Paris call, kept so testimony can be stated in absolute minutes: a claim with no
+## start runs from the moment they boarded, and that moment is this.
+var _departure_minutes: int = 0
+
 
 ## Every weapon the run could name, which is every weapon it could also put in a room.
 ##
@@ -126,6 +130,7 @@ func _step_of(elapsed: int) -> int:
 
 
 func _draw(rng: RandomNumberGenerator, departure_minutes: int) -> bool:
+	_departure_minutes = departure_minutes
 	var cast := {}
 	for passenger: Dictionary in GameContent.passengers():
 		cast[StringName(passenger.get("id", ""))] = passenger
@@ -315,6 +320,18 @@ func _a_line_for(rng: RandomNumberGenerator, sightings: Dictionary,
 	if lines.is_empty():
 		return ""
 	return str(lines[rng.randi_range(0, lines.size() - 1)])
+
+
+## A clock string as minutes past midnight, or the moment the train left when there is
+## no clock string at all: a claim with no start runs from the moment they boarded.
+##
+## Public because testimony crosses the boundary in absolute minutes rather than in
+## steps -- the browser has a clock and no idea what a step is.
+func minutes_of(hhmm: String) -> int:
+	if hhmm.is_empty():
+		return _departure_minutes
+	var parts := hhmm.split(":")
+	return int(parts[0]) * 60 + (int(parts[1]) if parts.size() > 1 else 0)
 
 
 func _elapsed_of(hhmm: String, departure_minutes: int) -> int:

@@ -25,7 +25,13 @@ export { CARRIAGE_LOCATION_IDS, LOCATION_IDS };
 
 const DAY = 24 * 60;
 
-export const Source = { TIMELINE: 0, JOURNAL: 1 } as const;
+/**
+ * Where a placement came from. CLAIM is what somebody says and JOURNAL is what the
+ * player saw; the trail draws the two differently and `scrubTo` lets the second win,
+ * because testimony that outranked observation would be a board that argues with the
+ * room the player is standing in.
+ */
+export const Source = { CLAIM: 0, JOURNAL: 1 } as const;
 export type Source = (typeof Source)[keyof typeof Source];
 
 export const CPassenger = { aboard: [] as number[] };
@@ -182,6 +188,27 @@ const latest = (): number => {
   for (const eid of query(world, [CSighting])) if (CSighting.at[eid] > max) max = CSighting.at[eid];
   return max;
 };
+
+/**
+ * One thing a passenger says about where they were.
+ *
+ * Claims arrive on the wire rather than out of the content, because which account each
+ * passenger gives is drawn per run: the content holds every account they might have
+ * given and nothing about which one they did. Without these the board has nobody
+ * anywhere until the player walks in and sees for themselves.
+ *
+ * Recorded as CLAIM, so the trail marks it hollow and a journal entry at the same hour
+ * wins in `scrubTo`. What somebody says is not evidence, and the board must never draw
+ * it as though it were.
+ */
+export function recordClaim(who: string, where: string, at: number): void {
+  const subject = eidOf(who);
+  const room = locationEid.get(where as LocationId);
+  if (!subject || room === undefined) return;
+  const when = absolute(at);
+  sighting(subject, room, when, Source.CLAIM);
+  if (span.to < when) span = { ...span, to: when };
+}
 
 export function scrubTo(at: number): void {
   for (const p of query(world, [CPassenger])) {

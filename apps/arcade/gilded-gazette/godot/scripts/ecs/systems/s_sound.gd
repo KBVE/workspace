@@ -3,28 +3,22 @@ class_name SSound
 
 ## SSound is everything the train is heard as.
 ##
-## It reads the world rather than being told about it. A door is heard because its leaf
-## moved, a footstep because a body covered another stride, a carriage because it is a
-## carriage -- no system anywhere else knows that sound exists, and none of them should:
-## the moment [SDoor] has to remember to make a noise, a door added somewhere else is a
-## silent door and nothing says so.
+## It reads the world rather than being told about it: a door is heard because its leaf
+## moved, a footstep because a body covered another stride. Nothing else knows sound
+## exists, and nothing else should -- the moment [SDoor] has to remember to make a
+## noise, a door added somewhere else is a silent door and nothing says so.
 ##
-## Two things are exceptions, and both are exceptions for the same reason: they are
-## events rather than states. A locked door that refuses is not a change anything can
-## be read off afterwards -- the leaf does not move -- and a notice being taken off the
-## wall is the player's own doing rather than the sheet's. Those arrive on the bus.
+## What arrives on the bus instead is what is an event rather than a state: a refused
+## door does not move, a notice off the wall is the player's doing rather than the
+## sheet's, and a verdict is a moment.
 ##
-## Nothing here holds a listener. Godot hears from the current [Camera3D] unless an
-## [AudioListener3D] says otherwise, and the camera is already where the player's eyes
-## are: giving the ear a node of its own would be a second thing to keep in step with
-## the head for no gain.
+## No listener node. Godot hears from the current [Camera3D], which is already where
+## the player's eyes are.
 
 const BANK_DIR := "res://assets/audio"
 
-## Key to what is under it: the file, how loud it is by default, and whether it is a
-## thing that goes on. The levels are here rather than on the components because they
-## are a property of the recording -- a footstep and a rumble are not mixed against each
-## other by whoever places them.
+## The file, its level, and whether it goes on. Levels live here rather than on the
+## components: they are a property of the recording, not of whoever places it.
 const BANK := {
 	&"carriage_rumble": {"file": "carriage_rumble", "db": -16.0, "loops": true},
 	&"rail_joints": {"file": "rail_joints", "db": -13.0, "loops": true},
@@ -35,28 +29,28 @@ const BANK := {
 	&"door_shut": {"file": "door_shut", "db": -7.0, "loops": false},
 	&"door_locked": {"file": "door_locked", "db": -9.0, "loops": false},
 	&"paper": {"file": "paper", "db": -10.0, "loops": false},
+	&"sit": {"file": "sit", "db": -13.0, "loops": false},
+	&"rise": {"file": "rise", "db": -13.0, "loops": false},
+	&"verdict_right": {"file": "verdict_right", "db": -6.0, "loops": false},
+	&"verdict_wrong": {"file": "verdict_wrong", "db": -6.0, "loops": false},
 }
 
 ## Everything goes to SFX, which is the bus the options menu already has a slider for.
 const BUS := &"SFX"
 
-## How many one-shots can be in the air at once. Small on purpose: past a handful the
-## mix is mud, and the eleventh footstep in a frame is one nobody can pick out of the
-## ten before it.
+## One-shots in the air at once. Small: past a handful the mix is mud.
 const VOICES := 12
 
-## How far through its swing a leaf has to get before it counts as having opened, and
-## how far back before it counts as having shut. Two thresholds rather than one, so a
-## door resting near the middle does not bang open and shut every frame it wobbles.
+## Two thresholds rather than one, so a leaf resting near the middle does not bang
+## open and shut every frame it wobbles.
 const SWUNG_OPEN := 0.55
 const SWUNG_SHUT := 0.15
 
-## Where the players are parented. Handed in like [SCastBody]'s root, because a system
-## does not own a place in the tree.
+## Where the players are parented; a system does not own a place in the tree.
 var sound_root: Node3D
 
-## Off by default so a headless run makes no sound and asks the audio driver for
-## nothing. The tests set it: what they check is the decisions, not the noise.
+## Off in a headless run, which has no audio driver to ask. The tests check the
+## decisions, not the noise.
 var enabled: bool = true
 
 var _streams: Dictionary = {}
@@ -66,6 +60,10 @@ var _next_voice := 0
 ## One player per entity that is making a continuous sound, and the key it was started
 ## on, so a carriage that changes what it sounds like is restarted rather than left.
 var _looping: Dictionary = {}
+
+## What each body was last doing, by entity. A sit is heard on the crossing into the
+## one-shot posture, not for every frame it runs.
+var _posture_was: Dictionary = {}
 
 ## What the leaf was doing last time it was looked at, by door. A door is heard on the
 ## crossing rather than on the state, and the state is all a component holds.
@@ -78,16 +76,16 @@ var _door_was_open: Dictionary = {}
 var _at_hand: AudioStreamPlayer
 
 
-## Held so the two bus subscriptions can be taken off again. A callable that captured
-## this system and outlived it is a lambda holding a freed object, which the bus goes on
-## calling every time a door is tried for the rest of the process.
+## Held so the subscriptions can be taken off again: a callable that captured this
+## system and outlived it is the bus calling a freed object for the rest of the run.
 var _listens: Dictionary = {}
 
 
 func _on_enter(w: ECSWorld) -> void:
 	for key: StringName in BANK:
 		_streams[key] = _load(key)
-	for event: StringName in [GameEvents.DOOR_STATE, GameEvents.NOTICE_READ]:
+	for event: StringName in [GameEvents.DOOR_STATE, GameEvents.NOTICE_READ,
+			GameEvents.VERDICT]:
 		var listener := func(e: GameEvent) -> void: heard(e, event)
 		_listens[event] = listener
 		w.add_callable(event, listener)
@@ -111,11 +109,9 @@ func _on_exit(w: ECSWorld) -> void:
 		_release(id)
 
 
-## The looping streams are told to loop here rather than in an import setting, because
-## the import is written by whoever added the file and this is the only place that
-## knows which of them is a bed and which is a bang. A stream that is not marked comes
-## back as a two-second rumble followed by silence, which reads as the engine cutting
-## out.
+## Loops are marked here rather than in the import, which is written by whoever adds
+## the file: this is the only place that knows a bed from a bang. Unmarked, a rumble
+## plays for two seconds and stops, which reads as the engine cutting out.
 func _load(key: StringName) -> AudioStream:
 	var path := "%s/%s.wav" % [BANK_DIR, BANK[key]["file"]]
 	if not ResourceLoader.exists(path):
@@ -136,12 +132,12 @@ func _on_update(delta: float) -> void:
 	var ear := _listening_from()
 	_keep_the_loops(ear)
 	_walk(delta, ear)
+	_sit(ear)
 	_swing(ear)
 
 
-## Where hearing happens, which is the camera. Null before one exists, and everything
-## downstream treats that as nothing being close enough to hear -- which is true: there
-## is nobody there.
+## Where hearing happens. Nothing before a camera exists, which everything downstream
+## reads as nobody being near enough to hear -- true, because there is nobody there.
 func _listening_from() -> Vector3:
 	for eye: CCamera in view(&"CCamera"):
 		if eye.camera != null:
@@ -150,10 +146,8 @@ func _listening_from() -> Vector3:
 
 
 ## Continuous sounds, started and stopped as they come into and go out of earshot.
-##
-## Stopped rather than turned down. A silent player is a voice held for something that
-## cannot be heard, and ten carriages of held voices is the pool gone before the player
-## has walked anywhere.
+## Stopped rather than turned down: ten carriages of silent players is the pool gone
+## before the player has walked anywhere.
 func _keep_the_loops(ear: Vector3) -> void:
 	var still_going := {}
 	for entry: Dictionary in multi_view([CNoise, ECSViewComponent]):
@@ -201,11 +195,8 @@ func _release(id: int) -> void:
 	_looping.erase(id)
 
 
-## A foot goes down every stride covered, alternating.
-##
-## Distance rather than time, because the walk clips are played at a time scale that
-## answers to speed: a footstep on a timer keeps its rhythm while the legs speed up,
-## and that is heard immediately by somebody not even listening for it.
+## A foot goes down every stride covered, alternating. Distance rather than time --
+## see [CFootsteps].
 func _walk(delta: float, ear: Vector3) -> void:
 	for entry: Dictionary in multi_view([CLocomotion, CFootsteps, CPosture, CCharacterRig]):
 		var feet: CFootsteps = entry[&"CFootsteps"]
@@ -234,6 +225,27 @@ func _walk(delta: float, ear: Vector3) -> void:
 			rig.global_position, feet.gain)
 
 
+## Down onto the cushion and back off it, heard on the crossing into the posture the
+## way a door is: fired every frame it holds, it is a bench sat on forty times.
+func _sit(ear: Vector3) -> void:
+	for entry: Dictionary in multi_view([CPosture, CCharacterRig]):
+		var posture: CPosture = entry[&"CPosture"]
+		var id: int = entry["entity"].get_instance_id()
+		var was: StringName = _posture_was.get(id, &"")
+		if posture.state == was:
+			continue
+		_posture_was[id] = posture.state
+		if posture.state != CPosture.SEATING and posture.state != CPosture.RISING:
+			continue
+		var rig: CharacterRig = entry[&"CCharacterRig"].live()
+		if rig == null:
+			continue
+		if ear == Vector3.INF or ear.distance_to(rig.global_position) > 12.0:
+			continue
+		play(&"sit" if posture.state == CPosture.SEATING else &"rise",
+			rig.global_position)
+
+
 ## A door is heard when the leaf crosses, not while it is across.
 func _swing(ear: Vector3) -> void:
 	for entry: Dictionary in multi_view([CDoor, ECSViewComponent]):
@@ -255,9 +267,8 @@ func _swing(ear: Vector3) -> void:
 			play(&"door_open" if now else &"door_shut", leaf.global_position)
 
 
-## One sound, somewhere. Voices are taken round the ring rather than searched for a
-## free one: past a handful of overlapping one-shots the mix is mud anyway, so the
-## twelfth footstep in a frame cutting the first is the right thing to happen.
+## One sound, somewhere. Voices go round the ring rather than being searched for a
+## free one: the twelfth footstep in a frame cutting the first is the right outcome.
 func play(key: StringName, at: Vector3, gain: float = 1.0) -> void:
 	if not enabled or _voices.is_empty() or not _streams.has(key):
 		return
@@ -269,9 +280,8 @@ func play(key: StringName, at: Vector3, gain: float = 1.0) -> void:
 	voice.play()
 
 
-## Something the player did, heard at the player. Their hand on a handle that will not
-## turn, their own sheet off the wall: the source is where they are standing, and a
-## positional voice there is a voice fighting its own falloff for no reason.
+## Something the player did, heard at the player: their hand on a handle that will not
+## turn. A positional voice at the listener fights its own falloff for nothing.
 func at_hand(key: StringName) -> void:
 	if not enabled or _at_hand == null or not _streams.has(key):
 		return
@@ -280,11 +290,22 @@ func at_hand(key: StringName) -> void:
 	_at_hand.play()
 
 
-## The two things that are events rather than states. A refused door does not move, so
-## there is no crossing to read it off afterwards; a notice coming off the wall is the
-## player's doing rather than the sheet's.
+## What is an event rather than a state, and so has no crossing to be read off.
 func heard(event: GameEvent, name: StringName) -> void:
 	if name == GameEvents.DOOR_STATE and event.data.get("locked", false):
 		at_hand(&"door_locked")
 	elif name == GameEvents.NOTICE_READ:
 		at_hand(&"paper")
+	elif name == GameEvents.VERDICT:
+		_ring_the_bell(event.data)
+
+
+## The envelope, opened: a bell in tune with itself, or the same bell with a crack in
+## it. Whether they were right is worked out here rather than sent, for the reason
+## React works it out too -- the answer and its comparison are one fact, and two copies
+## of it can disagree.
+func _ring_the_bell(said: Dictionary) -> void:
+	var right: bool = said.get("who", "") == said.get("named_who", "") \
+		and said.get("weapon", "") == said.get("named_weapon", "") \
+		and said.get("room", "") == said.get("named_room", "")
+	at_hand(&"verdict_right" if right else &"verdict_wrong")

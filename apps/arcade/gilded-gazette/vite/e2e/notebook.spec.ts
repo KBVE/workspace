@@ -156,3 +156,37 @@ test('marks survive the board being closed', async ({ page }) => {
   await page.getByTestId('open-dossier').click();
   await expect(marked).toHaveAttribute('data-mark', 'out');
 });
+
+/**
+ * The board is built out of what people say, and what they say is drawn per run: the
+ * engine has to send it, because the compiled content holds every account a passenger
+ * might have given and nothing about which one they did. Left unsent, the board shows
+ * an empty train and a reader has nothing to reason about until they have walked the
+ * whole of it themselves.
+ */
+test('the board knows where people say they were', async ({ page }) => {
+  await booted(page);
+  await page.getByTestId('open-dossier').click();
+
+  const rooms = page.getByTestId('dossier-rooms');
+  await expect(rooms).toBeVisible();
+  await expect
+    .poll(async () => (await rooms.locator('dd').allInnerTexts()).filter((t) => t !== 'empty').length)
+    .toBeGreaterThan(0);
+});
+
+/**
+ * And it marks it as testimony rather than as evidence. A claim the board drew solid
+ * would be the reader told they had seen something they were only told.
+ */
+test('what a passenger claims is drawn hollow', async ({ page }) => {
+  await booted(page);
+  await page.getByTestId('open-dossier').click();
+
+  const named = page.getByTestId('dossier-manifest').locator('button').first();
+  await named.click();
+
+  const trail = page.getByTestId('dossier-trail');
+  await expect(trail).toBeVisible();
+  await expect.poll(async () => trail.locator('li[data-source="claimed"]').count()).toBeGreaterThan(0);
+});
