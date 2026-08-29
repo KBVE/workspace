@@ -18,17 +18,14 @@ class RuneLiteClient:
         env = os.environ.copy()
         env["DISPLAY"] = self.display
 
-        # Schedule the subprocess to run in the background without waiting for it
         asyncio.create_task(self._run_subprocess_in_background(env))
 
-        # Return immediately
         return "RuneLite is starting in the background."
 
     async def _run_subprocess_in_background(self, env):
         try:
             max_memory = "512m"
             initial_memory = "256m"
-            # Run the subprocess in a thread pool without blocking the main coroutine
             await asyncio.to_thread(
                 subprocess.run,
                 [
@@ -46,7 +43,6 @@ class RuneLiteClient:
 
     async def stop_runelite_async(self):
         try:
-            # Use pkill to terminate the process by its name or part of the name
             await asyncio.to_thread(subprocess.run, ["pkill", "java"])
             logger.info("RuneLite stopped successfully.")
             return "RuneLite stopped successfully."
@@ -55,23 +51,19 @@ class RuneLiteClient:
             return f"Failed to stop RuneLite: {e}"
 
     async def start_and_configure_runelite(self):
-        # Start RuneLite client
         start_message = await self.start_runelite_async()
         logger.info(start_message)
 
         # Wait for a reasonable amount of time for RuneLite to create profiles.json
         await asyncio.sleep(60)  # Adjust the sleep time as necessary
 
-        # Define the URLs and file paths
         url = 'https://kbve.com/data/outpost/runelite/default.properties'
         profiles_json_path = os.path.expanduser('~/.runelite/profiles2/profiles.json')
         destination_dir = os.path.expanduser('~/.runelite/profiles2/')
 
-        # Read the profiles.json file
         try:
             with open(profiles_json_path, 'r') as f:
                 profiles_data = json.load(f)
-                # Assuming we want to use the ID from the first profile entry
                 profile_id = profiles_data['profiles'][1]['id']
         except FileNotFoundError:
             logger.error(f"profiles.json not found at {profiles_json_path}")
@@ -82,11 +74,9 @@ class RuneLiteClient:
             await self.stop_runelite_async()
             return "Failed: Error reading or parsing profiles.json"
 
-        # Create the new file name
         new_file_name = f"default-{profile_id}.properties"
         new_file_path = os.path.join(destination_dir, new_file_name)
 
-        # Download the default.properties file
         response = requests.get(url)
         if response.status_code == 200:
             default_properties = response.text
@@ -95,7 +85,6 @@ class RuneLiteClient:
             await self.stop_runelite_async()
             return f"Failed to download default.properties. Status code: {response.status_code}"
 
-        # Write the downloaded content to the new file
         try:
             with open(new_file_path, 'w') as f:
                 f.write(default_properties)
@@ -105,7 +94,6 @@ class RuneLiteClient:
             await self.stop_runelite_async()
             return f"Failed to write the file: {e}"
 
-        # Stop RuneLite client
         stop_message = await self.stop_runelite_async()
         logger.info(stop_message)
 
@@ -121,7 +109,6 @@ class RuneLiteClient:
         Returns a status message based on whether the process is found.
         """
         try:
-            # Use `pgrep` to find the process by its name
             result = subprocess.run(
                 ["pgrep", "-f", "runelite.jar"],
                 stdout=subprocess.PIPE,
@@ -129,7 +116,6 @@ class RuneLiteClient:
                 text=True
             )
 
-            # Check if any process ID was found
             if result.stdout.strip():
                 logger.info("RuneLite is currently running.")
                 return "RuneLite is running."

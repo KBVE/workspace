@@ -34,10 +34,8 @@ except ImportError:
     print("Error: PyYAML is required. Install with: pip install pyyaml")
     sys.exit(1)
 
-# Schema version
 SCHEMA_VERSION = "v1"
 
-# Category mapping based on directory structure and common patterns
 CATEGORY_MAPPING = {
     "agones": "game-server",
     "rows": "game-server",
@@ -77,7 +75,6 @@ CATEGORY_MAPPING = {
     "elk": "observability",
 }
 
-# Stack mapping
 STACK_MAPPING = {
     "agones": "agones",
     "rows": "rows",
@@ -98,7 +95,6 @@ STACK_MAPPING = {
     "github": "github-actions",
 }
 
-# Deployment model detection patterns
 DEPLOYMENT_MODEL_PATTERNS = {
     "multi-tenant-overlay": r"/tenants/overlays/",
     "kustomize-overlay": r"/overlays/",
@@ -152,13 +148,10 @@ class AnnotationManager:
         relative_path = file_path.relative_to(self.apps_dir.parent)
         source_path = str(relative_path.parent)
 
-        # Get manifest path from spec.source.path or use source_path
         manifest_path = app_data.get("spec", {}).get("source", {}).get("path", source_path)
 
-        # Determine category and stack
         parts = source_path.split("/")
 
-        # Check parent directories for category hints
         category = "application"  # default
         stack = "core"  # default
 
@@ -172,14 +165,12 @@ class AnnotationManager:
                 stack = STACK_MAPPING[part]
                 break
 
-        # Detect deployment model
         deployment_model = None
         for model, pattern in DEPLOYMENT_MODEL_PATTERNS.items():
             if re.search(pattern, str(relative_path)):
                 deployment_model = model
                 break
 
-        # Extract tenant from path if multi-tenant
         tenant = None
         if "tenants/overlays/" in str(relative_path):
             tenant_match = re.search(r"tenants/overlays/([^/]+)", str(relative_path))
@@ -208,7 +199,6 @@ class AnnotationManager:
         """Validate annotations against schema. Returns (is_valid, errors)."""
         errors = []
 
-        # Required annotations
         required = [
             "kbve.com/source-path",
             "kbve.com/manifest-path",
@@ -221,11 +211,9 @@ class AnnotationManager:
             if req not in annotations:
                 errors.append(f"Missing required annotation: {req}")
 
-        # Check schema version
         if annotations.get("kbve.com/schema-version") != SCHEMA_VERSION:
             errors.append(f"Invalid schema version: {annotations.get('kbve.com/schema-version')}")
 
-        # Check managed-by
         if annotations.get("kbve.com/managed-by") != "argocd":
             errors.append(f"Invalid managed-by value: {annotations.get('kbve.com/managed-by')}")
 
@@ -237,21 +225,17 @@ class AnnotationManager:
         if not app_data:
             return False
 
-        # Check if it's an ArgoCD Application
         if app_data.get("kind") != "Application":
             return False
 
         metadata = app_data.get("metadata", {})
         existing_annotations = metadata.get("annotations", {})
 
-        # Extract expected annotations
         expected = self.extract_metadata(file_path, app_data)
 
-        # Check if already has annotations
         has_schema = "kbve.com/schema-version" in existing_annotations
 
         if has_schema:
-            # Validate existing
             is_valid, errors = self.validate_annotations(existing_annotations)
             if is_valid:
                 self.stats["annotated"] += 1
@@ -262,12 +246,10 @@ class AnnotationManager:
                     print(f"    - {error}")
                 self.stats["invalid"] += 1
 
-        # Add/update annotations
         if not dry_run:
             if "annotations" not in metadata:
                 metadata["annotations"] = {}
 
-            # Merge annotations (expected overwrites existing for kbve.com/* keys)
             for key, value in expected.items():
                 metadata["annotations"][key] = value
 

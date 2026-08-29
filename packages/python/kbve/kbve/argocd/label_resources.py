@@ -32,7 +32,6 @@ except ImportError:
     print("Error: PyYAML is required. Install with: pip install pyyaml")
     sys.exit(1)
 
-# Resource kinds that should receive labels
 LABELABLE_KINDS = {
     "Deployment",
     "StatefulSet",
@@ -46,14 +45,12 @@ LABELABLE_KINDS = {
     "PersistentVolumeClaim",
 }
 
-# Labels to propagate from ArgoCD Application annotations
 PROPAGATE_ANNOTATIONS = [
     "kbve.com/category",
     "kbve.com/stack",
     "kbve.com/managed-by",
 ]
 
-# Optional labels to propagate if present
 OPTIONAL_ANNOTATIONS = [
     "kbve.com/tenant",
     "kbve.com/deployment-model",
@@ -81,7 +78,6 @@ class ResourceLabeler:
         """Find all Kubernetes manifest YAML files for an application."""
         manifests = []
 
-        # Common manifest directory patterns
         manifest_dirs = [
             app_dir / "manifests",
             app_dir / "manifest",
@@ -90,7 +86,6 @@ class ResourceLabeler:
 
         for manifest_dir in manifest_dirs:
             if manifest_dir.exists() and manifest_dir.is_dir():
-                # Find all yaml files
                 manifests.extend(manifest_dir.glob("*.yaml"))
                 manifests.extend(manifest_dir.glob("*.yml"))
 
@@ -139,14 +134,12 @@ class ResourceLabeler:
         """Extract labels to propagate from ArgoCD annotations."""
         labels = {}
 
-        # Add required labels
         for annotation_key in PROPAGATE_ANNOTATIONS:
             if annotation_key in annotations:
                 # Convert annotation key to label key (same format for kbve.com/*)
                 label_key = annotation_key
                 labels[label_key] = annotations[annotation_key]
 
-        # Add optional labels if present
         for annotation_key in OPTIONAL_ANNOTATIONS:
             if annotation_key in annotations:
                 label_key = annotation_key
@@ -167,7 +160,6 @@ class ResourceLabeler:
         metadata = resource.get("metadata", {})
         existing_labels = metadata.get("labels", {})
 
-        # Check if any labels need to be added or updated
         modified = False
         for key, value in labels.items():
             if key not in existing_labels or existing_labels[key] != value:
@@ -175,11 +167,9 @@ class ResourceLabeler:
                 break
 
         if modified:
-            # Ensure labels dict exists
             if "labels" not in metadata:
                 metadata["labels"] = {}
 
-            # Apply labels
             for key, value in labels.items():
                 metadata["labels"][key] = value
 
@@ -214,7 +204,6 @@ class ResourceLabeler:
                 modified += 1
 
         if modified > 0 and not dry_run:
-            # Write back the file
             if self.write_yaml_file(manifest_file, documents):
                 print(f"✅ Updated {manifest_file.relative_to(self.apps_dir.parent)} ({modified}/{total} resources)")
             else:
@@ -229,22 +218,18 @@ class ResourceLabeler:
         app_dir = app_file.parent
         app_name = app_file.parent.name
 
-        # Read ArgoCD annotations
         annotations = self.read_argocd_annotations(app_file)
         if not annotations:
             return {"skipped": True, "reason": "No annotations"}
 
-        # Extract labels to propagate
         labels = self.extract_labels_from_annotations(annotations)
         if not labels:
             return {"skipped": True, "reason": "No kbve.com annotations"}
 
-        # Find manifest files
         manifest_files = self.find_manifest_files(app_dir)
         if not manifest_files:
             return {"skipped": True, "reason": "No manifest files"}
 
-        # Process each manifest file
         total_resources = 0
         modified_resources = 0
 
