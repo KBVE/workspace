@@ -441,7 +441,11 @@ const CAST := {
 	},
 	## The company's dark blue, worn to the shine at the elbows. The gorget stands in
 	## for a uniform collar, which is the only piece in the pack that reads as one.
+	## Walks it formally, hands behind his back, and has done for thirty years. The one
+	## man aboard whose bearing is worth a clip of its own: everybody else is a
+	## passenger going somewhere, and he is the train.
 	&"moreau": {
+		"bearing": &"formal",
 		"stature_metres": 1.74,
 		"body": &"regular_male",
 		"outfit": &"male_noble",
@@ -700,6 +704,7 @@ static func appearance_of(content_id: StringName) -> CAppearance:
 	# which is how the conductor gets trousers that are not the coat's.
 	for slot: StringName in written.get("parts", {}):
 		appearance.parts[slot] = written["parts"][slot]
+	appearance.bearing = written.get("bearing", &"plain")
 	appearance.hair = written.get("hair", &"")
 	appearance.beard = written.get("beard", &"")
 	appearance.stature_metres = written.get("stature_metres",

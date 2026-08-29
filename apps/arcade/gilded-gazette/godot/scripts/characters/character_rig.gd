@@ -22,6 +22,7 @@ const MODEL_FACES_BACKWARD_DEGREES := 180.0
 
 const IDLE_CLIP := "Idle"
 const WALK_FORWARD_CLIP := "Walk_Fwd"
+const WALK_FORMAL_CLIP := "Walk_Formal"
 const WALK_BACKWARD_CLIP := "Walk_Bwd"
 const WALK_LEFT_CLIP := "Walk_L"
 const WALK_RIGHT_CLIP := "Walk_R"
@@ -44,6 +45,14 @@ const SEATED_TALKING_CLIP := "Sitting_Talking"
 const SEATING_CLIP := "Sitting_Enter"
 const RISING_CLIP := "Sitting_Exit"
 const DEAD_CLIP := "Death01"
+
+## Bearing to the clip walked forward on. Only the forward point of the blend space
+## changes: a man carrying himself formally still sidesteps and backs up like anybody
+## else, and swapping all nine would be nine clips to bake for one that is ever seen.
+const WALK_CLIP_BY_BEARING := {
+	&"plain": WALK_FORWARD_CLIP,
+	&"formal": WALK_FORMAL_CLIP,
+}
 
 const BLEND_POSITION_PARAMETER := "parameters/gait/blend_position"
 const TIME_SCALE_PARAMETER := "parameters/pace/scale"
@@ -86,6 +95,10 @@ static var _tinted_materials: Dictionary = {}
 
 @export var animation_library_path := "res://assets/player/animations/player_animations.res"
 @export var animation_library_name := &"player"
+
+## Which clip the forward point of the blend space plays, by [member CAppearance.bearing].
+## Left plain on anybody nobody has said otherwise about, the player included.
+@export var forward_walk_clip := WALK_FORWARD_CLIP
 
 @export var head_bone_name: StringName = &"Head"
 
@@ -133,6 +146,7 @@ static func from_appearance(rolled: CAppearance) -> CharacterRig:
 	var rig := CharacterRig.new()
 	rig.appearance = rolled
 	rig.body_model = load(Wardrobe.kit_path(Wardrobe.body_model_of(rolled)))
+	rig.forward_walk_clip = WALK_CLIP_BY_BEARING.get(rolled.bearing, WALK_FORWARD_CLIP)
 	for piece: Dictionary in Wardrobe.pieces_of(rolled):
 		rig.outfit_pieces.append(load(Wardrobe.kit_path(piece["model"])))
 		rig.outfit_tints.append(Wardrobe.tint_of(rolled, piece["slot"]))
@@ -286,7 +300,7 @@ func _build_animation() -> void:
 	gait.max_space = Vector2(1.0, 1.0)
 	gait.sync = true
 	gait.add_blend_point(_clip(IDLE_CLIP), Vector2.ZERO, -1, &"standing")
-	gait.add_blend_point(_clip(WALK_FORWARD_CLIP), Vector2(0.0, 1.0), -1, &"forward")
+	gait.add_blend_point(_clip(forward_walk_clip), Vector2(0.0, 1.0), -1, &"forward")
 	gait.add_blend_point(_clip(WALK_BACKWARD_CLIP), Vector2(0.0, -1.0), -1, &"backward")
 	gait.add_blend_point(_clip(WALK_LEFT_CLIP), Vector2(-1.0, 0.0), -1, &"left")
 	gait.add_blend_point(_clip(WALK_RIGHT_CLIP), Vector2(1.0, 0.0), -1, &"right")

@@ -213,3 +213,34 @@ func test_no_two_passengers_are_wearing_the_same_thing() -> void:
 			"%s is wearing exactly what %s is wearing" % [id, worn.get(silhouette, "")]
 		).is_false()
 		worn[silhouette] = id
+
+
+## How somebody walks, which is a thing about the person rather than about where they
+## are going. Only the conductor has one: everybody else is a passenger going
+## somewhere, and he is the train.
+func test_the_conductor_walks_the_train_formally() -> void:
+	var appearance := Wardrobe.appearance_of(&"moreau")
+	assert_str(appearance.bearing).is_equal(&"formal")
+	assert_str(CharacterRig.WALK_CLIP_BY_BEARING[appearance.bearing]).override_failure_message(
+		"the conductor's bearing does not name a clip, so he walks like everybody else"
+	).is_equal(CharacterRig.WALK_FORMAL_CLIP)
+
+
+func test_everybody_else_walks_plainly() -> void:
+	for passenger: Dictionary in GameContent.passengers():
+		var id := StringName(passenger.get("id", ""))
+		if id == Session.ROUNDS_OF_THE_TRAIN:
+			continue
+		assert_str(Wardrobe.appearance_of(id).bearing).override_failure_message(
+			"%s carries themselves like the conductor" % id).is_equal(&"plain")
+
+
+## The bearing has to name a clip the kit actually baked, or the rig quietly builds a
+## blend space with a null at the forward point and the legs stop moving.
+func test_every_bearing_names_a_clip() -> void:
+	var library: AnimationLibrary = load(
+		"res://assets/player/animations/player_animations.res")
+	for bearing: StringName in CharacterRig.WALK_CLIP_BY_BEARING:
+		var clip: String = CharacterRig.WALK_CLIP_BY_BEARING[bearing]
+		assert_bool(library.has_animation(clip)).override_failure_message(
+			"bearing '%s' names %s, which is not in the kit" % [bearing, clip]).is_true()

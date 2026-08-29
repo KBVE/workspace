@@ -31,6 +31,9 @@ const CLIPS_BY_SOURCE := {
 		## the thing anybody notices first, and the plain Idle at the middle of the
 		## blend space is the only thing a stopped body had to do until these.
 		"Idle_LookAround", "Idle_Tired", "Idle_Talking",
+		## Hands behind the back, chin level: thirty years of walking the same corridor,
+		## which is the one thing about the conductor nobody disputes.
+		"Walk_Formal",
 		"Sitting_Idle", "Sitting_Idle02", "Sitting_Idle03", "Sitting_Nodding",
 		"Sitting_Talking", "Sitting_Enter", "Sitting_Exit",
 		## Played once and left on its last frame, which is a body on the floor.

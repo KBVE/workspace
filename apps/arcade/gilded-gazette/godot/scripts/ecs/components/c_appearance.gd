@@ -22,6 +22,15 @@ var outfit: StringName = &"male_peasant"
 ## suit, and cannot be a suit that would look like a costume change at the waist.
 var parts: Dictionary = {}
 
+## How this character carries themselves when they walk, as a key into
+## [constant CharacterRig.WALK_CLIP_BY_BEARING].
+##
+## Appearance rather than errand, because it is a thing about the person and not about
+## where they are going: the conductor walks the length of the train formally whether
+## he is on his rounds or crossing to the kitchen, and a passenger who took his route
+## would not walk it his way.
+var bearing: StringName = &"plain"
+
 ## Key into [constant Wardrobe.HAIR], or empty for none. Cleared when something worn
 ## on the head would grow through it.
 var hair: StringName = &""
