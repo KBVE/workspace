@@ -9,3 +9,5 @@ descriptor.binpb
 verify/csharp/bin/
 verify/csharp/obj/
 verify/rust/target/
+verify/ts/src/
+verify/csharp/*.cs
