@@ -13,6 +13,7 @@ rust-version.workspace = true
 # repository, and rustc never opens a module that is cfg'd out. Turning this on
 # without the key fails to compile, which is the honest outcome.
 default = []
+trees = []
 units = []
 water = []
 
