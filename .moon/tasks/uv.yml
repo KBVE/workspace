@@ -38,10 +38,18 @@ fileGroups:
 
 tasks:
   install:
-    # --all-extras because a test suite imports every module a package has,
-    # including the ones behind optional extras. What a consumer installs is a
-    # different question, and the wheel gate is where that is checked.
-    command: 'uv sync --all-extras --dev'
+    # The dev group and nothing else. Extras are per-project: a test suite
+    # usually does need the modules behind them, but "all of them" is not a
+    # safe default at this level -- one package's extras are pillow and numpy,
+    # another's are opencv and a browser automation stack, and a shared
+    # --all-extras would make cloning the repo pay for the worst case.
+    #
+    # A project that needs them extends this task with its own args:
+    #
+    #   tasks:
+    #     install:
+    #       args: ['--all-extras']        # or ['--extra', 'server']
+    command: 'uv sync --dev'
     toolchains: ['system']
     inputs: ['@group(manifests)']
     options:

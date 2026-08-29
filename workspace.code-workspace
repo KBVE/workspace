@@ -11,11 +11,32 @@
       "**/target": true,
       "**/.moon/cache": true,
       "**/dist": true,
-      "**/packages/protobuf/gen": true
+      "**/packages/protobuf/gen": true,
+      // uv builds these from uv.lock, so they are derived state the way
+      // node_modules is -- and they are not small. kbve's is 124MB installed;
+      // a package with an opencv or browser-automation extra is several times
+      // that. Left visible, the file watcher and every search walk all of it.
+      "**/.venv": true,
+      "**/__pycache__": true,
+      "**/.pytest_cache": true,
+      // Task output: coverage XML and junit, rewritten on every test run.
+      "**/reports": true
     },
     "search.exclude": {
       "**/pnpm-lock.yaml": true,
+      // Same reason as pnpm-lock: resolved dependency graphs are noise in
+      // results, and these are 180KB and 300KB respectively.
+      "**/uv.lock": true,
       "**/packages/protobuf/gen": true
+    },
+    "files.watcherExclude": {
+      // files.exclude hides these; it does not stop the watcher on every
+      // editor. Watching a venv is what makes a low-end machine struggle after
+      // the first `moon run` populates it.
+      "**/.venv/**": true,
+      "**/__pycache__/**": true,
+      "**/target/**": true,
+      "**/node_modules/**": true
     },
     "rust-analyzer.linkedProjects": ["Cargo.toml"],
     "editor.formatOnSave": true

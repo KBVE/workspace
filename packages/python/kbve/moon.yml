@@ -35,6 +35,13 @@ fileGroups:
     - 'tests/**/*'
 
 tasks:
+  # The suite imports every module, including the ones behind [server] and
+  # [blender], so this one does want all of them. It costs 12MB over the dev
+  # group alone -- worth stating, because it is the exception rather than what
+  # .moon/tasks/uv.yml gives a project by default.
+  install:
+    args: ['--all-extras']
+
   # The gate a release has to clear, and the only task here that is not
   # inherited. `test` runs against an editable install of the source tree,
   # which is the one arrangement where every path resolves -- it cannot see a
