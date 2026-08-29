@@ -10,7 +10,18 @@
 id: 'kbve-py'
 layer: 'library'
 language: 'python'
-stack: 'backend'
+# Not 'backend', which is what this was and what the server stack still is.
+# That stack is an optional extra now: what `pip install kbve` gives you is the
+# SEO auditor, the ArgoCD annotation passes and the Unreal compile-database
+# tooling. The base install is infrastructure tooling, so the stack says so.
+stack: 'infrastructure'
+
+# Descriptive for now, the way 'proto' is on packages/protobuf: no
+# .moon/tasks/pypi.yml exists yet, so nothing is inherited from it. It is here
+# so the project is discoverable by `moon query projects --tag pypi` alongside
+# the npm and itch publishers, and so the publish task set has something to
+# attach to when release plumbing lands.
+tags: ['pypi']
 
 owners:
   defaultOwner: '@h0lybyte'
@@ -23,6 +34,9 @@ fileGroups:
   manifests:
     - 'pyproject.toml'
     - 'uv.lock'
+    # uv resolves the interpreter from this, so changing it changes every venv
+    # built from these manifests. Left out, a Python bump would not re-sync.
+    - '.python-version'
 
 tasks:
   # moon 2.5 has no built-in python toolchain plugin -- declaring `python:` in
