@@ -29,6 +29,11 @@ pub enum Facing {
 pub enum Action {
     Idle = 0,
     Walk = 1,
+    /// Striking with whatever is in the near hand. A loop rather than a single
+    /// blow: a melee is repeated strikes, and a one-shot would need a start
+    /// time per unit for the shader to measure from. That field earns its keep
+    /// the day a strike has to land on a particular tick, and not before.
+    Attack = 2,
 }
 
 /// What a unit is carrying. One bit each, so kit combines freely -- which is
