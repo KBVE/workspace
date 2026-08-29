@@ -18,7 +18,7 @@ use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 
 mod game;
-#[cfg(any(feature = "units", feature = "water"))]
+#[cfg(any(feature = "trees", feature = "units", feature = "water"))]
 mod private;
 
 use game::core::map::MapSpec;
@@ -27,11 +27,12 @@ use game::core::terrain::SEA_LEVEL;
 use game::systems::camera::CameraPlugin;
 use game::systems::debug::DebugPlugin;
 use game::systems::map::MapPlugin;
+#[cfg(feature = "trees")]
+use private::trees::TreePlugin;
 #[cfg(feature = "units")]
 use private::units::UnitPlugin;
 #[cfg(feature = "units")]
 use private::units::museum::MuseumPlugin;
-use game::systems::trees::TreePlugin;
 use game::systems::ui::UiPlugin;
 
 // The animated surface when the key is present and the feature is on, the flat
@@ -41,16 +42,18 @@ use game::systems::water::WaterPlugin;
 #[cfg(feature = "water")]
 use private::water::WaterPlugin;
 
-/// The unit renderer and its museum, when the key is present and the feature
-/// is on, and nothing at all otherwise.
+/// Everything that is encrypted, when the key is present and the features are
+/// on, and nothing at all otherwise.
 ///
 /// One plugin rather than a cfg at the call site, because a tuple of plugins is
-/// `Plugins` and not `Plugin`, and the two arms would have to be different
-/// types for `main` to name either.
-struct UnitPlugins;
+/// `Plugins` and not `Plugin`, and the arms would have to be different types
+/// for `main` to name any of them.
+struct PrivatePlugins;
 
-impl Plugin for UnitPlugins {
+impl Plugin for PrivatePlugins {
     fn build(&self, app: &mut App) {
+        #[cfg(feature = "trees")]
+        app.add_plugins(TreePlugin);
         #[cfg(feature = "units")]
         app.add_plugins((UnitPlugin, MuseumPlugin));
         let _ = app;
@@ -148,12 +151,11 @@ fn main() {
             CameraPlugin,
             DebugPlugin,
             UiPlugin,
-            TreePlugin,
         ))
         // Encrypted, and so optional. Without the git-crypt key the map, the
-        // camera and the terrain still build and run; there are simply no
-        // units on it.
-        .add_plugins(UnitPlugins)
+        // camera and the terrain still build and run -- a world with no trees
+        // on it and nobody standing about.
+        .add_plugins(PrivatePlugins)
         .add_plugins(water_plugin())
         .run();
 }
