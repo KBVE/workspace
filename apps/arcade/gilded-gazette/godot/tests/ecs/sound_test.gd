@@ -253,6 +253,49 @@ func test_a_loop_out_of_earshot_is_stopped_rather_than_quietened() -> void:
 	sound.enabled = false
 
 
+## Walking the train crosses in and out of earshot constantly. Building and freeing a
+## node per crossing is scene-tree churn for the whole run, on the one platform where
+## that is felt.
+func test_walking_the_train_does_not_build_a_voice_each_time() -> void:
+	var runner := scene_runner(SCENE)
+	await runner.simulate_frames(20)
+	var sound := _sound()
+	sound.enabled = true
+	var entry: Dictionary = Ecs.world.multi_view([CNoise, ECSViewComponent])[0]
+	var at: Node3D = entry[&"ECSViewComponent"].view
+	var away := at.global_position + Vector3.RIGHT * 400.0
+
+	sound._keep_the_loops(at.global_position)
+	var built := sound.sound_root.get_child_count()
+	assert_int(built).is_greater(0)
+
+	for _crossing in range(6):
+		sound._keep_the_loops(away)
+		sound._keep_the_loops(at.global_position)
+
+	assert_int(sound.sound_root.get_child_count()).override_failure_message(
+		"six crossings took the pool from %d players to %d"
+			% [built, sound.sound_root.get_child_count()]).is_equal(built)
+	sound.enabled = false
+
+
+## And what it stops holding is kept rather than freed, which is the whole of why the
+## count above does not move.
+func test_a_bed_out_of_earshot_is_kept_for_the_next_one() -> void:
+	var runner := scene_runner(SCENE)
+	await runner.simulate_frames(20)
+	var sound := _sound()
+	sound.enabled = true
+	var at: Node3D = Ecs.world.multi_view([CNoise, ECSViewComponent])[0][&"ECSViewComponent"].view
+
+	sound._keep_the_loops(at.global_position)
+	assert_int(sound._spare.size()).is_equal(0)
+	sound._keep_the_loops(at.global_position + Vector3.RIGHT * 400.0)
+	assert_int(sound._spare.size()).override_failure_message(
+		"every bed that went out of earshot was thrown away").is_greater(0)
+	sound.enabled = false
+
+
 ## Nobody there is not the same as somebody standing far away, and both are silent.
 func test_nothing_plays_with_nobody_aboard() -> void:
 	var runner := scene_runner(SCENE)

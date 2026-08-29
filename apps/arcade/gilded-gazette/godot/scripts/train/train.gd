@@ -94,6 +94,13 @@ var _run: CRun
 var _jolt_countdown := 0.0
 var _jolt_energy := 0.0
 
+## The rail's own generator. Godot's global one would do, and did, but it is the last
+## thing in gameplay drawing from it -- and a global draw is exactly what stopped
+## [TheNight] being reproducible from its seed. Fixed in a headless run for the same
+## reason the night is: a suite is not a passenger, and a camera that shakes at
+## different moments between runs is one more thing a failing frame test cannot rule out.
+var _rail := RandomNumberGenerator.new()
+
 ## Torn down with the scene. The clock is not here; it lives on [Session].
 var _scope := ECSScope.new()
 
@@ -116,6 +123,10 @@ func _ready() -> void:
 		if a.begins_with("--detail="):
 			var v := a.split("=")[1].split(",")
 			_tune_detail(float(v[0]), float(v[1]), float(v[2]))
+	if DisplayServer.get_name() == "headless":
+		_rail.seed = Session.FIXED_NIGHT
+	else:
+		_rail.randomize()
 	_time_of_day = Session.time_of_day
 	_run = Session.run
 
@@ -273,7 +284,7 @@ func _ready() -> void:
 	Ecs.world.add_callable(GameEvents.UI_ACCUSE, _on_ui_accuse)
 
 	# a full gap, so the run does not open on a knock
-	_jolt_countdown = randf_range(JOLT_GAP.x, JOLT_GAP.y)
+	_jolt_countdown = _rail.randf_range(JOLT_GAP.x, JOLT_GAP.y)
 	_time_of_day.running = _seed_running
 	if is_finite(_seed_phase):
 		_time_of_day.phase = fposmod(_seed_phase, 1.0)
@@ -336,7 +347,7 @@ func _advance_jolt(delta: float) -> void:
 	_jolt_countdown -= delta
 	if _jolt_countdown > 0.0:
 		return
-	_jolt_countdown = randf_range(JOLT_GAP.x, JOLT_GAP.y)
+	_jolt_countdown = _rail.randf_range(JOLT_GAP.x, JOLT_GAP.y)
 	_jolt_energy = 1.0
 
 

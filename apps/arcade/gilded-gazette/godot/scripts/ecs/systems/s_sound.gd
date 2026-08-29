@@ -61,6 +61,15 @@ var _next_voice := 0
 ## on, so a carriage that changes what it sounds like is restarted rather than left.
 var _looping: Dictionary = {}
 
+## Players that were holding a bed and are not any more, kept rather than freed.
+##
+## Walking the train crosses in and out of earshot constantly -- three beds a carriage
+## against a pitch shorter than the range they carry -- so building and freeing a node
+## per crossing is scene-tree churn for the whole run. The one-shots have gone round a
+## ring from the start; the beds used to be the exception, and there was no reason for
+## it beyond their number not being known in advance.
+var _spare: Array[AudioStreamPlayer3D] = []
+
 ## What each body was last doing, by entity. A sit is heard on the crossing into the
 ## one-shot posture, not for every frame it runs.
 var _posture_was: Dictionary = {}
@@ -107,6 +116,7 @@ func _on_exit(w: ECSWorld) -> void:
 	_listens.clear()
 	for id: int in _looping.keys():
 		_release(id)
+	_spare.clear()
 
 
 ## Loops are marked here rather than in the import, which is written by whoever adds
@@ -174,10 +184,8 @@ func _hold(id: int, noise: CNoise, at: Node3D) -> void:
 		_release(id)
 		player = null
 	if player == null:
-		player = AudioStreamPlayer3D.new()
-		player.bus = BUS
+		player = _a_voice()
 		player.stream = _streams.get(noise.sound)
-		sound_root.add_child(player)
 		player.play()
 		_looping[id] = {"player": player, "sound": noise.sound}
 	player.global_position = at.global_position
@@ -186,12 +194,24 @@ func _hold(id: int, noise: CNoise, at: Node3D) -> void:
 	player.volume_db = float(BANK[noise.sound]["db"]) + linear_to_db(maxf(noise.gain, 0.0001))
 
 
+## One off the pile, or a new one when the pile is empty. The pile settles at however
+## many beds are audible at once, which is a property of the train rather than a number
+## anybody has to choose.
+func _a_voice() -> AudioStreamPlayer3D:
+	if not _spare.is_empty():
+		return _spare.pop_back()
+	var player := AudioStreamPlayer3D.new()
+	player.bus = BUS
+	sound_root.add_child(player)
+	return player
+
+
 func _release(id: int) -> void:
 	var held: Dictionary = _looping.get(id, {})
 	var player: AudioStreamPlayer3D = held.get("player")
 	if player != null and is_instance_valid(player):
 		player.stop()
-		player.queue_free()
+		_spare.append(player)
 	_looping.erase(id)
 
 
