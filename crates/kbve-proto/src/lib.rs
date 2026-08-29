@@ -98,3 +98,64 @@ pub mod grpc {
         "kbve/clickhouse/v1/kbve.clickhouse.v1.tonic.rs"
     );
 }
+
+/// Rewrites proto enum value names into their numbers, in place.
+///
+/// Canonical proto JSON writes an enum as its name -- `"WORLD_OBJECT_TYPE_LIGHT"`
+/// -- and the generated Rust types hold an `i32` that serde will not accept a
+/// string for. Content pipelines emit the canonical form, so the choice is
+/// between teaching every loader to read it and asking authors to write
+/// numbers. This is the first.
+///
+/// The rewrite is safe to run over a whole document because a value name
+/// carries its enum's name as a prefix, which the linter enforces, so a name
+/// that resolves belongs to exactly one enum. Strings that resolve to nothing
+/// are left alone -- a ULID looks like an enum name to a regular expression
+/// and like nothing at all to a resolver.
+pub fn json_enum_names_to_numbers(
+    value: &mut serde_json::Value,
+    resolve: &dyn Fn(&str) -> Option<i32>,
+) {
+    match value {
+        serde_json::Value::String(name) => {
+            if let Some(number) = resolve(name) {
+                *value = serde_json::Value::from(number);
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                json_enum_names_to_numbers(item, resolve);
+            }
+        }
+        serde_json::Value::Object(fields) => {
+            for (_, field) in fields.iter_mut() {
+                json_enum_names_to_numbers(field, resolve);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Builds a resolver for [`json_enum_names_to_numbers`] from a list of enums.
+///
+/// ```rust,ignore
+/// let resolve = kbve_proto::enum_resolver!(map::WorldObjectType, map::ZoneType);
+/// kbve_proto::json_enum_names_to_numbers(&mut value, &resolve);
+/// ```
+///
+/// An enum left off the list is not silently ignored: its names stay strings,
+/// and deserialising into an `i32` field then fails with the name in the error.
+/// That is the intended failure -- loud, and naming the thing to add.
+#[macro_export]
+macro_rules! enum_resolver {
+    ($($ty:ty),+ $(,)?) => {
+        |name: &str| -> Option<i32> {
+            $(
+                if let Some(value) = <$ty>::from_str_name(name) {
+                    return Some(value as i32);
+                }
+            )+
+            None
+        }
+    };
+}

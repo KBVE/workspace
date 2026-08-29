@@ -6,7 +6,18 @@ use bevy::prelude::*;
 use prost::Message;
 
 use crate::context::DialogueContext;
-use crate::proto::{DialogueChoice, DialogueGraph, DialogueNode, DialogueNodeKind, dialogue};
+use crate::proto::{
+    DialogueChoice, DialogueEffectKind, DialogueGraph, DialogueNode, DialogueNodeKind, dialogue,
+};
+
+/// The enums in `kbve.dialogue.v1`, for resolving canonical proto JSON.
+///
+/// Listed by hand because nothing enumerates a package's enums at runtime. An
+/// enum left off fails loudly: its names stay strings and the deserializer
+/// reports the one it could not read.
+fn dialogue_enum_resolver() -> impl Fn(&str) -> Option<i32> {
+    kbve_proto::enum_resolver!(DialogueNodeKind, DialogueEffectKind)
+}
 
 /// A choice as it should be presented.
 ///
@@ -49,7 +60,13 @@ impl DialogueDb {
     /// registry envelope, because the envelope's provenance is not something a
     /// hand-authored file has.
     pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
-        let graphs: Vec<DialogueGraph> = serde_json::from_str(json)?;
+        let mut value: serde_json::Value = serde_json::from_str(json)?;
+        // Canonical proto JSON writes an enum as its name and the generated
+        // fields hold an i32, so the names are rewritten before deserializing.
+        // Dialogue is hand-authored -- DIALOGUE_NODE_KIND_CHOICE is what an
+        // author writes and 2 is what they would have to look up.
+        kbve_proto::json_enum_names_to_numbers(&mut value, &dialogue_enum_resolver());
+        let graphs: Vec<DialogueGraph> = serde_json::from_value(value)?;
         let mut db = Self::default();
         for graph in graphs {
             db.insert(graph);

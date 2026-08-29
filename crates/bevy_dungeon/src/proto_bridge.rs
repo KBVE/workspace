@@ -95,16 +95,16 @@ static LANDMARK_BUCKETS: LazyLock<LandmarkBuckets> = LazyLock::new(|| {
         let kind = def.sub_kind.as_deref().unwrap_or("");
         let pair = || (def.r#ref.clone(), def.name.clone());
         match WorldObjectType::try_from(def.r#type).ok() {
-            Some(WorldObjectType::WorldObjectArena) => boss.push(pair()),
-            Some(WorldObjectType::WorldObjectResourceNode) => resource.push(pair()),
+            Some(WorldObjectType::Arena) => boss.push(pair()),
+            Some(WorldObjectType::ResourceNode) => resource.push(pair()),
             // Trading posts are marked as NPC positions rather than buildings.
-            Some(WorldObjectType::WorldObjectNpcMarker) => merchant.push(pair()),
-            Some(WorldObjectType::WorldObjectProp) => match kind {
+            Some(WorldObjectType::NpcMarker) => merchant.push(pair()),
+            Some(WorldObjectType::Prop) => match kind {
                 "shrine" => rest.push(pair()),
                 _ => story.push(pair()),
             },
-            Some(WorldObjectType::WorldObjectSettlement) => underground_city.push(pair()),
-            Some(WorldObjectType::WorldObjectBuilding) => match kind {
+            Some(WorldObjectType::Settlement) => underground_city.push(pair()),
+            Some(WorldObjectType::Building) => match kind {
                 // Trade-flavored buildings → Merchant rooms
                 "market" | "trade-house" | "merchants-guild" | "dusty-bazaar"
                 | "mushroom-bazaar" | "sunken-market" | "wanderers-nook" => merchant.push(pair()),
@@ -113,7 +113,7 @@ static LANDMARK_BUCKETS: LazyLock<LandmarkBuckets> = LazyLock::new(|| {
                 // Story-flavored civic structures
                 _ => story.push(pair()),
             },
-            Some(WorldObjectType::WorldObjectLandmark) => {
+            Some(WorldObjectType::Landmark) => {
                 // Tranquil landmarks tend to feel like rest shrines; the rest is story.
                 match kind {
                     "spring" | "pool" | "shrine" | "alcove" => rest.push(pair()),

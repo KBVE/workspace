@@ -80,8 +80,8 @@ impl MapDb {
     pub fn insert_zone(&mut self, zone: map::Zone) {
         let id = ProtoMapId::from_ref(&zone.r#ref);
         self.zones_by_ref.insert(zone.r#ref.clone(), id);
-        if !zone.id.is_empty() {
-            self.zones_by_ulid.insert(zone.id.clone(), id);
+        if let Some(ulid) = kbve_proto::ulid_text(zone.id.as_ref()) {
+            self.zones_by_ulid.insert(ulid, id);
         }
         self.zones_by_id.insert(id, zone);
     }
@@ -133,8 +133,8 @@ impl MapDb {
     pub fn insert_region(&mut self, region: map::Region) {
         let id = ProtoMapId::from_ref(&region.r#ref);
         self.regions_by_ref.insert(region.r#ref.clone(), id);
-        if !region.id.is_empty() {
-            self.regions_by_ulid.insert(region.id.clone(), id);
+        if let Some(ulid) = kbve_proto::ulid_text(region.id.as_ref()) {
+            self.regions_by_ulid.insert(ulid, id);
         }
         self.regions_by_id.insert(id, region);
     }
@@ -170,8 +170,8 @@ impl MapDb {
     pub fn insert_object_def(&mut self, obj_def: map::WorldObjectDef) {
         let id = ProtoMapId::from_ref(&obj_def.r#ref);
         self.object_defs_by_ref.insert(obj_def.r#ref.clone(), id);
-        if !obj_def.id.is_empty() {
-            self.object_defs_by_ulid.insert(obj_def.id.clone(), id);
+        if let Some(ulid) = kbve_proto::ulid_text(obj_def.id.as_ref()) {
+            self.object_defs_by_ulid.insert(ulid, id);
         }
         self.object_defs_by_id.insert(id, obj_def);
     }
@@ -255,45 +255,66 @@ fn snake_case_keys(value: &mut serde_json::Value) {
     }
 }
 
-/// Enum-valued fields, paired with the prefix their proto value names carry.
+/// Enum-valued fields, paired with the prefixes their value names carry.
 ///
-/// The snapshot is inconsistent about how much of that prefix it writes —
-/// `type` arrives as `WORLD_OBJECT_RESOURCE_NODE` but `interaction` arrives as
-/// a bare `shop` — so both spellings are accepted.
+/// Three spellings reach this, and all three are accepted.
+///
+/// The snapshot is inconsistent about how much of the prefix it writes: `type`
+/// arrives as `WORLD_OBJECT_RESOURCE_NODE` while `interaction` arrives as a
+/// bare `shop`.
+///
+/// On top of that, some names moved. The schema's enum values are prefixed
+/// with the enum's own name now, which the linter requires, so
+/// `WORLD_OBJECT_RESOURCE_NODE` became `WORLD_OBJECT_TYPE_RESOURCE_NODE`. The
+/// content pipeline still emits the old spelling, and will until it is
+/// regenerated against the current schema. Both prefixes are carried here so
+/// the snapshot keeps loading in the meantime; when the pipeline catches up,
+/// the legacy column can go.
 type EnumLookup = fn(&str) -> Option<i32>;
 
-fn enum_lookup(field: &str) -> Option<(EnumLookup, &'static str)> {
-    let entry: (EnumLookup, &'static str) = match field {
+/// A field's lookup, its legacy prefix, and its canonical one.
+type EnumEntry = (EnumLookup, &'static str, &'static str);
+
+fn enum_lookup(field: &str) -> Option<EnumEntry> {
+    let entry: EnumEntry = match field {
         "type" => (
             |n| map::WorldObjectType::from_str_name(n).map(|e| e as i32),
             "WORLD_OBJECT_",
+            "WORLD_OBJECT_TYPE_",
         ),
         "resource_type" => (
             |n| map::ResourceType::from_str_name(n).map(|e| e as i32),
             "RESOURCE_",
+            "RESOURCE_TYPE_",
         ),
         "container_type" => (
             |n| map::ContainerType::from_str_name(n).map(|e| e as i32),
             "CONTAINER_",
+            "CONTAINER_TYPE_",
         ),
         "crafting_station_type" => (
             |n| map::CraftingStationType::from_str_name(n).map(|e| e as i32),
             "CRAFTING_STATION_",
+            "CRAFTING_STATION_TYPE_",
         ),
         "footprint_shape" => (
             |n| map::FootprintShape::from_str_name(n).map(|e| e as i32),
+            "FOOTPRINT_SHAPE_",
             "FOOTPRINT_SHAPE_",
         ),
         "cost_source" => (
             |n| map::CostSource::from_str_name(n).map(|e| e as i32),
             "COST_SOURCE_",
+            "COST_SOURCE_",
         ),
         "kind" => (
             |n| map::ServiceKind::from_str_name(n).map(|e| e as i32),
             "SERVICE_KIND_",
+            "SERVICE_KIND_",
         ),
         "interaction" => (
             |n| map::InteractionKind::from_str_name(n).map(|e| e as i32),
+            "INTERACTION_KIND_",
             "INTERACTION_KIND_",
         ),
         _ => return None,
@@ -305,11 +326,20 @@ fn enum_lookup(field: &str) -> Option<(EnumLookup, &'static str)> {
 /// discriminant. Convert the ones mapdb actually uses, leaving an unrecognised
 /// name in place so the deserializer reports it instead of silently zeroing.
 fn coerce_enum(field: &str, value: &mut serde_json::Value) {
-    let Some((from_name, prefix)) = enum_lookup(field) else {
+    let Some((from_name, legacy, canonical)) = enum_lookup(field) else {
         return;
     };
     let lookup = |name: &str| -> Option<i32> {
-        from_name(name).or_else(|| from_name(&format!("{prefix}{}", name.to_ascii_uppercase())))
+        let upper = name.to_ascii_uppercase();
+        from_name(&upper)
+            // A bare value, e.g. `shop`.
+            .or_else(|| from_name(&format!("{canonical}{upper}")))
+            // The old spelling, re-prefixed with the enum's own name.
+            .or_else(|| {
+                upper
+                    .strip_prefix(legacy)
+                    .and_then(|tail| from_name(&format!("{canonical}{tail}")))
+            })
     };
 
     match value {
@@ -396,6 +426,26 @@ mod json_case_tests {
             .expect("object defs must survive the load");
         assert_eq!(def.name, "Copper Vein");
         assert_eq!(def.sub_kind.as_deref(), Some("copper_ore"));
+    }
+
+    #[test]
+    fn the_snapshots_legacy_enum_spelling_still_resolves() {
+        // The pipeline emits WORLD_OBJECT_RESOURCE_NODE; the schema calls it
+        // WORLD_OBJECT_TYPE_RESOURCE_NODE. This is the case that silently
+        // produced a zero -- an UNSPECIFIED object type -- if it were coerced
+        // by name alone.
+        let json = r#"{
+            "objectDefs": [
+                { "ref": "copper-vein", "name": "Copper Vein", "type": "WORLD_OBJECT_RESOURCE_NODE" }
+            ]
+        }"#;
+        let db = MapDb::from_json(json).expect("the legacy spelling must load");
+        let def = db.get_object_def_by_ref("copper-vein").unwrap();
+        assert_eq!(
+            def.r#type,
+            map::WorldObjectType::ResourceNode as i32,
+            "a resource node must not arrive as UNSPECIFIED"
+        );
     }
 
     #[test]

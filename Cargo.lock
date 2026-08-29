@@ -2720,8 +2720,8 @@ name = "bevy_mapdb"
 version = "0.1.1"
 dependencies = [
  "bevy",
+ "kbve-proto",
  "prost",
- "prost-build",
  "serde",
  "serde_json",
 ]
@@ -7730,6 +7730,7 @@ dependencies = [
  "prost",
  "prost-types",
  "serde",
+ "serde_json",
  "tonic",
  "tonic-prost",
  "ulid",

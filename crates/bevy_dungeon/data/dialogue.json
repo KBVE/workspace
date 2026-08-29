@@ -23,13 +23,13 @@
     "nodes": [
       {
         "id": "first_meeting",
-        "kind": 2,
+        "kind": "DIALOGUE_NODE_KIND_CHOICE",
         "texts": [
           "You stand in a hall of broken glass, and every shard is watching you."
         ],
         "on_enter": [
           {
-            "kind": 2,
+            "kind": "DIALOGUE_EFFECT_KIND_SET_FLAG",
             "flag": "met_shattered_king"
           }
         ],
@@ -49,7 +49,7 @@
       },
       {
         "id": "who_answer",
-        "kind": 1,
+        "kind": "DIALOGUE_NODE_KIND_LINE",
         "texts": [
           "\"A king. Then a mirror. Then this.\""
         ],
@@ -57,7 +57,7 @@
       },
       {
         "id": "again",
-        "kind": 1,
+        "kind": "DIALOGUE_NODE_KIND_LINE",
         "texts": [
           "\"You came back. They rarely come back.\""
         ],
@@ -65,7 +65,7 @@
       },
       {
         "id": "farewell",
-        "kind": 6,
+        "kind": "DIALOGUE_NODE_KIND_END",
         "texts": [
           "The shards turn away from you."
         ]
