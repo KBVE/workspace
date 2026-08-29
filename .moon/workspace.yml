@@ -12,7 +12,6 @@ projects:
     - 'packages/*'
     - '!packages/python'
     - 'crates/*'
-    - 'tools/*'
   sources:
     # windmill is a single project, not a group: the wmill CLI owns the tree
     # under f/, so there is nothing below it to glob.
@@ -36,6 +35,16 @@ projects:
     # would leave this key describing an id the graph does not use. A second
     # python package adds a line here.
     kbve-py: 'packages/python/kbve'
+    # tools/ is mostly shell and node scripts that tasks shell out to --
+    # hooks, itch, lfs, npm, worktree -- and a 'tools/*' glob made a project
+    # out of each of them. moon builds a project for a matched directory
+    # whether or not it holds a moon.yml, so those five turned up in
+    # `moon check --all` and in the CODEOWNERS sync as projects with no tasks.
+    # Naming the three that are real also means a new script directory is not
+    # silently a project.
+    commit: 'tools/commit'
+    labels: 'tools/labels'
+    release: 'tools/release'
 
 codeowners:
   # Ownership is declared per project in its moon.yml and synced here, so it
@@ -104,6 +113,13 @@ experiments:
   casOutputsCache: true
 
 cache:
+  cas:
+    # The store is unbounded by default and was at 1.1G of blobs here. It is
+    # shared across worktrees, so it grows with every branch anyone builds, and
+    # nothing prunes it. A ceiling matters most on the machines least able to
+    # absorb it.
+    maxSize: '4gb'
+
   # Share task outputs across git worktrees.
   #
   # A linked worktree gets its own .moon/cache, so without this every worktree
