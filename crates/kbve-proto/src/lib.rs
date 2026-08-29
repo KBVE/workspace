@@ -12,6 +12,21 @@ include!(concat!(
 
 pub use kbve::*;
 
+/// A ULID's textual form, or `None` when there is not one to render.
+///
+/// The schema carries a ULID as its sixteen bytes rather than its twenty-six
+/// characters, and says the textual encoding belongs at the edges. A registry
+/// looked up by a string out of a content file is such an edge, and five of
+/// them wanted the same four lines, so the conversion lives beside the type it
+/// converts.
+///
+/// Anything that is not exactly sixteen bytes is not a ULID. It is dropped
+/// rather than rendered into something no caller would ever search for.
+pub fn ulid_text(id: Option<&kbve::r#type::v1::Ulid>) -> Option<String> {
+    let bytes: [u8; 16] = id?.value.as_slice().try_into().ok()?;
+    Some(ulid::Ulid::from_bytes(bytes).to_string())
+}
+
 /// The gRPC clients and servers, behind the `grpc` feature.
 ///
 /// The tonic plugin writes these to a file per package and, with `no_include`,

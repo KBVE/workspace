@@ -14,12 +14,10 @@ readme = "README.md"
 
 [dependencies]
 bevy = { workspace = true, features = ["bevy_state"] }
+kbve-proto = { path = "../kbve-proto" }
 prost = { workspace = true, features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-
-[build-dependencies]
-prost-build = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true

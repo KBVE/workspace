@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use prost::Message;
 
-use crate::proto::spell;
+use crate::proto::{Element, Rarity, spell};
 
 /// Stable numeric identifier for a spell, derived from its ref.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -53,8 +53,8 @@ impl SpellDb {
         let name: &'static str = Box::leak(s.name.clone().into_boxed_str());
         self.display_names.insert(id, name);
         self.by_ref.insert(s.r#ref.clone(), id);
-        if !s.id.is_empty() {
-            self.by_ulid.insert(s.id.clone(), id);
+        if let Some(text) = kbve_proto::ulid_text(s.id.as_ref()) {
+            self.by_ulid.insert(text, id);
         }
         self.by_id.insert(id, s);
     }
@@ -87,7 +87,7 @@ impl SpellDb {
     }
 
     /// Find all spells of a given school.
-    pub fn find_by_school(&self, school: spell::SpellSchool) -> Vec<&spell::Spell> {
+    pub fn find_by_school(&self, school: Element) -> Vec<&spell::Spell> {
         self.by_id
             .values()
             .filter(|s| s.school == school as i32)
@@ -95,7 +95,7 @@ impl SpellDb {
     }
 
     /// Find all spells matching a rarity tier.
-    pub fn find_by_rarity(&self, rarity: spell::SpellRarity) -> Vec<&spell::Spell> {
+    pub fn find_by_rarity(&self, rarity: Rarity) -> Vec<&spell::Spell> {
         self.by_id
             .values()
             .filter(|s| s.rarity == rarity as i32)
@@ -117,3 +117,4 @@ impl SpellDb {
         self.by_id.iter().map(|(&id, s)| (id, s))
     }
 }
+

@@ -12,8 +12,8 @@ use std::sync::{Mutex, MutexGuard};
 
 use prost::Message;
 use uniti::ffi_empire::*;
-use uniti::proto::empire::{CityStateRecord, CityStateStatusValue, EmpireSnapshot, Tribute};
-use uniti::proto::kbve::common::{Ulid, Vec2i};
+use uniti::proto::empire::{CityStateRecord, CityStateStatus, EmpireSnapshot, Tribute};
+use uniti::proto::{Ulid, Vec2I};
 
 static STATE_LOCK: Mutex<()> = Mutex::new(());
 
@@ -34,12 +34,24 @@ fn build_snapshot(cities: Vec<CityStateRecord>) -> Vec<u8> {
     buf
 }
 
-fn city(name: &str, mood: u32, status: CityStateStatusValue) -> CityStateRecord {
+/// Sixteen bytes seeded from the name.
+///
+/// The schema carries a ULID as bytes rather than the string this fixture used
+/// to pass. These are not real ULIDs and do not need to be: the tests only
+/// require that two cities have different ids, and a fixed width keeps them
+/// the shape a reader expects.
+fn ulid_bytes(name: &str) -> Vec<u8> {
+    let mut bytes = [0u8; 16];
+    for (slot, byte) in bytes.iter_mut().zip(name.as_bytes()) {
+        *slot = *byte;
+    }
+    bytes.to_vec()
+}
+
+fn city(name: &str, mood: u32, status: CityStateStatus) -> CityStateRecord {
     CityStateRecord {
-        id: Some(Ulid {
-            value: name.to_string(),
-        }),
-        root_hex: Some(Vec2i { x: 0, y: 0 }),
+        id: Some(Ulid { value: ulid_bytes(name) }),
+        root_hex: Some(Vec2I { x: 0, y: 0 }),
         status: status as i32,
         mood,
         drift_per_cadence: 0,
@@ -68,7 +80,7 @@ fn publish_take_round_trip_preserves_payload() {
     let bytes = build_snapshot(vec![city(
         "alpha",
         80,
-        CityStateStatusValue::CityStateStatusAllied,
+        CityStateStatus::Allied,
     )]);
     let ok = unsafe { uniti_empire_publish(bytes.as_ptr(), bytes.len()) };
     assert_eq!(ok, 1);
@@ -78,7 +90,7 @@ fn publish_take_round_trip_preserves_payload() {
     assert_eq!(echoed.cities[0].mood, 80);
     assert_eq!(
         echoed.cities[0].status,
-        CityStateStatusValue::CityStateStatusAllied as i32
+        CityStateStatus::Allied as i32
     );
 }
 
@@ -86,8 +98,8 @@ fn publish_take_round_trip_preserves_payload() {
 fn tick_drifts_mood_toward_neutral() {
     let _g = lock();
     let bytes = build_snapshot(vec![
-        city("hot", 90, CityStateStatusValue::CityStateStatusAllied),
-        city("cold", 10, CityStateStatusValue::CityStateStatusHostile),
+        city("hot", 90, CityStateStatus::Allied),
+        city("cold", 10, CityStateStatus::Hostile),
     ]);
     unsafe { uniti_empire_publish(bytes.as_ptr(), bytes.len()) };
 
@@ -102,7 +114,7 @@ fn tick_drifts_mood_toward_neutral() {
     assert_eq!(cold.mood, 50, "cold city should converge to 50");
     assert_eq!(
         hot.status,
-        CityStateStatusValue::CityStateStatusNeutral as i32,
+        CityStateStatus::Neutral as i32,
         "status should follow into Neutral band"
     );
 }
@@ -111,9 +123,9 @@ fn tick_drifts_mood_toward_neutral() {
 fn tick_skips_sticky_end_states() {
     let _g = lock();
     let bytes = build_snapshot(vec![
-        city("vassal", 60, CityStateStatusValue::CityStateStatusVassal),
-        city("annexed", 90, CityStateStatusValue::CityStateStatusAnnexed),
-        city("razed", 5, CityStateStatusValue::CityStateStatusRazed),
+        city("vassal", 60, CityStateStatus::Vassal),
+        city("annexed", 90, CityStateStatus::Annexed),
+        city("razed", 5, CityStateStatus::Razed),
     ]);
     unsafe { uniti_empire_publish(bytes.as_ptr(), bytes.len()) };
 
@@ -125,7 +137,7 @@ fn tick_skips_sticky_end_states() {
     assert_eq!(snap.cities[0].mood, 60);
     assert_eq!(
         snap.cities[0].status,
-        CityStateStatusValue::CityStateStatusVassal as i32
+        CityStateStatus::Vassal as i32
     );
     assert_eq!(snap.cities[1].mood, 90);
     assert_eq!(snap.cities[2].mood, 5);
@@ -137,7 +149,7 @@ fn tick_increments_generation() {
     let bytes = build_snapshot(vec![city(
         "g",
         50,
-        CityStateStatusValue::CityStateStatusNeutral,
+        CityStateStatus::Neutral,
     )]);
     unsafe { uniti_empire_publish(bytes.as_ptr(), bytes.len()) };
 
@@ -153,7 +165,7 @@ fn async_ticker_drifts_mood_in_background() {
     let bytes = build_snapshot(vec![city(
         "bg",
         90,
-        CityStateStatusValue::CityStateStatusAllied,
+        CityStateStatus::Allied,
     )]);
     unsafe { uniti_empire_publish(bytes.as_ptr(), bytes.len()) };
 
@@ -179,7 +191,7 @@ fn async_ticker_idempotent_start() {
     let bytes = build_snapshot(vec![city(
         "idem",
         50,
-        CityStateStatusValue::CityStateStatusNeutral,
+        CityStateStatus::Neutral,
     )]);
     unsafe { uniti_empire_publish(bytes.as_ptr(), bytes.len()) };
 
@@ -195,7 +207,7 @@ fn async_ticker_idempotent_start() {
 #[test]
 fn tribute_field_round_trips_unchanged() {
     let _g = lock();
-    let mut rec = city("tributary", 50, CityStateStatusValue::CityStateStatusVassal);
+    let mut rec = city("tributary", 50, CityStateStatus::Vassal);
     rec.tribute = Some(Tribute {
         coin_per_turn: 5,
         food_per_turn: 3,

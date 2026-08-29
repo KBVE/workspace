@@ -3160,8 +3160,8 @@ name = "bevy_spells"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "kbve-proto",
  "prost",
- "prost-build",
  "serde",
  "serde_json",
 ]
@@ -7718,6 +7718,7 @@ dependencies = [
  "serde",
  "tonic",
  "tonic-prost",
+ "ulid",
 ]
 
 [[package]]

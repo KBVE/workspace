@@ -73,6 +73,43 @@ plugins:
       - type_attribute=.kbve.groq.v1.GroqChoice=#[derive(serde::Deserialize)]
       - type_attribute=.kbve.groq.v1.GroqUsage=#[derive(serde::Serialize)]
       - type_attribute=.kbve.groq.v1.GroqUsage=#[derive(serde::Deserialize)]
+      # The content domains. Each was a package-wide serde rule in the build
+      # script of the Bevy crate that consumed it, and the registries are
+      # loaded from JSON as well as from the wire, so serde is not optional
+      # for them. common, type and dialogue come along because the domain
+      # types embed them and a derive is only as deriveable as its fields.
+      - type_attribute=.kbve.common.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.common.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.type.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.type.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.dialogue.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.dialogue.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.item.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.item.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.npc.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.npc.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.map.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.map.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.quest.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.quest.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.spell.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.spell.v1=#[derive(serde::Deserialize)]
+      # map and npc are loaded from hand-written JSON as well as from the
+      # wire, and that JSON omits whatever it has nothing to say about. Both
+      # build scripts applied serde(default) package-wide for that reason;
+      # without it a file that leaves out an enum field fails to load rather
+      # than taking the zero value the schema already gives it.
+      - message_attribute=.kbve.map.v1=#[serde(default)]
+      - message_attribute=.kbve.npc.v1=#[serde(default)]
+      # The two fields in those packages whose type is a well-known one.
+      # prost-types implements neither Serialize nor Deserialize, so a derive
+      # covering the message that holds them does not compile. Skipping the
+      # field is what the bevy_items build script already did with
+      # Item.bonuses; RegistryMeta.generated_at is the same problem, and both
+      # are provenance rather than content -- a registry round-tripped through
+      # JSON is not carrying its build stamp anywhere useful.
+      - field_attribute=.kbve.common.v1.RegistryMeta.generated_at=#[serde(skip)]
+      - field_attribute=.kbve.item.v1.Item.bonuses=#[serde(skip)]
       # JediEnvelope carries an opaque payload that is forwarded, not read.
       # Bytes makes that forwarding a refcount bump rather than a copy, which
       # is the whole reason the envelope exists.

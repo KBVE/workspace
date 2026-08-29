@@ -28,3 +28,4 @@ prost-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 tonic = { workspace = true, optional = true }
 tonic-prost = { workspace = true, optional = true }
+ulid = { workspace = true }

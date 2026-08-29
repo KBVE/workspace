@@ -2,9 +2,10 @@
 //!
 //! Proto-driven spell definitions for Bevy games.
 //!
-//! Compiles `spelldb.proto` into typed Rust structs via `prost` and wraps them
-//! in a searchable [`SpellDb`] Bevy resource. Game-agnostic — any game loads the
-//! same proto spell registry and queries it by ref, ULID, school, or rarity.
+//! Wraps the generated spell types in a searchable [`SpellDb`] Bevy resource.
+//! Game-agnostic — any game loads the same registry and queries it by ref,
+//! ULID, school, or rarity. The types come from `packages/protobuf` via
+//! `kbve-proto`; this crate no longer generates any.
 //!
 //! ## Loading from proto binary
 //!
@@ -16,8 +17,9 @@
 mod proto;
 mod registry;
 
-// Re-export all proto-generated spell types
+// Re-export the spell types, and the shared enums a spell is described with.
 pub use proto::spell::*;
+pub use proto::{Element, Rarity};
 
 // Re-export registry types
 pub use registry::{ProtoSpellId, SpellDb};
