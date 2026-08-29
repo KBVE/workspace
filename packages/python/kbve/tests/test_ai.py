@@ -175,14 +175,25 @@ def test_claude_usage_defaults():
 
 # ── get_claude_version ───────────────────────────────────────────────
 
-def test_get_claude_version():
+def test_get_claude_version_runs_the_binary_on_path(tmp_path, monkeypatch):
+    stub = tmp_path / "claude"
+    stub.write_text("#!/bin/sh\necho '2.0.1 (Claude Code)'\n")
+    stub.chmod(0o755)
+    monkeypatch.setenv("PATH", str(tmp_path), prepend=False)
+
     result = get_claude_version()
-    # Claude is installed in this environment
-    if result.success:
-        assert "claude" in result.stdout.lower() or \
-            result.stdout[0].isdigit()
-    # If not installed, still shouldn't crash
+    assert result.success is True
+    assert result.stdout.strip() == "2.0.1 (Claude Code)"
+
+
+def test_get_claude_version_when_absent(tmp_path, monkeypatch):
+    monkeypatch.setenv("PATH", str(tmp_path), prepend=False)
+
+    result = get_claude_version()
     assert isinstance(result, CommandResult)
+    assert result.success is False
+    assert result.exit_code == -1
+    assert "not found on PATH" in result.stderr
 
 
 def test_get_claude_version_bad_binary():
