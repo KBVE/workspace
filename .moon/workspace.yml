@@ -35,6 +35,7 @@ projects:
     # would leave this key describing an id the graph does not use. A second
     # python package adds a line here.
     kbve-py: 'packages/python/kbve'
+    fudster: 'packages/python/fudster'
     # tools/ is mostly shell and node scripts that tasks shell out to --
     # hooks, itch, lfs, npm, worktree -- and a 'tools/*' glob made a project
     # out of each of them. moon builds a project for a matched directory

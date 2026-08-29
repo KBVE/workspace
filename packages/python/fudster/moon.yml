@@ -1,0 +1,38 @@
+# Fudster: API surface, browser and screen automation, and the CLI that fronts
+# the kbve core modules. Ported from the legacy Nx workspace at
+# KBVE/kbve packages/python/fudster.
+layer: 'library'
+language: 'python'
+stack: 'infrastructure'
+
+# No extras by default -- see .moon/tasks/uv.yml. This is the package that
+# argument was about: `automation` alone is opencv, pyautogui and numpy, and
+# `browser` is a full Selenium stack. The suite covers the API and the CLI,
+# neither of which needs either.
+tags: ['uv', 'pypi']
+
+# uv resolves kbve from ../kbve as an editable path dependency; this is the
+# same fact in the project graph, so a change to kbve rebuilds and retests this.
+dependsOn:
+  - 'kbve-py'
+
+owners:
+  defaultOwner: '@h0lybyte'
+
+fileGroups:
+  sources:
+    - 'fudster/**/*'
+  tests:
+    - 'tests/**/*'
+
+tasks:
+  # kbve's wheel is a dependency of this gate, not just of the package: the
+  # published kbve is a different major version with no [server] extra, so
+  # verifying against whatever the registry hands back would prove nothing.
+  verify:
+    command: 'bash tools/verify-wheel.sh'
+    toolchains: ['system']
+    deps:
+      - '~:build'
+      - 'kbve-py:build'
+    inputs: ['@group(sources)', '@group(manifests)', 'tools/verify-wheel.sh']
