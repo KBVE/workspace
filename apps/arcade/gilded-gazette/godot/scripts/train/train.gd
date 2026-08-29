@@ -130,21 +130,38 @@ func _ready() -> void:
 		room.location_id = rooms[i]
 		var carriage := CCarriage.new()
 		carriage.index = i
-		# The lamps' own node is the anchor for both: it hangs in the middle of the
-		# carriage, which is as true of where the bogies are heard from as of where the
-		# gas is. Detuned a little per carriage, or ten identical loops phase against
-		# each other and the beat is heard as a fault in the audio rather than as ten
+		# The lamps' own node anchors all three: it hangs in the middle of the carriage,
+		# which is as true of where the bogies are heard from as of where the gas is.
+		#
+		# The gas goes on the carriage entity itself, beside its [CLamp], so that
+		# [SCarriageLamps] turning a carriage down turns the hiss down with it -- a car
+		# whose lamps are out is a car with no gas in it, and a dark carriage that goes
+		# on hissing is the sound of a bug.
+		var gas := CNoise.new()
+		gas.sound = &"gas_hiss"
+		gas.reach_metres = 5.0
+		_scope.spawn().add(carriage).add(room).add(CLamp.new()).add(gas) \
+			.add(ECSViewComponent.new(_consist.lamps_for(i)))
+
+		# Detuned a little per carriage, or ten identical loops phase against each
+		# other and the beat is heard as a fault in the audio rather than as ten
 		# carriages of train.
 		var bogies := CNoise.new()
 		bogies.sound = &"carriage_rumble"
 		bogies.pitch = 0.97 + 0.012 * i
 		bogies.reach_metres = 11.0
-		var gas := CNoise.new()
-		gas.sound = &"gas_hiss"
-		gas.reach_metres = 5.0
-		_scope.spawn().add(carriage).add(room).add(CLamp.new()).add(bogies) \
-			.add(ECSViewComponent.new(_consist.lamps_for(i)))
-		_scope.spawn().add(gas).add(ECSViewComponent.new(_consist.lamps_for(i)))
+		_scope.spawn().add(bogies).add(ECSViewComponent.new(_consist.lamps_for(i)))
+
+		# The rail under the car, which is heard through whatever is standing on the
+		# floor. A saloon is carpet, curtains and eight people; a service car is a
+		# wooden box, and the joints come through it. Read off the furnishing rather
+		# than written down, so a room that gets furnished gets quieter by itself.
+		var rail := CNoise.new()
+		rail.sound = &"rail_joints"
+		rail.pitch = 1.03 - 0.008 * i
+		rail.reach_metres = 9.0
+		rail.gain = 1.0 if GameContent.furnishings_at(i).is_empty() else 0.55
+		_scope.spawn().add(rail).add(ECSViewComponent.new(_consist.lamps_for(i)))
 
 	# built first: how tall he is decides where his eyes are, and his eyes are where
 	# the camera goes

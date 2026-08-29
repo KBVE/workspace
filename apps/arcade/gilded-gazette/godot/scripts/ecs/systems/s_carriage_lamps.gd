@@ -24,6 +24,12 @@ func _on_update(delta: float) -> void:
 		var holder := entry[&"ECSViewComponent"].view as Node3D
 		var lamp: CLamp = entry[&"CLamp"]
 		lamp.energy = base_energy * lamp.dimming * _flicker(lamp, delta)
+		# A carriage whose lamps are out is a carriage with no gas in it, so whatever
+		# this one is heard as goes out with the light. Optional, because a carriage
+		# is lit whether or not anything is listening.
+		var gas: CNoise = entry["entity"].get_component(CNoise) as CNoise
+		if gas != null:
+			gas.gain = lamp.dimming
 		if not is_instance_valid(holder) or not holder.visible:
 			continue
 		for light: OmniLight3D in holder.get_children():

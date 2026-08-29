@@ -10,8 +10,11 @@ class_name SOccupancy
 var carriage_pitch: float = 21.0
 var carriage_count: int = 1
 
-var _last_published_carriage: int = -1
-var _last_published_location: StringName = &"\uffff"
+## What each viewer was last reported as, by entity. Keyed rather than held as one
+## pair, because one pair is one viewer's worth of memory: a second viewer -- a
+## spectator, a replay, the debug camera -- would have its own crossings swallowed by
+## the first one's, and the panel would report whichever of them moved last.
+var _published: Dictionary = {}
 
 func _on_update(_delta: float) -> void:
 	var last_index := carriage_count - 1
@@ -21,17 +24,17 @@ func _on_update(_delta: float) -> void:
 		var index := clampi(int(round(world_x / carriage_pitch + last_index / 2.0)), 0, last_index)
 		entry[&"COccupant"].carriage_index = index
 		entry[&"CLocation"].location_id = rooms.get(index, &"")
-		_publish(entry[&"COccupant"], entry[&"CLocation"])
+		_publish(entry["entity"].get_instance_id(), entry[&"COccupant"],
+			entry[&"CLocation"])
 
 
 ## Walking the aisle crosses a carriage boundary a few times a run, so this is a
 ## handful of events, not a per-frame stream.
-func _publish(occupant: COccupant, here: CLocation) -> void:
-	if occupant.carriage_index == _last_published_carriage \
-			and here.location_id == _last_published_location:
+func _publish(who: int, occupant: COccupant, here: CLocation) -> void:
+	var was: Array = _published.get(who, [-1, &"\uffff"])
+	if occupant.carriage_index == was[0] and here.location_id == was[1]:
 		return
-	_last_published_carriage = occupant.carriage_index
-	_last_published_location = here.location_id
+	_published[who] = [occupant.carriage_index, here.location_id]
 	notify(GameEvents.VIEWER_STATE, {
 		"carriage": occupant.carriage_index,
 		"location": String(here.location_id),

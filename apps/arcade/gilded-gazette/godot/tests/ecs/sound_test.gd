@@ -63,8 +63,10 @@ func test_every_carriage_has_a_voice() -> void:
 		var sound: StringName = entry[&"CNoise"].sound
 		heard[sound] = int(heard.get(sound, 0)) + 1
 	var carriages := GameContent.carriage_locations().size()
-	assert_int(int(heard.get(&"carriage_rumble", 0))).is_equal(carriages)
-	assert_int(int(heard.get(&"gas_hiss", 0))).is_equal(carriages)
+	for bed: StringName in [&"carriage_rumble", &"gas_hiss", &"rail_joints"]:
+		assert_int(int(heard.get(bed, 0))).override_failure_message(
+			"'%s' is heard in %d of %d carriages" % [bed, int(heard.get(bed, 0)), carriages]
+		).is_equal(carriages)
 
 
 ## Ten identical loops phase against each other, and the beat is heard as a fault in
@@ -73,9 +75,62 @@ func test_no_two_carriages_rumble_at_the_same_pitch() -> void:
 	var runner := scene_runner(SCENE)
 	await runner.simulate_frames(20)
 	var pitches := {}
-	for entry: Dictionary in Ecs.world.multi_view([CNoise, CCarriage]):
-		pitches[entry[&"CNoise"].pitch] = true
+	for entry: Dictionary in Ecs.world.multi_view([CNoise, ECSViewComponent]):
+		var noise: CNoise = entry[&"CNoise"]
+		if noise.sound != &"carriage_rumble":
+			continue
+		pitches[noise.pitch] = true
 	assert_int(pitches.size()).is_equal(GameContent.carriage_locations().size())
+
+
+## The gas is on the carriage entity beside its lamp, so putting a carriage out puts
+## its hiss out with it. A dark carriage that goes on hissing is the sound of a bug.
+func test_lamps_out_is_gas_off() -> void:
+	var runner := scene_runner(SCENE)
+	await runner.simulate_frames(20)
+	var lit: Dictionary = Ecs.world.multi_view([CLamp, CNoise])[0]
+	var lamp: CLamp = lit[&"CLamp"]
+	var gas: CNoise = lit[&"CNoise"]
+	assert_str(gas.sound).override_failure_message(
+		"the sound tied to a carriage's lamp is '%s', which is not the gas" % gas.sound
+	).is_equal(&"gas_hiss")
+
+	lamp.dimming = 0.0
+	await runner.simulate_frames(3)
+	assert_float(gas.gain).override_failure_message(
+		"a carriage with its lamps out went on hissing").is_equal(0.0)
+
+
+## Heard through whatever is standing on the floor: a saloon is carpet, curtains and
+## eight people, and a service car is a wooden box, and the joints come through it.
+func test_a_bare_carriage_rides_louder_than_a_furnished_one() -> void:
+	var runner := scene_runner(SCENE)
+	await runner.simulate_frames(20)
+	var consist: Consist = runner.scene().get_node("Screen/Frame/World/Consist")
+
+	var bare := -1.0
+	var furnished := -1.0
+	for entry: Dictionary in Ecs.world.multi_view([CNoise, ECSViewComponent]):
+		var noise: CNoise = entry[&"CNoise"]
+		if noise.sound != &"rail_joints":
+			continue
+		var at: Node3D = entry[&"ECSViewComponent"].view as Node3D
+		if at == null:
+			continue
+		var carriage := consist.carriage_index_at(at.global_position.x)
+		if GameContent.furnishings_at(carriage).is_empty():
+			bare = maxf(bare, noise.gain)
+		else:
+			furnished = maxf(furnished, noise.gain)
+
+	assert_float(bare).override_failure_message(
+		"no bare carriage was found to compare, so the train is furnished end to end"
+	).is_greater(0.0)
+	assert_float(furnished).override_failure_message(
+		"no furnished carriage was found to compare").is_greater(0.0)
+	assert_float(bare).override_failure_message(
+		"a bare carriage rides at %f and a furnished one at %f" % [bare, furnished]
+	).is_greater(furnished)
 
 
 func test_everything_in_the_bank_goes_somewhere_a_slider_reaches() -> void:

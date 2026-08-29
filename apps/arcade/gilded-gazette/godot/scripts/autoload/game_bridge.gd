@@ -153,11 +153,28 @@ func _on_ui_main_menu(_event: GameEvent) -> void:
 		push_warning("GameBridge: no main_menu_scene_path set.")
 		return
 	get_tree().paused = false
+	# Whatever was streaming is not wanted any more. Without this the load runs to
+	# completion behind the menu and then swaps to it, taking the player out of the
+	# menu they asked for and into a scene they had already left -- which is exactly
+	# what "leave the train" is for.
+	_abandon_the_stream()
 	if _menu_scene != null:
 		# already in memory, so no scene:loading pair is reported
 		get_tree().change_scene_to_packed(_menu_scene)
 		return
 	load_scene_async_streaming(path)
+
+
+## Gives up on a scene that is still coming in. The load itself cannot be cancelled --
+## the loader pool finishes what it started -- so what is dropped is the intent to swap
+## to it, and the outgoing scene is given back its process mode either way.
+func _abandon_the_stream() -> void:
+	if _stream_path.is_empty():
+		return
+	var path := _stream_path
+	_stream_path = ""
+	_quiet_outgoing_scene(false)
+	_notify_loading(path, 0.0, "failed")
 
 func set_world_mode(mode: int) -> void:
 	if mode == _world_mode:
