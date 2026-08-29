@@ -131,6 +131,28 @@ describe('ReconnectingSocket', () => {
 		expect(FakeSocket.instances).toHaveLength(1);
 	});
 
+
+	// ReconnectingSocket is reachable from the React-free entry points, which
+	// exist so sim and netcode can run in a worker. A worker has no `window`,
+	// and the reconnect path used to schedule through it -- so the first drop
+	// threw inside a close handler and the socket stayed dead with nothing left
+	// to revive it.
+	it('reconnects in a host that has no window', () => {
+		vi.stubGlobal('window', undefined);
+
+		const socket = make({ maxAttempts: 2 });
+		expect(() => socket.connect()).not.toThrow();
+
+		FakeSocket.instances[0].fireClose();
+		expect(states.at(-1)!.status).toBe('reconnecting');
+
+		vi.advanceTimersByTime(1000);
+		expect(FakeSocket.instances).toHaveLength(2);
+
+		expect(() => socket.close()).not.toThrow();
+		expect(states.at(-1)!.status).toBe('closed');
+	});
+
 	it('only sends while open', () => {
 		const socket = make();
 		socket.connect();

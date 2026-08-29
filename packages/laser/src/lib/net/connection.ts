@@ -73,7 +73,15 @@ export class ReconnectingSocket {
 	private closed = false;
 	private attempts = 0;
 	private everOpened = false;
-	private timer = 0;
+	/**
+	 * setTimeout's handle, whatever the host calls it. Typed off the global
+	 * rather than as a number because this runs in a worker as well as on the
+	 * main thread -- `ecs` and `mecs` exist as React-free entry points so sim
+	 * and netcode can live off the main thread -- and there is no `window`
+	 * there. `window.setTimeout` threw on the first reconnect and the socket
+	 * stayed dead with nothing scheduled to revive it.
+	 */
+	private timer: ReturnType<typeof setTimeout> | undefined;
 	private state: ConnectionState = { status: 'connecting', attempts: 0 };
 	private readonly opts: Required<
 		Omit<ReconnectingSocketOptions, 'url' | 'shouldReconnect'>
@@ -203,12 +211,12 @@ export class ReconnectingSocket {
 			reason,
 			nextRetryMs: delay,
 		});
-		this.timer = window.setTimeout(() => this.connect(), delay);
+		this.timer = setTimeout(() => this.connect(), delay);
 	}
 
 	close(): void {
 		this.closed = true;
-		window.clearTimeout(this.timer);
+		clearTimeout(this.timer);
 		// Detach before closing. The browser delivers a close event for a socket
 		// it was told to close, and handling it would report the shutdown a
 		// second time on top of the setState below.

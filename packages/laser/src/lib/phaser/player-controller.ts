@@ -4,11 +4,23 @@ import type { Point2D } from '../core/types';
 import type { Quadtree } from '../spatial/quadtree';
 import { laserEvents } from '../core/events';
 import { VirtualJoystick } from './virtual-joystick';
-import type { VirtualJoystickConfig } from './virtual-joystick';
+import type { GridDirection, VirtualJoystickConfig } from './virtual-joystick';
+
+/**
+ * The slice of grid-engine this controller drives.
+ *
+ * Structural rather than an import: grid-engine is not a peer of this package
+ * and adding one for two method signatures would put it in every consumer's
+ * install. Anything shaped like this satisfies it, grid-engine included.
+ */
+export interface GridMover {
+	move(charId: string, direction: NonNullable<GridDirection>): void;
+	getPosition(charId: string): Point2D;
+}
 
 export class PlayerController {
 	private scene: Scene;
-	private gridEngine: any;
+	private gridEngine: GridMover;
 	private quadtree: Quadtree;
 	private cursor: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
 	private wasdKeys!: Record<string, Phaser.Input.Keyboard.Key>;
@@ -19,7 +31,7 @@ export class PlayerController {
 
 	constructor(
 		scene: Scene,
-		gridEngine: any,
+		gridEngine: GridMover,
 		quadtree: Quadtree,
 		options?: {
 			tileSize?: number;
@@ -65,7 +77,7 @@ export class PlayerController {
 	}
 
 	private checkForNearbyObjects(): void {
-		const position = this.gridEngine.getPosition(this.playerId) as Point2D;
+		const position = this.gridEngine.getPosition(this.playerId);
 		const screenX = position.x * this.tileSize;
 		const screenY = position.y * this.tileSize;
 
@@ -83,14 +95,12 @@ export class PlayerController {
 	}
 
 	getPlayerPosition(): Point2D {
-		return this.gridEngine.getPosition(this.playerId) as Point2D;
+		return this.gridEngine.getPosition(this.playerId);
 	}
 
 	handleMovement(): void {
 		if (this.scene.input.keyboard?.addKey('F').isDown) {
-			const position = this.gridEngine.getPosition(
-				this.playerId,
-			) as Point2D;
+			const position = this.gridEngine.getPosition(this.playerId);
 			const foundRanges = this.quadtree.query(position);
 
 			if (foundRanges.length > 0) {

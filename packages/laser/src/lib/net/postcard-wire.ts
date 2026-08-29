@@ -186,8 +186,6 @@ function writeInput(w: PostcardWriter, inp: Input): void {
 	} else if ('EnterShip' in inp) {
 		w.variant(25);
 		w.u32(inp.EnterShip.ship);
-	} else if ('ExitShip' in inp) {
-		w.variant(26);
 	} else if ('OpenCorpse' in inp) {
 		w.variant(27);
 		w.u32(inp.OpenCorpse.corpse);

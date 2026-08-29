@@ -825,6 +825,10 @@ describe('encodeClientMessage: inputs with no client method', () => {
 		['Step', { Step: { dir: 'Up' } }],
 		['MoveTo', { MoveTo: { tile: { x: 1, y: 2 } } }],
 		['EnterShip', { EnterShip: { ship: 5 } }],
+		// ExitShip is a unit variant, written by the string switch above the
+		// object branches -- it never reaches one, which is why the `'ExitShip'
+		// in inp` branch that used to sit beside EnterShip was unreachable.
+		['ExitShip', 'ExitShip'],
 		['TradeAccept', 'TradeAccept'],
 		['TradeCancel', 'TradeCancel'],
 		[
