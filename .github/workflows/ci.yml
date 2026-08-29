@@ -208,6 +208,30 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: cargo-${{ runner.os }}-
 
+      # Compiled dependency artifacts for the native targets.
+      #
+      # The registry cache above holds downloads; nothing held the results of
+      # compiling them, so every run rebuilt the whole dependency graph --
+      # Bevy, avian, duckdb -- before it could touch a line of this repository.
+      # `moon ci` only runs affected projects, but "affected" is about our
+      # crates; their dependencies are cold either way on a fresh runner.
+      #
+      # Swatinem/rust-cache rather than another actions/cache block, because
+      # the hard part is what NOT to keep: it prunes the workspace crates' own
+      # artifacts and keeps dependencies and their fingerprints, which is what
+      # makes this fit in a cache budget that already holds a wasm target
+      # directory. Caching target/ wholesale would evict that.
+      #
+      # save-if limits writes to main. Pull requests restore and never save, so
+      # a branch cannot fill the budget with a cache only it will ever use.
+      - name: Restore compiled dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          # The wasm cache below owns target/wasm32-unknown-unknown; this is
+          # the shard key so two matrix jobs do not overwrite each other.
+          key: job-${{ matrix.index }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
       # The browser build's compiled output, and the nightly that produces it.
       #
       # A threaded wasm bundle rebuilds the standard library from source --
