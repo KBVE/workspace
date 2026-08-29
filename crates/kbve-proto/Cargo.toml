@@ -6,6 +6,19 @@ license.workspace = true
 repository.workspace = true
 description = "Rust view of the workspace protobuf schemas."
 
+# tonic and serde are not optional, and cannot be.
+#
+# The generated package files end with an include! of their own .tonic.rs, and
+# the serde derives are written into the type definitions themselves. Neither
+# sits behind a cfg, so a feature that switched them off would leave the crate
+# referring to attributes and modules that were never generated. A consumer
+# that wants only the message types still pays for the gRPC stack; splitting
+# the service output into a second crate is the way out of that if the cost
+# ever shows up in a build.
 [dependencies]
+bytes = { workspace = true, features = ["serde"] }
 prost.workspace = true
 prost-types.workspace = true
+serde = { workspace = true, features = ["derive"] }
+tonic.workspace = true
+tonic-prost.workspace = true

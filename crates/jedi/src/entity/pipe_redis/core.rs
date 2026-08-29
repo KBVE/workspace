@@ -1,3 +1,5 @@
+use crate::entity::bitwise::{MessageKindExt, MessageKindFlags};
+use crate::entity::envelope::JediEnvelopeExt;
 use crate::error::JediError;
 use crate::pipe_redis::redis_types::XReadStreamInput;
 use crate::pipe_redis::{Field, RedisStream};

@@ -1,3 +1,4 @@
+use crate::entity::bitwise::{MessageKindExt, MessageKindFlags};
 use crate::entity::envelope::{try_unwrap_payload, wrap_hybrid};
 use crate::entity::pipe::Pipe;
 use crate::error::JediError;

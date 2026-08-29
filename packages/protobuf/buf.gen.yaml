@@ -39,7 +39,53 @@ plugins:
 
   # Rust - Bevy crates and Axum services, replacing the per-crate build.rs
   # invocations of prost_build against a relative path.
+  #
+  # The type_attribute lines below reproduce what crates/jedi/build.rs did with
+  # ninety-nine calls. They are scoped rather than global because serde cannot
+  # be derived on every type here: GroqRequestBody and GroqResponse hold a
+  # google.protobuf.Struct, and prost-types does not implement Serialize for
+  # it, so a blanket rule stops the crate compiling. The four groq types named
+  # individually are the four that carry no well-known type -- which is the
+  # same line the hand-written build.rs drew, arrived at the same way.
+  #
+  # Serialize and Deserialize are two entries rather than one derive with
+  # both: plugin parameters are comma separated, so a comma inside the
+  # attribute is read as the end of it -- 'invalid parameter:
+  # serde::Deserialize)]'.
   - remote: buf.build/community/neoeinstein-prost
+    out: gen/rust
+    opt:
+      - type_attribute=.kbve.jedi.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.jedi.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.redis.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.redis.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.clickhouse.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.clickhouse.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.twitch.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.twitch.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.git.v1=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.git.v1=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.groq.v1.GroqMessage=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.groq.v1.GroqMessage=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.groq.v1.GroqMessageContent=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.groq.v1.GroqMessageContent=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.groq.v1.GroqChoice=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.groq.v1.GroqChoice=#[derive(serde::Deserialize)]
+      - type_attribute=.kbve.groq.v1.GroqUsage=#[derive(serde::Serialize)]
+      - type_attribute=.kbve.groq.v1.GroqUsage=#[derive(serde::Deserialize)]
+      # JediEnvelope carries an opaque payload that is forwarded, not read.
+      # Bytes makes that forwarding a refcount bump rather than a copy, which
+      # is the whole reason the envelope exists.
+      - bytes=.kbve.jedi.v1
+
+  # gRPC clients and servers for the two services in the module, RedisService
+  # and ClickHouseService. Without this the schema would define RPCs that
+  # nothing generates code for, and crates/jedi would keep its own frozen copy.
+  #
+  # No wiring is needed: the plugin appends an include! for its own output to
+  # the prost-generated file, which prost-crate has already put in the module
+  # tree. Order matters -- it reads what prost wrote.
+  - remote: buf.build/community/neoeinstein-tonic
     out: gen/rust
 
   # prost emits files that refer to each other with relative module paths

@@ -29,9 +29,18 @@ pub struct GitHubIssue {
     pub issue_type: Option<GitHubIssueType>,
 }
 
-impl GitHubIssue {
+/// The helpers for this type.
+/// 
+/// It is generated into `kbve-proto` now rather than into this crate, so
+/// the orphan rule turns what were inherent methods into a trait. Call
+/// sites keep their shape as long as the trait is in scope.
+pub trait GitHubIssueExt {
+    fn is_pull_request(&self) -> bool;
+}
+
+impl GitHubIssueExt for GitHubIssue {
     /// Returns true if this is actually a pull request (GitHub API returns PRs in issues endpoint).
-    pub fn is_pull_request(&self) -> bool {
+    fn is_pull_request(&self) -> bool {
         self.pull_request.is_some()
     }
 }

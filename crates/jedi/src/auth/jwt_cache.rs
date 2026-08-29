@@ -23,20 +23,20 @@ const CLEANUP_INTERVAL: Duration = Duration::from_secs(60);
 pub mod staff_perm {
     use crate::proto::staff::StaffPermission as P;
 
-    pub const STAFF: i32 = P::StaffPermStaff as i32;
-    pub const MODERATOR: i32 = P::StaffPermModerator as i32;
-    pub const ADMIN: i32 = P::StaffPermAdmin as i32;
-    pub const DASHBOARD_VIEW: i32 = P::StaffPermDashboardView as i32;
-    pub const DASHBOARD_MANAGE: i32 = P::StaffPermDashboardManage as i32;
-    pub const USER_VIEW: i32 = P::StaffPermUserView as i32;
-    pub const USER_MANAGE: i32 = P::StaffPermUserManage as i32;
-    pub const CONTENT_MODERATE: i32 = P::StaffPermContentModerate as i32;
-    pub const CONTENT_DELETE: i32 = P::StaffPermContentDelete as i32;
-    pub const STAFF_GRANT: i32 = P::StaffPermStaffGrant as i32;
-    pub const STAFF_REVOKE: i32 = P::StaffPermStaffRevoke as i32;
-    pub const SYSTEM_CONFIG: i32 = P::StaffPermSystemConfig as i32;
-    pub const AUDIT_VIEW: i32 = P::StaffPermAuditView as i32;
-    pub const SUPERADMIN: i32 = P::StaffPermSuperadmin as i32;
+    pub const STAFF: i32 = P::Staff as i32;
+    pub const MODERATOR: i32 = P::Moderator as i32;
+    pub const ADMIN: i32 = P::Admin as i32;
+    pub const DASHBOARD_VIEW: i32 = P::DashboardView as i32;
+    pub const DASHBOARD_MANAGE: i32 = P::DashboardManage as i32;
+    pub const USER_VIEW: i32 = P::UserView as i32;
+    pub const USER_MANAGE: i32 = P::UserManage as i32;
+    pub const CONTENT_MODERATE: i32 = P::ContentModerate as i32;
+    pub const CONTENT_DELETE: i32 = P::ContentDelete as i32;
+    pub const STAFF_GRANT: i32 = P::StaffGrant as i32;
+    pub const STAFF_REVOKE: i32 = P::StaffRevoke as i32;
+    pub const SYSTEM_CONFIG: i32 = P::SystemConfig as i32;
+    pub const AUDIT_VIEW: i32 = P::AuditView as i32;
+    pub const SUPERADMIN: i32 = P::Superadmin as i32;
 }
 
 /// Cached, verified token claims.

@@ -10,11 +10,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
-[build-dependencies]
-tonic-prost-build = { workspace = true }
-
 [dependencies]
 ammonia = { workspace = true }
+kbve-proto = { path = "../kbve-proto" }
 async-trait = { workspace = true }
 axum = { workspace = true, features = ["default", "ws", "macros"] }
 bitflags = { workspace = true, features = ["serde"] }

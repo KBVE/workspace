@@ -1,3 +1,4 @@
+use crate::entity::bitwise::MessageKindFlags;
 use bytes::Bytes;
 use dashmap::DashSet;
 use papaya::HashMap;

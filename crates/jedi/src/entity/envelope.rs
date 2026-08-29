@@ -1,4 +1,5 @@
 // packages/rust/jedi/src/entity/envelope.rs
+use crate::entity::bitwise::{MessageKindExt, MessageKindFlags};
 use crate::entity::hash::HashPayload;
 use crate::error::JediError;
 use crate::proto::jedi::{
@@ -297,29 +298,11 @@ pub fn from_raw(env: RawEnvelope) -> JediMessage {
     }
 }
 
-impl From<FlexEnvelope> for JediMessage {
-    fn from(env: FlexEnvelope) -> Self {
-        JediMessage {
-            envelope: Some(jedi_message::Envelope::Flex(env)),
-        }
-    }
-}
-
-impl From<FlagEnvelope> for JediMessage {
-    fn from(env: FlagEnvelope) -> Self {
-        JediMessage {
-            envelope: Some(jedi_message::Envelope::Flag(env)),
-        }
-    }
-}
-
-impl From<RawEnvelope> for JediMessage {
-    fn from(env: RawEnvelope) -> Self {
-        JediMessage {
-            envelope: Some(jedi_message::Envelope::Raw(env)),
-        }
-    }
-}
+// The four `impl From<..Envelope> for JediMessage` blocks that stood here are
+// gone. Both sides are generated types now, living in kbve-proto, and a From
+// impl needs one of them to be local. Nothing called them: they duplicated the
+// from_flex / from_flag / from_raw / from_hybrid functions above, which are
+// what the crate actually uses.
 
 // * Hybrid Envelopes
 pub fn wrap_hybrid<T, K>(
@@ -356,24 +339,35 @@ pub fn from_hybrid(env: JediEnvelope) -> JediMessage {
     }
 }
 
-impl From<JediEnvelope> for JediMessage {
-    fn from(env: JediEnvelope) -> Self {
-        from_hybrid(env)
-    }
+/// Core Functions
+/// The helpers for this type.
+/// 
+/// It is generated into `kbve-proto` now rather than into this crate, so
+/// the orphan rule turns what were inherent methods into a trait. Call
+/// sites keep their shape as long as the trait is in scope.
+pub trait JediEnvelopeExt {
+    fn with_metadata(self, meta: Bytes) -> Self;
+    fn metadata_or_empty(&self) -> Bytes;
+    fn error(source: &str, message: &str) -> Self;
+    fn error_with_meta( source: &str, message: &str, metadata: Bytes, format: PayloadFormat, ) -> Self;
+    fn to_ws_message(&self) -> Result<Message, JediError>;
+    fn from_ws_message(msg: &Message) -> Result<Self, JediError>
+    where
+        Self: Sized;
+    fn extract_key_if_watched( &self, watch_manager: &WatchManager, conn_id: &ConnId, ) -> Result<Option<Arc<str>>, JediError>;
 }
 
-/// Core Functions
-impl JediEnvelope {
-    pub fn with_metadata(mut self, meta: Bytes) -> Self {
+impl JediEnvelopeExt for JediEnvelope {
+    fn with_metadata(mut self, meta: Bytes) -> Self {
         self.metadata = meta;
         self
     }
 
-    pub fn metadata_or_empty(&self) -> Bytes {
+    fn metadata_or_empty(&self) -> Bytes {
         self.metadata.clone()
     }
 
-    pub fn error(source: &str, message: &str) -> Self {
+    fn error(source: &str, message: &str) -> Self {
         let err_obj = serde_json::json!({
           "error": message,
           "source": source,
@@ -383,7 +377,7 @@ impl JediEnvelope {
         wrap_hybrid(MessageKind::Error, PayloadFormat::Flex, &err_obj, None)
     }
 
-    pub fn error_with_meta(
+    fn error_with_meta(
         source: &str,
         message: &str,
         metadata: Bytes,
@@ -397,7 +391,7 @@ impl JediEnvelope {
         wrap_hybrid(MessageKind::Error, format, &err_obj, Some(metadata))
     }
 
-    pub fn to_ws_message(&self) -> Result<Message, JediError> {
+    fn to_ws_message(&self) -> Result<Message, JediError> {
         let format = PayloadFormat::try_from(self.format)
             .map_err(|_| JediError::Internal("Invalid PayloadFormat".into()))?;
 
@@ -416,7 +410,7 @@ impl JediEnvelope {
         }
     }
 
-    pub fn from_ws_message(msg: &Message) -> Result<Self, JediError> {
+    fn from_ws_message(msg: &Message) -> Result<Self, JediError> {
         let (payload, format) = match msg {
             Message::Text(text) => (Bytes::copy_from_slice(text.as_bytes()), PayloadFormat::Json),
             Message::Binary(bin) => (Bytes::copy_from_slice(bin), PayloadFormat::Flex),
@@ -447,7 +441,7 @@ impl JediEnvelope {
         Ok(env)
     }
 
-    pub fn extract_key_if_watched(
+    fn extract_key_if_watched(
         &self,
         watch_manager: &WatchManager,
         conn_id: &ConnId,

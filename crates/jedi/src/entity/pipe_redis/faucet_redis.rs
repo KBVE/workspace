@@ -1,3 +1,5 @@
+use crate::entity::bitwise::{MessageKindExt, MessageKindFlags};
+use crate::entity::envelope::JediEnvelopeExt;
 use fred::{clients::SubscriberClient, prelude::*, types::Message as RedisMessage};
 use std::sync::Arc;
 use tokio::sync::{broadcast::Sender as BroadcastSender, mpsc::UnboundedReceiver};

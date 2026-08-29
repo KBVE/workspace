@@ -339,19 +339,31 @@ impl RedisEnvelope {
     }
 }
 
-impl RedisKeyUpdate {
-    pub fn is_deleted(&self) -> bool {
+/// The helpers for this type.
+/// 
+/// It is generated into `kbve-proto` now rather than into this crate, so
+/// the orphan rule turns what were inherent methods into a trait. Call
+/// sites keep their shape as long as the trait is in scope.
+pub trait RedisKeyUpdateExt {
+    fn is_deleted(&self) -> bool;
+    fn value(&self) -> Option<&str>;
+    fn into_log_fields(self) -> (String, String);
+    fn from_raw_change<K, V>(key: K, value: Option<V>) -> Self where K: AsRef<str>, V: AsRef<str>,;
+}
+
+impl RedisKeyUpdateExt for RedisKeyUpdate {
+    fn is_deleted(&self) -> bool {
         matches!(self.state, Some(State::Deleted(true)))
     }
 
-    pub fn value(&self) -> Option<&str> {
+    fn value(&self) -> Option<&str> {
         match &self.state {
             Some(State::Value(v)) => Some(v),
             _ => None,
         }
     }
 
-    pub fn into_log_fields(self) -> (String, String) {
+    fn into_log_fields(self) -> (String, String) {
         match self.state {
             Some(State::Value(val)) => (self.key, val),
             Some(State::Deleted(_)) => (self.key, "[deleted]".into()),
@@ -359,7 +371,7 @@ impl RedisKeyUpdate {
         }
     }
 
-    pub fn from_raw_change<K, V>(key: K, value: Option<V>) -> Self
+    fn from_raw_change<K, V>(key: K, value: Option<V>) -> Self
     where
         K: AsRef<str>,
         V: AsRef<str>,
@@ -371,20 +383,33 @@ impl RedisKeyUpdate {
     }
 }
 
-impl RedisWsMessage {
-    pub fn from_command(cmd: RedisCommand) -> Self {
+/// The helpers for this type.
+/// 
+/// It is generated into `kbve-proto` now rather than into this crate, so
+/// the orphan rule turns what were inherent methods into a trait. Call
+/// sites keep their shape as long as the trait is in scope.
+pub trait RedisWsMessageExt {
+    fn from_command(cmd: RedisCommand) -> Self;
+    fn from_event(event: RedisEvent) -> Self;
+    fn from_watch_command(key: impl Into<String>) -> Self;
+    fn from_update(update: RedisKeyUpdate) -> Self;
+    fn as_json_string(&self) -> Option<String>;
+}
+
+impl RedisWsMessageExt for RedisWsMessage {
+    fn from_command(cmd: RedisCommand) -> Self {
         RedisWsMessage {
             message: Some(redis_ws_message::Message::Command(cmd)),
         }
     }
 
-    pub fn from_event(event: RedisEvent) -> Self {
+    fn from_event(event: RedisEvent) -> Self {
         RedisWsMessage {
             message: Some(redis_ws_message::Message::Event(event)),
         }
     }
 
-    pub fn from_watch_command(key: impl Into<String>) -> Self {
+    fn from_watch_command(key: impl Into<String>) -> Self {
         RedisWsMessage {
             message: Some(redis_ws_message::Message::Watch(
                 crate::proto::redis::WatchCommand { key: key.into() },
@@ -392,13 +417,13 @@ impl RedisWsMessage {
         }
     }
 
-    pub fn from_update(update: RedisKeyUpdate) -> Self {
+    fn from_update(update: RedisKeyUpdate) -> Self {
         RedisWsMessage {
             message: Some(redis_ws_message::Message::Update(update)),
         }
     }
 
-    pub fn as_json_string(&self) -> Option<String> {
+    fn as_json_string(&self) -> Option<String> {
         serde_json::to_string(self).ok()
     }
 }
