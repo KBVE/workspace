@@ -22,7 +22,14 @@ var rest_offset := Vector3.ZERO
 ## so the shot swings a quarter turn to put the camera over the aisle -- the only place
 ## in a carriage with room to film from. Which way it swings is [CSeating]'s to say.
 
-## Shorter sitting than standing, because the aisle is narrower than the car is long.
+## Longer sitting than standing, and the comment here used to say the opposite of what
+## the number does. Standing, the boom lies back down the train and 0.95 clears the
+## shoulder. Seated, the quarter turn swings it across a passenger who is against the
+## wall, so it has to reach past him to get out over the aisle at all -- a shorter arm
+## puts the camera in the bench it swung to avoid. What bounds it is [member
+## interior_half_z] rather than the car's length: a boom longer than the containment box
+## is a camera clamped every frame it is sat down, which is a fight nothing on screen
+## shows and nothing in the code reports.
 var seated_boom_metres: float = 1.25
 
 ## The mount rides high behind a standing shoulder. Seated, that same lift puts it above
