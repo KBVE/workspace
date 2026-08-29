@@ -4,6 +4,7 @@ package kbve.asset.v1;
 
 import "google/protobuf/timestamp.proto";
 import "kbve/asset/v1/asset_crypto.proto";
+import "kbve/asset/v1/asset_fund.proto";
 import "kbve/common/v1/decimal.proto";
 import "kbve/common/v1/registry.proto";
 import "kbve/type/v1/id.proto";
@@ -38,6 +39,36 @@ enum AssetClass {
   ASSET_CLASS_COMMODITY = 5;
   ASSET_CLASS_INDEX = 6;
   ASSET_CLASS_FUND = 7;
+}
+
+// What form of claim a listed line actually is.
+//
+// Every one of these quotes in the same place, on the same screen, in the same
+// currency, and they are not the same instrument. A warrant expiring worthless
+// and a common share are one field apart here and nothing apart in a price
+// feed. It also decides whether the figures in kbve.market.v1.Fundamentals
+// mean anything: a preferred share has a coupon and no earnings claim, so a
+// P/E printed against it is the issuer's P/E attached to the wrong row.
+enum SecurityType {
+  SECURITY_TYPE_UNSPECIFIED = 0;
+  SECURITY_TYPE_COMMON = 1;
+  // Fixed claim ahead of common, usually without a vote.
+  SECURITY_TYPE_PREFERRED = 2;
+  // A receipt for shares held abroad. Per-share figures do not carry across
+  // without the ratio -- see EquityProfile below.
+  SECURITY_TYPE_ADR = 3;
+  SECURITY_TYPE_GDR = 4;
+  // A right to buy at a strike, with an expiry. Has no value after it.
+  SECURITY_TYPE_WARRANT = 5;
+  SECURITY_TYPE_RIGHT = 6;
+  // Shares and warrants stapled together, which separate later.
+  SECURITY_TYPE_UNIT = 7;
+  // Pays out most of its income by law; the payout ratio screens that work on
+  // ordinary companies read as distress here.
+  SECURITY_TYPE_REIT = 8;
+  // A partnership interest rather than a share. Distributions are not
+  // dividends and are taxed differently.
+  SECURITY_TYPE_LIMITED_PARTNERSHIP = 9;
 }
 
 // How an asset is named where it trades.
@@ -104,9 +135,54 @@ message EquityProfile {
   // and both move.
   optional kbve.common.v1.Decimal market_cap = 5;
 
+  // Superseded by Asset.fund, which says what kind of fund and at what cost.
+  // Kept because a source that only knows the boolean is still a source.
   optional bool is_etf = 6;
   optional string issuer_name = 7;
   optional google.protobuf.Timestamp listed_at = 8;
+
+  SecurityType security_type = 9;
+
+  // Which class of share this line is: "A", "B", "C". Two classes of the same
+  // company are two assets with two prices and one set of financials, and a
+  // portfolio that cannot see they are the same issuer reports diversification
+  // it does not have. Grouping is by the issuer identifier -- scheme "cik" or
+  // "lei" in Asset.identifiers -- because the class letter alone is not a key.
+  optional string share_class = 10;
+
+  // Shares actually available to trade, which is outstanding minus what
+  // insiders, governments and cross-holdings sit on. Index weights and any
+  // honest liquidity figure use this one; market capitalisation uses the other
+  // one. For a founder-controlled company the two differ by a multiple, so
+  // silently substituting either for the other is a large error in whichever
+  // direction it is made.
+  optional int64 free_float_shares = 11;
+
+  // What the company files its financials in, which is not what its listing
+  // quotes in. An ADR quotes USD and reports in EUR or JPY, and every ratio
+  // built by dividing one by the other is wrong by the exchange rate.
+  optional string reporting_currency = 12;
+
+  // The calendar month the fiscal year ends in, 1 to 12. Without it there is
+  // no way to place a reported quarter on a calendar: a fiscal Q1 ending in
+  // December and one ending in March are a quarter apart, and comparing two
+  // companies quarter-by-quarter across that gap compares different weather.
+  optional int32 fiscal_year_end_month = 13;
+
+  // The conversion between a depositary receipt and the underlying shares,
+  // as a ratio rather than a decimal: one ADR representing half an ordinary
+  // share is depositary 1, ordinary 1, then... it is not, and that is the
+  // point -- ratios here run both ways and are not always integers on the side
+  // you expect. Present only on an ADR or GDR. Per-share figures -- EPS,
+  // dividend per share, book value -- must be scaled by it before they can be
+  // compared to the receipt's own price.
+  optional int64 adr_ordinary_shares = 14;
+  optional int64 adr_depositary_shares = 15;
+
+  // Whether this listing is the company's primary one. The same company lists
+  // on several venues, and consolidating volume across all of them without
+  // knowing which is primary counts the same trading more than once.
+  optional bool primary_listing = 16;
 }
 
 // A tradeable thing.
@@ -154,6 +230,25 @@ message Asset {
   // nothing can tell that, so a portfolio holding both double-counts the
   // position and a chart switching between them reads as a move.
   optional AssetRef base_asset = 16;
+
+  // Present on a fund, and the counterpart to equity and crypto above. A fund
+  // is not a company: it has no earnings and its cost is deducted from its
+  // assets rather than charged, so EquityProfile describes it wrongly rather
+  // than incompletely.
+  optional FundProfile fund = 17;
+
+  // What this asset is a claim on, where it is a wrapper rather than a thing.
+  //
+  // WETH is ETH, USDC on Base is USDC on Ethereum, and a bridged token is the
+  // token it was bridged from. They have their own contracts, their own
+  // prices and their own supply figures, which is why TokenProfile treats them
+  // as separate assets -- but a balance sheet that adds their supplies has
+  // counted the same coins twice, and a portfolio that lists them separately
+  // reports two positions where the holder has one exposure.
+  //
+  // Distinct from base_asset: that one says a row is a *pair*, this one says a
+  // row is a *representation*.
+  optional AssetRef wraps = 18;
 }
 
 // Every asset being tracked.

@@ -44,6 +44,14 @@ message TokenProfile {
   // name, and treating them as one is how a supply figure ends up counted
   // twice.
   string chain = 1;
+  // The chain's own numeric id, where it has one: EIP-155 for an EVM chain,
+  // 1 for Ethereum mainnet, 8453 for Base. The slug above is what humans and
+  // data sources call it, and they disagree -- "eth", "ethereum", "mainnet",
+  // "erc20" all appear for the same chain. This is what actually keys it, and
+  // a contract address without it is not a unique address: the same bytes are
+  // a different contract on every EVM chain, and the same deployer commonly
+  // deploys to all of them.
+  optional int64 chain_id = 16;
   TokenStandard standard = 2;
   // Where it lives on that chain. Absent for a native coin, which has no
   // contract.
@@ -75,6 +83,14 @@ message TokenProfile {
   optional kbve.common.v1.Decimal market_cap = 8;
   // Price times max supply, where one exists.
   optional kbve.common.v1.Decimal fully_diluted_valuation = 9;
+
+  // When the supply figures above were read. Supply is not static and is not
+  // quoted: it changes on unlocks, burns and emissions that happen on their
+  // own schedule, and a source that returns it alongside a live price implies
+  // the two are equally fresh when the supply may be weeks old. A market
+  // capitalisation is only as current as its stalest input, and it is never
+  // the price.
+  optional google.protobuf.Timestamp supply_as_of = 17;
 
   optional PegKind peg = 10;
   // What it is pegged to, where it is pegged: "USD", "XAU".

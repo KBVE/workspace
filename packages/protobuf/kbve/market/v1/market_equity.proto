@@ -138,4 +138,22 @@ message Fundamentals {
 
   // Fraction of the float sold short, in basis points.
   optional int32 short_interest_bps = 17;
+
+  // What a fund's holdings are actually worth per share, and when that was
+  // struck. Absent on anything that is not a fund.
+  //
+  // A fund has two prices: what it holds and what it trades for. For an ETF
+  // they stay within a few basis points because shares can be created against
+  // the basket; for a closed-end fund, or an ETF whose underlying market is
+  // shut while its own is open, they separate, and the gap is the entire
+  // decision. NAV is struck once a day, so it is stale against an intraday
+  // price by construction -- which is why it carries its own timestamp rather
+  // than sharing as_of above.
+  optional kbve.common.v1.Decimal nav = 18;
+  optional google.protobuf.Timestamp nav_as_of = 19;
+  // Price over NAV, in basis points, signed: 200 is a two percent premium,
+  // -1500 a fifteen percent discount. Stored because it is the figure the
+  // screens sort on and recomputing it against a later NAV answers a
+  // different question.
+  optional int32 premium_to_nav_bps = 20;
 }
