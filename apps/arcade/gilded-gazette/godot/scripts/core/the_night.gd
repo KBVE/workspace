@@ -179,7 +179,7 @@ func _draw(rng: RandomNumberGenerator, departure_minutes: int) -> bool:
 	for id: StringName in aboard:
 		if id != victim_id:
 			suspects.append(id)
-	suspects.shuffle()
+	_shuffle(rng, suspects)
 
 	for who: StringName in suspects:
 		# Every hour and room that would catch this one in a lie, gathered before any
@@ -320,6 +320,21 @@ func _a_line_for(rng: RandomNumberGenerator, sightings: Dictionary,
 	if lines.is_empty():
 		return ""
 	return str(lines[rng.randi_range(0, lines.size() - 1)])
+
+
+## Fisher-Yates against the run's own generator.
+##
+## [method Array.shuffle] draws from Godot's global RNG rather than from anything handed
+## to it, which made the night unreproducible from its seed: the same seed drew a
+## different culprit on every run of the same process. That is the one property this
+## whole class is built to have -- [constant Session.FIXED_NIGHT] exists so a headless
+## suite walks the same train twice -- and it had quietly stopped holding.
+static func _shuffle(rng: RandomNumberGenerator, ids: Array[StringName]) -> void:
+	for i in range(ids.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var held := ids[i]
+		ids[i] = ids[j]
+		ids[j] = held
 
 
 ## A clock string as minutes past midnight, or the moment the train left when there is

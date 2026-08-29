@@ -667,7 +667,15 @@ func _the_highlight() -> CHighlight:
 
 ## Seeded off the clock so two runs do not shift their weight at the same moments, and
 ## so the player does not learn the rhythm of his own idle.
+##
+## Fixed in a headless run, which is never a player: it is the suite, and a test that
+## asserts which sitting clip he is in is otherwise asserting against a roll that was
+## made again between runs. Same reasoning as [method Session._draw_this_run], and the
+## same seed, because there is no sense in two of them.
 func _rolled_seated_idle() -> CSeatedIdle:
 	var idle := CSeatedIdle.new()
-	idle.rng.randomize()
+	if DisplayServer.get_name() == "headless":
+		idle.rng.seed = Session.FIXED_NIGHT
+	else:
+		idle.rng.randomize()
 	return idle

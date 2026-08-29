@@ -225,14 +225,52 @@ func test_every_suspect_can_be_the_answer() -> void:
 ## to catch a suspect falling off it rather than to police the shape.
 func test_no_suspect_is_a_long_shot() -> void:
 	var seen := {}
-	var suspects: int = _content().size() - 1
 	for s in FAIRNESS_SEEDS:
 		var who := _night(s).culprit_id
 		seen[who] = int(seen.get(who, 0)) + 1
-	var even := float(FAIRNESS_SEEDS) / float(suspects)
-	for id: StringName in seen:
-		assert_float(float(seen[id])).override_failure_message(
+	# Over everybody aboard rather than over the eleven suspects of any one run: the
+	# victim is drawn too, so which eleven they are changes with the seed and all twelve
+	# can be the answer.
+	var cast: Dictionary = _content()
+	var even := float(FAIRNESS_SEEDS) / float(cast.size())
+	# Walked over the cast rather than over what came up, or somebody the generator can
+	# never choose is somebody this test never looks at -- which is how Dupont went
+	# undrawable in two thousand draws and nothing said so.
+	for id: StringName in cast:
+		var times: int = int(seen.get(id, 0))
+		assert_float(float(times)).override_failure_message(
 			"%s came up %d times in %d draws against an even share of %.0f, so the "
-			% [id, seen[id], FAIRNESS_SEEDS, even] + "answer is one of the others in "
+			% [id, times, FAIRNESS_SEEDS, even] + "answer is one of the others in "
 			+ "all but name"
 		).is_greater(even * 0.4)
+
+
+## The property this whole class is built to have, and the one that had quietly stopped
+## holding: [method Array.shuffle] draws from Godot's global generator rather than from
+## anything handed to it, so the same seed drew a different culprit on every run of the
+## same process. [constant Session.FIXED_NIGHT] exists so a headless suite walks the
+## same train twice, and it was buying nothing.
+func test_a_seed_draws_the_same_night_every_time() -> void:
+	for s in [1, 7, 99, 4242]:
+		var once := _night(s)
+		var twice := _night(s)
+		assert_str(twice.culprit_id).override_failure_message(
+			"seed %d drew %s and then %s" % [s, once.culprit_id, twice.culprit_id]
+		).is_equal(String(once.culprit_id))
+		assert_str(twice.victim_id).is_equal(String(once.victim_id))
+		assert_str(twice.weapon_id).is_equal(String(once.weapon_id))
+		assert_str(twice.scene).is_equal(String(once.scene))
+		assert_int(twice.murder_elapsed).is_equal(once.murder_elapsed)
+
+
+## And nothing between two draws may change what the second one gives. Drawing another
+## night in between is exactly what a restart does.
+func test_a_night_in_between_does_not_move_the_next_one() -> void:
+	var first := _night(31)
+	_night(500)
+	_night(501)
+	var again := _night(31)
+	assert_str(again.culprit_id).override_failure_message(
+		"drawing two nights in between turned seed 31 from %s into %s"
+			% [first.culprit_id, again.culprit_id]).is_equal(String(first.culprit_id))
+	assert_str(again.scene).is_equal(String(first.scene))
