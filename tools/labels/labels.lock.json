@@ -233,6 +233,18 @@
       "family": "tag"
     },
     {
+      "name": "tag/pypi",
+      "color": "d4c5f9",
+      "description": "Published to PyPI",
+      "family": "tag"
+    },
+    {
+      "name": "tag/uv",
+      "color": "d4c5f9",
+      "description": "Python project managed by uv",
+      "family": "tag"
+    },
+    {
       "name": "tag/windmill",
       "color": "d4c5f9",
       "description": "Windmill scripts and flows",
@@ -268,30 +280,24 @@
     "embeddb-derive",
     "erust",
     "fish-and-chip",
+    "fudster",
     "gilded-gazette",
     "holy",
     "holy-derive",
-    "hooks",
     "i18n",
-    "itch",
     "jedi",
     "kbve",
     "kbve-proto",
     "kbve-py",
     "labels",
     "laser",
-    "lfs",
-    "npm",
-    "packages",
     "protobuf",
-    "python",
     "release",
     "rentearth-api",
     "rentearth-bevy",
     "rentearth.com",
     "uniti",
-    "windmill",
-    "worktree"
+    "windmill"
   ],
   "routes": [
     {
@@ -499,12 +505,6 @@
       ]
     },
     {
-      "source": "packages",
-      "labels": [
-        "area/packages"
-      ]
-    },
-    {
       "source": "packages/i18n",
       "labels": [
         "area/packages"
@@ -525,15 +525,19 @@
       ]
     },
     {
-      "source": "packages/python",
+      "source": "packages/python/fudster",
       "labels": [
-        "area/packages"
+        "area/packages",
+        "tag/pypi",
+        "tag/uv"
       ]
     },
     {
       "source": "packages/python/kbve",
       "labels": [
-        "area/packages"
+        "area/packages",
+        "tag/pypi",
+        "tag/uv"
       ]
     },
     {
@@ -556,43 +560,13 @@
       ]
     },
     {
-      "source": "tools/hooks",
-      "labels": [
-        "area/tools"
-      ]
-    },
-    {
-      "source": "tools/itch",
-      "labels": [
-        "area/tools"
-      ]
-    },
-    {
       "source": "tools/labels",
       "labels": [
         "area/tools"
       ]
     },
     {
-      "source": "tools/lfs",
-      "labels": [
-        "area/tools"
-      ]
-    },
-    {
-      "source": "tools/npm",
-      "labels": [
-        "area/tools"
-      ]
-    },
-    {
       "source": "tools/release",
-      "labels": [
-        "area/tools"
-      ]
-    },
-    {
-      "source": "tools/worktree",
       "labels": [
         "area/tools"
       ]
