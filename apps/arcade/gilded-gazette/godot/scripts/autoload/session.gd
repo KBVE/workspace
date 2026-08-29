@@ -24,6 +24,23 @@ const ESCORT := [
 	{"seed": 0x5eed_0004, "outfit": &"female_knight", "duty": &"relief", "post": 0},
 ]
 
+## What somebody standing about does with themselves, by what they are.
+##
+## A passenger stopped in a corridor is waiting for something and looks around for it;
+## a knight has been stood over the same crate for two hours and folds his arms about
+## it. The plain idle is in both lists because standing still is also a thing people do,
+## and a body that is never merely standing reads as restless.
+##
+## Handed out here rather than rolled, because it is the one part of a standing body
+## that is not interchangeable: give the passengers the escort's list and eight people
+## stand in the corridor like guards.
+const PASSENGER_STANDING: Array[StringName] = [
+	CPosture.AFOOT, CPosture.STANDING_LOOKING, CPosture.STANDING_TIRED,
+]
+const ESCORT_STANDING: Array[StringName] = [
+	CPosture.AFOOT, CPosture.STANDING_FOLDED, CPosture.STANDING_LOOKING,
+]
+
 ## The quarter turn every rig aboard is built with, the player's included. Held here
 ## rather than read off the train, because the cast are spawned before a train exists
 ## and outlive the one they were spawned for.
@@ -87,7 +104,8 @@ func _ready() -> void:
 		var entity := _scope.spawn().add(CPassenger.new()).add(identity) \
 			.add(CLocation.new()).add(Wardrobe.appearance_of(identity.content_id)) \
 			.add(CCharacterRig.new()).add(errand).add(_walking_locomotion()).add(CGait.new()) \
-			.add(CPosture.new()).add(CSeating.new()).add(_seated_idle(identity.content_id))
+			.add(CPosture.new()).add(CSeating.new()).add(_seated_idle(identity.content_id)) \
+			.add(_standing_idle(identity.content_id, PASSENGER_STANDING))
 		# The conductor is on his rounds all night and never sits down, which is the one
 		# thing everybody who has ever taken this train agrees about him. The victim is
 		# kept out for the opposite reason: a pastime is somebody settling in for the
@@ -104,7 +122,8 @@ func _ready() -> void:
 		duty.post_index = sworn["post"]
 		_scope.spawn().add(post).add(CCharacterRig.new()) \
 			.add(Wardrobe.roll(sworn["seed"], sworn["outfit"])) \
-			.add(duty).add(CErrand.new()).add(_walking_locomotion()).add(CGait.new())
+			.add(duty).add(CErrand.new()).add(_walking_locomotion()).add(CGait.new()) \
+			.add(CPosture.new()).add(_standing_idle(sworn["seed"], ESCORT_STANDING))
 
 	begin()
 
@@ -177,6 +196,17 @@ func the_length_of_the_train() -> Array[StringName]:
 func _seated_idle(content_id: StringName) -> CSeatedIdle:
 	var idle := CSeatedIdle.new()
 	idle.rng.seed = Wardrobe.seed_of(content_id)
+	return idle
+
+
+## Seeded the way the seated idles are, and for the same reason: two knights either
+## side of one crate folding their arms on the same frame is worse than neither of them
+## moving at all. The seed is a content id for a passenger and a written-down number for
+## a knight, who has neither a name nor anything else in the content.
+func _standing_idle(seed_from: Variant, choices: Array[StringName]) -> CStandingIdle:
+	var idle := CStandingIdle.new()
+	idle.rng.seed = Wardrobe.seed_of(seed_from) if seed_from is StringName else int(seed_from)
+	idle.choices = choices.duplicate()
 	return idle
 
 

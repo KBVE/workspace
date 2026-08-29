@@ -178,6 +178,7 @@ func _ready() -> void:
 	_scope.add_system(&"camera_aim", SCameraAim.new())
 	_scope.add_system(&"character_animation", SCharacterAnimation.new())
 	_scope.add_system(&"seated_idle", SSeatedIdle.new())
+	_scope.add_system(&"standing_idle", SStandingIdle.new())
 	_scope.add_system(&"posture", SPosture.new())
 	_scope.add_system(&"foot_planting", SFootPlanting.new())
 	_scope.add_system(&"viewer", SViewer.new())

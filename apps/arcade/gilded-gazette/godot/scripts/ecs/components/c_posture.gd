@@ -20,6 +20,20 @@ const SEATED_SHIFTING := &"seated_shifting"
 const SEATED_SETTLED := &"seated_settled"
 const SEATED_NODDING := &"seated_nodding"
 
+## Standing still, differently. The blend space's own Idle sits at the middle of the
+## gait and is what a stopped body does by default; these are what it does instead when
+## it has been stopped for a while. A corridor of people all breathing in time is the
+## thing anybody notices first, and a guard stood over a crate for a two-hour watch
+## with the same loop running is the same problem holding still.
+const STANDING_LOOKING := &"standing_looking"
+const STANDING_FOLDED := &"standing_folded"
+const STANDING_TIRED := &"standing_tired"
+
+## Stood talking to somebody. Kept out of [constant STANDING_STATES] for the reason
+## [constant SEATED_TALKING] is kept out of the seated ones: a man gesturing at an empty
+## corridor reads as a bug.
+const STANDING_TALKING := &"standing_talking"
+
 ## Sat with somebody opposite. Kept out of [constant SEATED_STATES] and asked for only
 ## when there is company: a man gesturing at an empty bench reads as a bug.
 const SEATED_TALKING := &"seated_talking"
@@ -36,6 +50,13 @@ const DEAD := &"dead"
 
 const SEATED_STATES: Array[StringName] = [
 	SEATED, SEATED_SHIFTING, SEATED_SETTLED, SEATED_NODDING,
+]
+
+## Everything a body on its feet and going nowhere might be doing, [constant AFOOT]
+## included: the gait's own Idle is one of the things to stand about doing, not the
+## absence of the others.
+const STANDING_STATES: Array[StringName] = [
+	AFOOT, STANDING_LOOKING, STANDING_FOLDED, STANDING_TIRED,
 ]
 
 var state: StringName = AFOOT

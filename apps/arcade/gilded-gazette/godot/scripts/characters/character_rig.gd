@@ -32,6 +32,10 @@ const WALK_BACKWARD_RIGHT_CLIP := "Walk_Bwd_R"
 const JUMP_LAUNCH_CLIP := "Jump_Start"
 const JUMP_AIR_CLIP := "Jump"
 const JUMP_LAND_CLIP := "Jump_Land"
+const STANDING_LOOKING_CLIP := "Idle_LookAround"
+const STANDING_FOLDED_CLIP := "Idle_FoldArms"
+const STANDING_TIRED_CLIP := "Idle_Tired"
+const STANDING_TALKING_CLIP := "Idle_Talking"
 const SEATED_CLIP := "Sitting_Idle"
 const SEATED_SHIFTING_CLIP := "Sitting_Idle02"
 const SEATED_SETTLED_CLIP := "Sitting_Idle03"
@@ -296,7 +300,7 @@ func _build_animation() -> void:
 	# the blend space has no say in.
 	var posture := AnimationNodeTransition.new()
 	posture.xfade_time = POSTURE_CROSSFADE_SECONDS
-	posture.input_count = 12
+	posture.input_count = 16
 	posture.set_input_name(0, CPosture.AFOOT)
 	posture.set_input_name(1, CPosture.LAUNCHING)
 	posture.set_input_name(2, CPosture.AIRBORNE)
@@ -309,6 +313,10 @@ func _build_animation() -> void:
 	posture.set_input_name(9, CPosture.SEATING)
 	posture.set_input_name(10, CPosture.RISING)
 	posture.set_input_name(11, CPosture.DEAD)
+	posture.set_input_name(12, CPosture.STANDING_LOOKING)
+	posture.set_input_name(13, CPosture.STANDING_FOLDED)
+	posture.set_input_name(14, CPosture.STANDING_TIRED)
+	posture.set_input_name(15, CPosture.STANDING_TALKING)
 
 	var blend_tree := AnimationNodeBlendTree.new()
 	blend_tree.add_node(&"gait", gait)
@@ -325,6 +333,10 @@ func _build_animation() -> void:
 	blend_tree.add_node(&"seating", _clip(SEATING_CLIP))
 	blend_tree.add_node(&"rising", _clip(RISING_CLIP))
 	blend_tree.add_node(&"dead", _clip(DEAD_CLIP))
+	blend_tree.add_node(&"standing_looking", _clip(STANDING_LOOKING_CLIP))
+	blend_tree.add_node(&"standing_folded", _clip(STANDING_FOLDED_CLIP))
+	blend_tree.add_node(&"standing_tired", _clip(STANDING_TIRED_CLIP))
+	blend_tree.add_node(&"standing_talking", _clip(STANDING_TALKING_CLIP))
 	blend_tree.connect_node(&"pace", 0, &"gait")
 	blend_tree.connect_node(&"posture", 0, &"pace")
 	blend_tree.connect_node(&"posture", 1, &"launch")
@@ -338,6 +350,10 @@ func _build_animation() -> void:
 	blend_tree.connect_node(&"posture", 9, &"seating")
 	blend_tree.connect_node(&"posture", 10, &"rising")
 	blend_tree.connect_node(&"posture", 11, &"dead")
+	blend_tree.connect_node(&"posture", 12, &"standing_looking")
+	blend_tree.connect_node(&"posture", 13, &"standing_folded")
+	blend_tree.connect_node(&"posture", 14, &"standing_tired")
+	blend_tree.connect_node(&"posture", 15, &"standing_talking")
 	blend_tree.connect_node(&"output", 0, &"posture")
 
 	animation_tree = AnimationTree.new()

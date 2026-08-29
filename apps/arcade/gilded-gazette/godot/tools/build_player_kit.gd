@@ -27,6 +27,10 @@ const OUTFIT := [
 const CLIPS_BY_SOURCE := {
 	"animations/UAL1.glb": [
 		"Idle", "Jump_Start", "Jump", "Jump_Land",
+		## Standing still, differently. A corridor of people all breathing in time is
+		## the thing anybody notices first, and the plain Idle at the middle of the
+		## blend space is the only thing a stopped body had to do until these.
+		"Idle_LookAround", "Idle_Tired", "Idle_Talking",
 		"Sitting_Idle", "Sitting_Idle02", "Sitting_Idle03", "Sitting_Nodding",
 		"Sitting_Talking", "Sitting_Enter", "Sitting_Exit",
 		## Played once and left on its last frame, which is a body on the floor.
@@ -37,6 +41,9 @@ const CLIPS_BY_SOURCE := {
 	"animations/UAL2.glb": [
 		"Walk_Fwd", "Walk_Bwd", "Walk_L", "Walk_R",
 		"Walk_Fwd_L", "Walk_Fwd_R", "Walk_Bwd_L", "Walk_Bwd_R",
+		## Arms folded: what somebody stood over a crate all night does with their
+		## hands, and the one standing clip that reads as on duty rather than waiting.
+		"Idle_FoldArms",
 	],
 }
 
