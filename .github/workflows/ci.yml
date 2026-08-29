@@ -42,6 +42,47 @@ jobs:
           TITLE: ${{ github.event.pull_request.title }}
         run: node tools/commit/validate.mjs --title "$TITLE"
 
+  # The hook is the real enforcement, but it is local: `--no-verify` skips it,
+  # and a clone whose hooks were never synced has none at all. Nothing else
+  # looked at a commit message -- the job above reads a pull request title, and
+  # work lands on main directly here -- so a bad message was only ever found by
+  # reading the log. This finds it on the push that introduced it.
+  #
+  # It reports rather than prevents: the commits are already on main by the
+  # time it runs. Rewriting them is the fix, and it has to be a decision rather
+  # than something CI does.
+  commits:
+    name: commits
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: the range starts at the commit main was on before this
+      # push, which the default single-commit checkout does not contain.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the commit messages
+        env:
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          # `before` is all zeroes when the branch is created, and names a
+          # commit that no longer exists after a force push. Falling back to
+          # the head commit alone checks something rather than erroring on a
+          # range git cannot resolve.
+          range="$SHA~1..$SHA"
+          if git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            range="$BEFORE..$SHA"
+          fi
+          echo "Checking $range"
+          failed=0
+          while IFS= read -r subject; do
+            node tools/commit/validate.mjs --title "$subject" || failed=1
+          done < <(git log --no-merges --format=%s "$range")
+          exit $failed
+
   # The generated CODEOWNERS is an artifact of each project's owners block, so
   # it can fall behind when someone edits moon.yml without running a task.
   sync:
