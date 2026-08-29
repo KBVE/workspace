@@ -103,6 +103,14 @@ apps/arcade/gilded-gazette/godot/assets/items/**/*.webp  filter=lfs diff=lfs mer
 apps/arcade/gilded-gazette/godot/assets/items/**/*.exr   filter=lfs diff=lfs merge=lfs -text
 apps/arcade/gilded-gazette/godot/assets/items/**/*.hdr   filter=lfs diff=lfs merge=lfs -text
 
+# --- git-lfs: gilded-gazette audio ---------------------------------------
+# Synthesised by tools/gen-sounds.py off a written-down seed, so these are
+# regenerable rather than authored -- but they are still binary, and binary in
+# git history is binary in every clone forever. Kept here with the rest of the
+# game's assets so one rule covers how this project handles them.
+apps/arcade/gilded-gazette/godot/assets/audio/**/*.wav  filter=lfs diff=lfs merge=lfs -text
+apps/arcade/gilded-gazette/godot/assets/audio/**/*.ogg  filter=lfs diff=lfs merge=lfs -text
+
 # --- git-lfs: rentearth textures ----------------------------------------
 # Binary art, kept out of git history. Below the `* text=auto` rule and
 # carrying -text, because a later rule wins per attribute and eol translation

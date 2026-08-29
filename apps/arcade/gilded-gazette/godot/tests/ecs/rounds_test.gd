@@ -46,7 +46,10 @@ func test_the_conductor_crosses_carriages() -> void:
 		await runner.simulate_frames(50, SIMULATED_MILLISECONDS)
 		seen[conductor[&"CLocation"].location_id] = true
 	assert_int(seen.size()).override_failure_message(
-		"the conductor spent the whole night in %s" % seen.keys()).is_greater(1)
+		# &wrapped -> an array on the right of % is the argument list, not one argument,
+		#          so the bare keys() made this "not all arguments converted" on every
+		#          run and would have printed nothing useful had it ever fired.
+		"the conductor spent the whole night in %s" % [seen.keys()]).is_greater(1)
 
 
 ## Where he says he is has to be where his feet are. Announcing the room he set off for

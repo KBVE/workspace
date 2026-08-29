@@ -82,6 +82,7 @@ var _foot_planting: CFootPlanting
 var _seating: CSeating
 var _pointer: CPointer
 var _prompt: CPrompt
+var _footsteps: CFootsteps
 var _seated_idle: CSeatedIdle
 var _control: SPlayerControl
 var _thumbs: TouchControls
@@ -129,8 +130,21 @@ func _ready() -> void:
 		room.location_id = rooms[i]
 		var carriage := CCarriage.new()
 		carriage.index = i
-		_scope.spawn().add(carriage).add(room).add(CLamp.new()) \
+		# The lamps' own node is the anchor for both: it hangs in the middle of the
+		# carriage, which is as true of where the bogies are heard from as of where the
+		# gas is. Detuned a little per carriage, or ten identical loops phase against
+		# each other and the beat is heard as a fault in the audio rather than as ten
+		# carriages of train.
+		var bogies := CNoise.new()
+		bogies.sound = &"carriage_rumble"
+		bogies.pitch = 0.97 + 0.012 * i
+		bogies.reach_metres = 11.0
+		var gas := CNoise.new()
+		gas.sound = &"gas_hiss"
+		gas.reach_metres = 5.0
+		_scope.spawn().add(carriage).add(room).add(CLamp.new()).add(bogies) \
 			.add(ECSViewComponent.new(_consist.lamps_for(i)))
+		_scope.spawn().add(gas).add(ECSViewComponent.new(_consist.lamps_for(i)))
 
 	# built first: how tall he is decides where his eyes are, and his eyes are where
 	# the camera goes
@@ -153,9 +167,10 @@ func _ready() -> void:
 	_pointer = CPointer.new()
 	_seated_idle = _rolled_seated_idle()
 	_prompt = CPrompt.new()
+	_footsteps = CFootsteps.new()
 	_scope.spawn().add(_viewer).add(_occupant).add(_here).add(_intent) \
 		.add(_locomotion).add(_carriage_camera()) \
-		.add(CCharacterRig.new(body)).add(CGait.new()).add(_posture).add(_foot_planting).add(_seating).add(_seated_idle).add(_pointer).add(_prompt).add(_the_highlight()) \
+		.add(CCharacterRig.new(body)).add(CGait.new()).add(_posture).add(_foot_planting).add(_seating).add(_seated_idle).add(_pointer).add(_prompt).add(_footsteps).add(_the_highlight()) \
 		.add(ECSViewComponent.new(_player))
 	_control = SPlayerControl.new()
 	# an exported build is somebody playing and starts live. A debug run is somebody
@@ -206,6 +221,7 @@ func _ready() -> void:
 		_scope.spawn().add(door).add(ECSViewComponent.new(leaf))
 	_scope.add_system(&"door", SDoor.new())
 	_scope.add_system(&"carriage_lamps", lamps)
+	_scope.add_system(&"sound", _sound_system())
 
 	var crosshair := Crosshair.new()
 	crosshair.aiming = _intent
@@ -367,6 +383,21 @@ func _cast_walk_system() -> SCastWalk:
 
 ## Passengers hang off a node of their own rather than off the consist, because a
 ## carriage is culled by visibility and a rig is culled by being built at all.
+## The train's voice.
+##
+## Silent in a headless run, which is the tests and the export: there is no audio
+## driver to ask, and what the tests check is the decisions rather than the noise.
+func _sound_system() -> SSound:
+	var sound_root := Node3D.new()
+	sound_root.name = "Sound"
+	_consist.get_parent().add_child(sound_root)
+
+	var sound := SSound.new()
+	sound.sound_root = sound_root
+	sound.enabled = DisplayServer.get_name() != "headless"
+	return sound
+
+
 func _cast_body_system() -> SCastBody:
 	var cast_root := Node3D.new()
 	cast_root.name = "Cast"

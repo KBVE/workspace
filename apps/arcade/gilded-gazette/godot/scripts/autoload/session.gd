@@ -105,7 +105,7 @@ func _ready() -> void:
 			.add(CLocation.new()).add(Wardrobe.appearance_of(identity.content_id)) \
 			.add(CCharacterRig.new()).add(errand).add(_walking_locomotion()).add(CGait.new()) \
 			.add(CPosture.new()).add(CSeating.new()).add(_seated_idle(identity.content_id)) \
-			.add(_standing_idle(identity.content_id, PASSENGER_STANDING))
+			.add(_standing_idle(identity.content_id, PASSENGER_STANDING)).add(CFootsteps.new())
 		# The conductor is on his rounds all night and never sits down, which is the one
 		# thing everybody who has ever taken this train agrees about him. The victim is
 		# kept out for the opposite reason: a pastime is somebody settling in for the
@@ -123,7 +123,8 @@ func _ready() -> void:
 		_scope.spawn().add(post).add(CCharacterRig.new()) \
 			.add(Wardrobe.roll(sworn["seed"], sworn["outfit"])) \
 			.add(duty).add(CErrand.new()).add(_walking_locomotion()).add(CGait.new()) \
-			.add(CPosture.new()).add(_standing_idle(sworn["seed"], ESCORT_STANDING))
+			.add(CPosture.new()).add(_standing_idle(sworn["seed"], ESCORT_STANDING)) \
+			.add(CFootsteps.new())
 
 	begin()
 
