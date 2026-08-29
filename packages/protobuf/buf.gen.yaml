@@ -85,8 +85,18 @@ plugins:
   # No wiring is needed: the plugin appends an include! for its own output to
   # the prost-generated file, which prost-crate has already put in the module
   # tree. Order matters -- it reads what prost wrote.
+  #
+  # no_include keeps the service code out of the message files, which is what
+  # lets kbve-proto put it behind a feature. Left to itself the plugin appends
+  # an include! to each package file, and an unconditional include cannot be
+  # switched off by a cargo feature -- every consumer of the message types then
+  # compiles axum, hyper, h2 and tower to get at a struct with three fields.
+  # The generated code refers to its messages as `super::RedisCommand`, so the
+  # crate includes it one module below a re-export of the package.
   - remote: buf.build/community/neoeinstein-tonic
     out: gen/rust
+    opt:
+      - no_include
 
   # prost emits files that refer to each other with relative module paths
   # (super::super::r#type::v1::Ulid), so without a module tree the output does

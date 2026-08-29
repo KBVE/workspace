@@ -26,3 +26,16 @@ pub use kbve_proto::kbve::redis::v1 as redis;
 pub use kbve_proto::kbve::staff::v1 as staff;
 #[cfg(feature = "twitch")]
 pub use kbve_proto::kbve::twitch::v1 as twitch;
+
+/// The gRPC clients and servers, when the `grpc` feature is on.
+///
+/// These used to arrive as part of `redis` and `clickhouse` above, because the
+/// build script generated them into the same file as the messages. They are a
+/// separate module in kbve-proto now, so that a crate wanting an item
+/// definition does not compile an HTTP/2 stack to get one. Nothing in this
+/// workspace calls them yet -- the frozen copy this crate carried had a client
+/// and a server for both services and no caller for either.
+#[cfg(feature = "grpc")]
+pub mod grpc {
+    pub use kbve_proto::grpc::{clickhouse, redis};
+}

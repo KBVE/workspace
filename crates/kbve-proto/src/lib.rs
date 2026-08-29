@@ -11,3 +11,45 @@ include!(concat!(
 ));
 
 pub use kbve::*;
+
+/// The gRPC clients and servers, behind the `grpc` feature.
+///
+/// The tonic plugin writes these to a file per package and, with `no_include`,
+/// leaves them unreferenced -- which is the point: an include! inside the
+/// message file could not be switched off. The generated code names its
+/// messages `super::RedisCommand`, and puts its client and server in nested
+/// modules of their own, so `super` is the module holding the include -- which
+/// is where the re-export of the package has to go.
+///
+/// Only the two schemas that declare a service appear here. Adding a service
+/// to a schema means adding four lines below; nothing finds it automatically,
+/// which is worth knowing before wondering where a new client went.
+#[cfg(feature = "grpc")]
+pub mod grpc {
+    macro_rules! service {
+        ($name:ident, $pkg:ident, $file:literal) => {
+            pub mod $name {
+                mod generated {
+                    // Inside the include, `super` is this module rather than
+                    // the one below: the generated code puts its client and
+                    // server in modules of their own, so the re-export has to
+                    // sit beside the include and not one level out.
+                    pub use crate::kbve::$pkg::v1::*;
+                    include!(concat!(
+                        env!("CARGO_MANIFEST_DIR"),
+                        "/../../packages/protobuf/gen/rust/",
+                        $file
+                    ));
+                }
+                pub use generated::*;
+            }
+        };
+    }
+
+    service!(redis, redis, "kbve/redis/v1/kbve.redis.v1.tonic.rs");
+    service!(
+        clickhouse,
+        clickhouse,
+        "kbve/clickhouse/v1/kbve.clickhouse.v1.tonic.rs"
+    );
+}
