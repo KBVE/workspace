@@ -56,10 +56,15 @@ For the same reason, never `git add -A`.
 
 ## Commits
 
-Conventional commits, and they are enforced rather than encouraged. The
-`commit-msg` hook runs `tools/commit/validate.mjs`, and CI checks pull request
-titles the same way — the labeller reads the type out of the title, so an
-unconventional one silently gets no `kind/*` label.
+Conventional commits, and they are enforced rather than encouraged.
+`tools/commit/validate.mjs` is the one check, run from three places: the
+`commit-msg` hook locally, against a pull request title in CI — the labeller
+reads the type out of the title, so an unconventional one silently gets no
+`kind/*` label — and over every commit in a push to `main`, because the hook is
+local and `--no-verify` skips it.
+
+The push check reports rather than prevents; by then the commits have landed.
+Rewriting them is a decision, not something CI should do on its own.
 
 ```
 type(scope): subject          fix(laser): stop the resource pools going negative
@@ -76,6 +81,16 @@ repository-wide scopes in `tools/commit/scopes.yml` (`ci`, `moon`, `agents`,
 `repo`, `deps`). That is what keeps a commit attributable to a project. A scope
 that could mean several projects is rejected: write `rentearth-bevy` or
 `rentearth.com`, not `rentearth`.
+
+The scope is read again after the commit lands, by the release notes — see
+[Releases](#releases). It does not decide whether the commit is in a release
+(the changed paths do that) and it does not pick the heading (the type does).
+What it decides is how the line reads: a commit whose scope names the project
+being released is printed plainly, and one whose scope names something else is
+printed with that scope in front, because there it is telling the reader
+something. So `feat(rentearth):` on a change to `rentearth-bevy` now shows up
+as a stray `**rentearth:**` in a published release rather than only as a
+missing label.
 
 Subjects are lower case, no full stop. The hook reads
 `tools/labels/labels.lock.json` rather than starting moon, so it costs about
