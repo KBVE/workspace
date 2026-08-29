@@ -1,13 +1,10 @@
 # The `kbve` PyPI package, ported from the legacy Nx workspace at
 # KBVE/kbve packages/python/kbve.
 #
-# The id is not the directory name. `crates/kbve` already owns `kbve` in the
-# project graph, and two projects cannot share an id -- but only the graph
-# cares. The directory, the distribution name, and `pip install kbve` all stay
-# `kbve`; the crate and the wheel live in different registries and never meet.
-# The visible consequence is the release tag: `kbve-py@2.0.0`, which is also
-# what keeps it unambiguous against a future tag for the crate.
-id: 'kbve-py'
+# The project id is `kbve-py`, not the directory name, and it is set by the
+# `sources` entry in .moon/workspace.yml -- which explains why. It is not
+# repeated here: moon.yml's own `id:` field wins over that entry, so setting
+# both means one of them can quietly stop being true.
 layer: 'library'
 language: 'python'
 # Not 'backend', which is what this was and what the server stack still is.
@@ -16,67 +13,33 @@ language: 'python'
 # tooling. The base install is infrastructure tooling, so the stack says so.
 stack: 'infrastructure'
 
-# Descriptive for now, the way 'proto' is on packages/protobuf: no
+# 'uv' brings install, test, lint and build -- see .moon/tasks/uv.yml, which
+# stands in for the python toolchain file moon 2.5 cannot provide.
+#
+# 'pypi' is descriptive for now, the way 'proto' is on packages/protobuf: no
 # .moon/tasks/pypi.yml exists yet, so nothing is inherited from it. It is here
 # so the project is discoverable by `moon query projects --tag pypi` alongside
 # the npm and itch publishers, and so the publish task set has something to
 # attach to when release plumbing lands.
-tags: ['pypi']
+tags: ['uv', 'pypi']
 
 owners:
   defaultOwner: '@h0lybyte'
 
 fileGroups:
+  # The package directory. uv.yml cannot know this -- it is named after the
+  # distribution -- so it is the one file group a tagged project has to supply.
   sources:
     - 'kbve/**/*'
   tests:
     - 'tests/**/*'
-  manifests:
-    - 'pyproject.toml'
-    - 'uv.lock'
-    # uv resolves the interpreter from this, so changing it changes every venv
-    # built from these manifests. Left out, a Python bump would not re-sync.
-    - '.python-version'
 
 tasks:
-  # moon 2.5 has no built-in python toolchain plugin -- declaring `python:` in
-  # .moon/toolchains.yml fails with "a locator is required for plugins". The
-  # interpreter and uv are pinned in .prototools instead, so these run as
-  # system commands against proto-managed binaries.
-  install:
-    # --all-extras because the test suite imports every module, including the
-    # ones behind server and blender. A consumer that only wants kbve.seo
-    # installs neither, which is the point of the split.
-    command: 'uv sync --all-extras --dev'
-    toolchains: ['system']
-    inputs: ['@group(manifests)']
-    options:
-      # The output is a .venv full of absolute paths; nothing portable to cache.
-      cache: false
-
-  test:
-    command: 'uv run pytest tests/'
-    toolchains: ['system']
-    deps: ['~:install']
-    inputs: ['@group(sources)', '@group(tests)', '@group(manifests)']
-    outputs: ['reports']
-
-  lint:
-    command: 'uv run flake8 kbve tests'
-    toolchains: ['system']
-    deps: ['~:install']
-    inputs: ['@group(sources)', '@group(tests)', '.flake8']
-
-  build:
-    command: 'uv build --out-dir dist'
-    toolchains: ['system']
-    deps: ['~:install']
-    inputs: ['@group(sources)', '@group(manifests)', 'README.md']
-    outputs: ['dist']
-
-  # The gate a release has to clear. `test` runs against an editable install of
-  # the source tree, which is the one arrangement where every path resolves --
-  # it cannot see a module the wheel failed to package.
+  # The gate a release has to clear, and the only task here that is not
+  # inherited. `test` runs against an editable install of the source tree,
+  # which is the one arrangement where every path resolves -- it cannot see a
+  # module the wheel failed to package, or a dependency that quietly became
+  # mandatory.
   verify:
     command: 'bash tools/verify-wheel.sh'
     toolchains: ['system']

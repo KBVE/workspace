@@ -10,15 +10,32 @@ projects:
     # A new deploy target adds a line here.
     - 'services/api/*'
     - 'packages/*'
-    # Python packages sit a level deeper, grouped by language the way apps are
-    # grouped by kind. 'packages/*' is one level and does not reach them.
-    - 'packages/python/*'
+    - '!packages/python'
     - 'crates/*'
     - 'tools/*'
   sources:
     # windmill is a single project, not a group: the wmill CLI owns the tree
     # under f/, so there is nothing below it to glob.
     windmill: 'services/windmill'
+    # Named rather than globbed, for two reasons.
+    #
+    # A 'packages/python/*' glob also registers `packages` itself as a project
+    # -- a directory with no moon.yml, which then turns up in `moon check
+    # --all` and in the CODEOWNERS sync. The '!packages/python' exclusion above
+    # stops 'packages/*' doing the same to the language directory.
+    #
+    # And the key is the project id, which this project needs to differ from
+    # its directory name: crates/kbve already owns `kbve` in the graph, and two
+    # projects cannot share an id. Only the graph cares -- the directory, the
+    # distribution and `pip install kbve` are all still `kbve`, and the crate
+    # and the wheel live in registries that never meet. The visible consequence
+    # is the release tag, `kbve-py@<version>`.
+    #
+    # Declared here rather than as `id:` in the project's own moon.yml because
+    # only one of them can be true: moon.yml wins when both are set, which
+    # would leave this key describing an id the graph does not use. A second
+    # python package adds a line here.
+    kbve-py: 'packages/python/kbve'
 
 codeowners:
   # Ownership is declared per project in its moon.yml and synced here, so it

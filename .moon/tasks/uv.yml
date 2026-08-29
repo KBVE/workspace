@@ -1,0 +1,72 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+# Inherited by every project tagged 'uv'.
+#
+# This is standing in for a toolchain file. node.yml and rust.yml attach with
+# `inheritedBy: toolchain:`, which is the right mechanism and is not available
+# here: moon 2.5 ships no python toolchain plugin, and declaring `python:` in
+# .moon/toolchains.yml fails with "a locator is required for plugins". The
+# interpreter and uv are pinned in .prototools instead and these run as system
+# commands, so the tag is what a toolchain would otherwise have been.
+#
+# What a project tagged 'uv' owes these tasks:
+#
+#   pyproject.toml     with a [build-system], so `uv build` has something to do
+#   uv.lock            committed, so install is reproducible
+#   .python-version    the interpreter uv resolves
+#   tests/             pytest's default location
+#   fileGroups.sources the package directory, which only the project knows
+#
+# `sources` is deliberately not defined here. A Python project's package
+# directory is named after the distribution, so there is no glob that is both
+# correct and general -- and a wrong one silently widens every task's inputs
+# until nothing caches.
+inheritedBy:
+  tag: 'uv'
+
+fileGroups:
+  # Universal for a uv project, unlike sources: these three files are what
+  # decide the contents of the venv, so every task that runs inside one is
+  # affected by a change to any of them.
+  manifests:
+    - 'pyproject.toml'
+    - 'uv.lock'
+    # uv resolves the interpreter from this, so it decides what every venv
+    # built from these manifests contains. Left out, a Python bump would not
+    # re-sync.
+    - '.python-version'
+
+tasks:
+  install:
+    # --all-extras because a test suite imports every module a package has,
+    # including the ones behind optional extras. What a consumer installs is a
+    # different question, and the wheel gate is where that is checked.
+    command: 'uv sync --all-extras --dev'
+    toolchains: ['system']
+    inputs: ['@group(manifests)']
+    options:
+      # The output is a .venv full of absolute paths; nothing portable to cache.
+      cache: false
+
+  test:
+    command: 'uv run pytest tests/'
+    toolchains: ['system']
+    deps: ['~:install']
+    inputs: ['@group(sources)', '@group(tests)', '@group(manifests)']
+    outputs: ['reports']
+
+  lint:
+    # `.` rather than named directories: the exclude list in .flake8 already
+    # keeps it out of .venv, dist and the caches, and naming them here would be
+    # a second list to keep in step with the package layout.
+    command: 'uv run flake8 .'
+    toolchains: ['system']
+    deps: ['~:install']
+    inputs: ['@group(sources)', '@group(tests)', '@group(manifests)', '.flake8']
+
+  build:
+    command: 'uv build --out-dir dist'
+    toolchains: ['system']
+    deps: ['~:install']
+    inputs: ['@group(sources)', '@group(manifests)', 'README.md']
+    outputs: ['dist']
