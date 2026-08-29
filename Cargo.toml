@@ -129,3 +129,13 @@ opt-level = 1
 
 [profile.dev.package."*"]
 opt-level = 3
+# Dependencies carry no debug info. This is the single biggest thing on disk:
+# target/debug/deps was 34G, and stripping real artifacts out of it showed
+# 79-95% of each was DWARF -- libduckdb_sys alone went 1.5G -> 80M.
+#
+# Scoped to dependencies on purpose. Our own crates keep full debug info, so
+# stepping through workspace code and reading locals is unchanged. What is lost
+# is line numbers inside a dependency's frames of a backtrace; function names
+# survive, because those come from the symbol table rather than from DWARF.
+# Debugging into Bevy itself means commenting this out.
+debug = false
