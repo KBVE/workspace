@@ -8,6 +8,7 @@ import {
   isVersionBump,
   bullet,
   render,
+  refExists,
 } from './notes.mjs';
 
 test('orders versions numerically, not as strings', () => {
@@ -135,6 +136,13 @@ test('says so when a release carries no commits of its own', () => {
     repo: 'KBVE/workspace',
   });
   assert.match(out, /No changes to `p` since p@0\.1\.0\./);
+});
+
+test('reports whether git can resolve a ref instead of throwing', () => {
+  // The preview path depends on this: `git log` on a tag that does not exist
+  // yet is a fatal error, and previewing before tagging is the whole point.
+  assert.equal(refExists('HEAD'), true);
+  assert.equal(refExists('no-such-tag-anywhere@9.9.9'), false);
 });
 
 test('a first release has no comparison link to offer', () => {

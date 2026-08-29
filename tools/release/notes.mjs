@@ -184,6 +184,19 @@ function git(args, cwd) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 }
 
+/** Whether git can resolve a ref, without the failure being fatal. */
+export function refExists(ref, cwd = process.cwd()) {
+  try {
+    execFileSync('git', ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], {
+      cwd,
+      stdio: 'ignore',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Commits in the range that touched the project's source.
  *
@@ -230,7 +243,19 @@ export function notes(tag, cwd = process.cwd()) {
   const resolved = projectNode(project, cwd);
   const allTags = git(['tag', '--list'], cwd).split('\n').map((t) => t.trim()).filter(Boolean);
   const previous = previousTag(allTags, project, version);
-  const range = previous ? `${previous}..${tag}` : tag;
+  // Previewing the notes for a tag that has not been created yet is the useful
+  // thing to do before creating it, and `git log <missing-ref>` is a fatal
+  // error rather than an empty range. HEAD is what that tag would point at, so
+  // the preview is the real answer. Said on stderr so stdout stays a clean
+  // notes file when it is redirected.
+  let head = tag;
+  if (!refExists(tag, cwd)) {
+    head = 'HEAD';
+    process.stderr.write(
+      `${tag} does not exist yet; showing the notes it would get from HEAD.\n`,
+    );
+  }
+  const range = previous ? `${previous}..${head}` : head;
   const commits = commitsFor(range, resolved.source, cwd);
   return render({
     project,
