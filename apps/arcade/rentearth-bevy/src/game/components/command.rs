@@ -1,0 +1,201 @@
+//! Who commands what.
+//!
+//! These are components, where `Unit` deliberately is not. The difference is
+//! how many there are: a hundred thousand men cannot each be an entity
+//! carrying a transform and a visibility computation, but the sides, their
+//! homes and the bodies they are organised into number in the dozens. Those
+//! are exactly what an ECS is for, and holding them in flat arrays instead
+//! would be the same mistake in the other direction.
+//!
+//! The split also matches how the game is played. Nobody orders a hundred
+//! thousand men one at a time -- they order companies, and a company is few
+//! enough to be an entity with a queue of intentions hanging off it.
+
+use bevy::prelude::*;
+
+use crate::game::core::map::Offset;
+
+/// Which side something belongs to.
+///
+/// A component here and a plain field on `Unit`, which is not a contradiction:
+/// the same fact is worth indexing on an entity and worth packing into a byte
+/// a hundred thousand times over.
+#[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Team(pub u32);
+
+/// A side in the game.
+///
+/// One of these is a person and the rest are not, and that is the only thing
+/// that distinguishes them -- an AI that cannot be swapped in for the player
+/// is an AI playing a different game.
+#[derive(Component, Clone, Copy, Debug)]
+pub struct Player {
+    pub human: bool,
+}
+
+/// Somewhere a side grows men.
+///
+/// Its own entity rather than an entry in the bases array, because a home is
+/// going to accumulate things -- what it is building, how fast, what it has
+/// stored -- and every one of those is a component waiting to be added rather
+/// than another parallel array to keep in step.
+#[derive(Component, Clone, Copy, Debug)]
+pub struct Home {
+    pub tile: Offset,
+}
+
+/// A body of men under one order.
+///
+/// The unit of command, as opposed to `Unit`, which is the unit of drawing.
+/// Soldiers carry which company they are in; the company carries where it is
+/// going. That is what keeps an order one write rather than twenty-five
+/// thousand.
+#[derive(Component, Clone, Copy, Debug)]
+pub struct Company {
+    /// Which flow field this company walks by. Its own rather than its side's,
+    /// so that splitting an army in two gives two destinations and not an
+    /// argument over one.
+    pub field: usize,
+}
+
+/// Where a company has been told to go, in the order it was told.
+///
+/// A queue rather than a destination, because that is the difference between
+/// "go here" and "go here, then there" -- and because a real-time game with no
+/// queue makes the player the queue.
+#[derive(Component, Default, Debug)]
+pub struct Orders {
+    pub waypoints: Vec<Offset>,
+}
+
+impl Orders {
+    /// Replace whatever was ordered. A plain click.
+    pub fn go(&mut self, tile: Offset) {
+        self.waypoints.clear();
+        self.waypoints.push(tile);
+    }
+
+    /// Add to what was ordered. The same click with shift held.
+    pub fn then(&mut self, tile: Offset) {
+        self.waypoints.push(tile);
+    }
+
+    /// Where the company is heading right now.
+    pub fn current(&self) -> Option<Offset> {
+        self.waypoints.first().copied()
+    }
+
+    /// Arrived. Returns whether anything is left to do.
+    pub fn reached(&mut self) -> bool {
+        if !self.waypoints.is_empty() {
+            self.waypoints.remove(0);
+        }
+        !self.waypoints.is_empty()
+    }
+}
+
+/// Company number to entity.
+///
+/// Soldiers hold a number rather than an `Entity` -- four bytes against eight,
+/// a hundred thousand times -- so something has to turn one into the other.
+/// This is that, and it is the price of the saving: a number is only as good
+/// as the table that resolves it.
+#[derive(Resource, Default)]
+pub struct Roster(pub Vec<Entity>);
+
+impl Roster {
+    pub fn entity(&self, company: u32) -> Option<Entity> {
+        self.0.get(company as usize).copied()
+    }
+
+    /// Enrol a company and hand back its number.
+    pub fn enrol(&mut self, entity: Entity) -> u32 {
+        self.0.push(entity);
+        (self.0.len() - 1) as u32
+    }
+}
+
+/// Picked out by the player.
+///
+/// A marker rather than a list held somewhere central: "what is selected" is
+/// then a query rather than a thing to keep in step with the world, and a
+/// company that stops existing stops being selected without anyone tidying up
+/// after it.
+#[derive(Component, Clone, Copy, Debug)]
+pub struct Selected;
+
+/// A drag in progress, in world coordinates on the ground plane.
+///
+/// A resource because there is only ever one, and it belongs to the pointer
+/// rather than to anything in the world.
+#[derive(Resource, Default, Debug)]
+pub struct DragBox {
+    pub from: Option<Vec2>,
+    pub to: Vec2,
+}
+
+impl DragBox {
+    /// The rectangle covered, smallest corner first, if a drag is under way.
+    pub fn rect(&self) -> Option<(Vec2, Vec2)> {
+        let from = self.from?;
+        Some((from.min(self.to), from.max(self.to)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tile(col: i32, row: i32) -> Offset {
+        Offset { col, row }
+    }
+
+    /// A click replaces and a shift-click appends. Getting these the same way
+    /// round would make every order cancel the last one, or make none of them
+    /// cancel anything.
+    #[test]
+    fn orders_queue_in_the_order_given() {
+        let mut orders = Orders::default();
+
+        orders.go(tile(1, 1));
+        orders.then(tile(2, 2));
+        assert_eq!(orders.current(), Some(tile(1, 1)));
+
+        assert!(orders.reached(), "the second waypoint went missing");
+        assert_eq!(orders.current(), Some(tile(2, 2)));
+
+        assert!(!orders.reached());
+        assert_eq!(orders.current(), None);
+
+        orders.go(tile(3, 3));
+        orders.go(tile(4, 4));
+        assert_eq!(orders.waypoints, vec![tile(4, 4)], "a click must replace");
+    }
+
+    /// Arriving with nothing ordered must not panic, which is the state every
+    /// company sits in for most of its life.
+    #[test]
+    fn arriving_with_no_orders_is_fine() {
+        let mut orders = Orders::default();
+        assert!(!orders.reached());
+        assert_eq!(orders.current(), None);
+    }
+
+    /// A drag is a rectangle whichever corner it started from. Dragging up and
+    /// left is the same box as dragging down and right, and a selection that
+    /// only worked one way would look like it worked until someone dragged the
+    /// other.
+    #[test]
+    fn a_drag_is_the_same_box_either_way() {
+        let mut drag = DragBox::default();
+        assert_eq!(drag.rect(), None);
+
+        drag.from = Some(Vec2::new(10.0, 20.0));
+        drag.to = Vec2::new(-5.0, 4.0);
+
+        assert_eq!(
+            drag.rect(),
+            Some((Vec2::new(-5.0, 4.0), Vec2::new(10.0, 20.0))),
+        );
+    }
+}

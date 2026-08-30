@@ -51,6 +51,9 @@ pub mod equipment {
     pub const SPEAR_TIP: u32 = 8;
 }
 
+/// Under nobody's orders.
+pub const NO_COMPANY: u32 = u32::MAX;
+
 /// What a quad in the unit mesh is a picture of.
 pub mod quad_kind {
     /// A jointed figure.
@@ -79,6 +82,11 @@ pub struct Unit {
     /// the seed: the seed sets the animation phase, and taking both from it
     /// tied a unit's faction to where it happened to be in its walk cycle.
     pub team: u32,
+    /// Which body of men this one belongs to, as an index rather than an
+    /// `Entity`: this is stored a hundred thousand times, and four bytes
+    /// against eight matters at that count. `NO_COMPANY` for a man under
+    /// nobody's orders.
+    pub company: u32,
     /// This unit's identity -- where it starts in its own animation, so a
     /// stack of them does not march in step.
     pub seed: f32,
