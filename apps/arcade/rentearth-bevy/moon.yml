@@ -74,7 +74,7 @@ tasks:
   # Set RENTEARTH_SCREENSHOT to a path to capture one settled frame and quit,
   # which is how a shader change gets compared against the one before it.
   run:
-    args: '--features water,units,trees'
+    args: '--features water,units,trees,ships'
     deps:
       - '~:assets'
 

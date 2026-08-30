@@ -1,16 +1,37 @@
 #!/usr/bin/env python3
-"""Blender headless 360 sprite-sheet baker for the ARPG iso renderer.
+"""Blender headless 360 sprite-sheet baker for iso / billboard renderers.
 
-Loads a model (OBJ/FBX) + a skin texture, lays the hull flat on the ground plane,
-spins it through N yaw steps under an orthographic isometric camera, and bakes one
-transparent PNG per facing — then stitches them into a square sheet and a 1xN strip
-that the Phaser `EnvDef` / class rigs read row-major (frame index = facing).
+Loads a model (OBJ/FBX/BLEND), lays the hull flat on the ground plane, spins it
+through N yaw steps under an orthographic camera, and bakes one transparent PNG
+per facing — then stitches them into a square sheet and a 1xN strip that the
+Phaser `EnvDef` / class rigs read row-major (frame index = facing).
+
+The output is engine-agnostic: what a consumer needs to place the sprite in its
+own world is the camera elevation it was baked at and the world size one frame
+spans, and both are written to `meta.json` beside the sheet.
 
 Why "lay flat": many ship/vehicle models import standing upright (nose along the
 model's up axis). An env sprite is drawn as an upright screen billboard, so an
 upright render reads as a ship standing on its tail. `--pitch` rotates the hull
-onto the ground (deck toward +Z) and bakes that into the mesh before the spin, so
-each frame reads as a vehicle resting on the iso floor.
+onto the ground (deck toward +Z) before the spin, so each frame reads as a
+vehicle resting on the floor. A model that is already level wants `--pitch 0`.
+
+Two source shapes, and they want opposite handling:
+
+  * A bare OBJ/FBX plus one `--skin` texture. Every mesh is joined into one and
+    given a single emissive-plus-diffuse material, which is what makes a
+    low-detail model read as bright flat sprite art. This is the default.
+  * An authored `.blend` that already has its own PBR materials, an armature and
+    modifiers — a Poly Haven asset, say. Here joining is destructive (a join
+    keeps only the active object's modifier stack, so rigged sails and
+    geometry-node rigging collapse) and overriding the materials throws away the
+    detail that is the whole reason to pre-render. Pass `--keep-materials`, and
+    the meshes are left alone and parented to a pivot instead of joined.
+
+Authored scenes also tend to carry objects that are not the subject: rig control
+widgets, helpers, reference planes. `--exclude` and `--include` take
+comma-separated `fnmatch` patterns over object names and are applied before
+anything is parented, so those never reach a frame.
 
 Dial the angle interactively first with `preview-model-sprites.html` (same Z-up /
 ortho / pitch / yaw math) — it prints the exact flags to paste here.
@@ -22,11 +43,17 @@ it via the console entrypoint, which finds Blender and execs it headless:
         --model fighter1.obj --skin idolknight.jpg --out render_flat \
         --frames 16 --res 256 --elev 35 --pitch 90 --yaw-offset 0
 
+    uv run kbve-model-sprites -- \
+        --model ship_pinnace_1k.blend --out ships/pinnace --keep-materials \
+        --exclude 'wdg_*,hlp_*' --frames 16 --res 256 --elev 41.25 --pitch 0
+
 Or directly: blender -b -P model_sprites.py -- <args>
 
 Single parked frame (no spin): pass --frames 1 with the chosen --yaw-offset.
 """
 import argparse
+import fnmatch
+import json
 import math
 import os
 import sys
@@ -38,9 +65,25 @@ import mathutils
 def parse_args():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     p = argparse.ArgumentParser(prog="kbve-model-sprites")
-    p.add_argument("--model", required=True, help="source .obj or .fbx")
-    p.add_argument("--skin", required=True, help="texture image applied to all meshes")
+    p.add_argument("--model", required=True, help="source .obj, .fbx or .blend")
+    p.add_argument("--skin", default=None,
+                   help="texture applied to all meshes; required unless --keep-materials")
     p.add_argument("--out", required=True, help="output dir (frames + sheet + strip)")
+    # --- authored-scene handling ---
+    p.add_argument("--keep-materials", action="store_true",
+                   help="render the model's own materials and skip the join; for a .blend "
+                        "that already has PBR materials, an armature or modifiers")
+    p.add_argument("--include", default="",
+                   help="comma-separated name patterns to keep (default: everything)")
+    p.add_argument("--exclude", default="",
+                   help="comma-separated name patterns to drop, e.g. 'wdg_*,hlp_*'")
+    p.add_argument("--show", default="",
+                   help="comma-separated name patterns to un-hide before filtering; picks "
+                        "the pose an asset ships switched off, e.g. sails set vs furled")
+    p.add_argument("--ambient", type=float, default=0.0,
+                   help="world background strength; fills the side the sun does not reach")
+    p.add_argument("--ambient-color", default="0.75,0.80,0.95",
+                   help="world background colour as r,g,b in 0..1")
     p.add_argument("--frames", type=int, default=16, help="yaw facings (1 = static)")
     p.add_argument("--res", type=int, default=256, help="px per frame (square)")
     # --- animation (spool-up / takeoff, or hover idle) ---
@@ -85,45 +128,77 @@ def parse_args():
     return p.parse_args(argv)
 
 
-def main():
-    a = parse_args()
-    os.makedirs(a.out, exist_ok=True)
+def patterns(spec):
+    """Split a comma-separated pattern list, dropping blanks."""
+    return [p.strip() for p in spec.split(",") if p.strip()]
 
-    bpy.ops.wm.read_factory_settings(use_empty=True)
 
-    # ---- import ----
+def wanted(name, include, exclude):
+    """Does an object name survive the include/exclude filters?
+
+    An empty include list means "everything", which is what keeps the filters
+    off the path of a bare OBJ import that has nothing to filter.
+    """
+    if include and not any(fnmatch.fnmatch(name, p) for p in include):
+        return False
+    return not any(fnmatch.fnmatch(name, p) for p in exclude)
+
+
+def load_model(a):
+    """Open the source and return the mesh objects that make up the subject.
+
+    A `.blend` is opened rather than imported, so its materials, armature and
+    modifiers arrive intact; its own cameras and lights are dropped, because
+    this script supplies both and a stray key light in the file would make the
+    bake depend on how the asset happened to be lit.
+    """
     ext = os.path.splitext(a.model)[1].lower()
-    if ext == ".obj":
-        bpy.ops.wm.obj_import(filepath=a.model)
-    elif ext == ".fbx":
-        bpy.ops.import_scene.fbx(filepath=a.model)
+    if ext == ".blend":
+        bpy.ops.wm.open_mainfile(filepath=a.model)
+        for o in [o for o in bpy.data.objects if o.type in {"CAMERA", "LIGHT"}]:
+            bpy.data.objects.remove(o, do_unlink=True)
     else:
-        raise SystemExit("unsupported model ext: " + ext)
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        if ext == ".obj":
+            bpy.ops.wm.obj_import(filepath=a.model)
+        elif ext == ".fbx":
+            bpy.ops.import_scene.fbx(filepath=a.model)
+        else:
+            raise SystemExit("unsupported model ext: " + ext)
 
-    meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    # An asset often ships more than one pose, with the unused half switched off
+    # rather than absent -- a set of sails furled and the same sails drawn. Those
+    # are hidden objects, so un-hiding by name is how a variant is selected, and
+    # it happens before the filters so `--exclude` can drop the pose not wanted.
+    show = patterns(a.show)
+    if show:
+        for o in bpy.context.scene.objects:
+            if any(fnmatch.fnmatch(o.name, p) for p in show):
+                o.hide_render = False
+
+    include, exclude = patterns(a.include), patterns(a.exclude)
+    meshes = [
+        o for o in bpy.context.scene.objects
+        if o.type == "MESH" and not o.hide_render and wanted(o.name, include, exclude)
+    ]
     if not meshes:
-        raise SystemExit("no mesh imported")
+        raise SystemExit("no mesh to render (check --include / --exclude)")
 
-    bpy.ops.object.select_all(action="DESELECT")
-    for m in meshes:
-        m.select_set(True)
-    bpy.context.view_layer.objects.active = meshes[0]
-    if len(meshes) > 1:
-        bpy.ops.object.join()
-    obj = bpy.context.view_layer.objects.active
-    bpy.ops.object.origin_set(type="ORIGIN_GEOMETRY", center="BOUNDS")
-    obj.location = (0, 0, 0)
+    # Everything the filters rejected is deleted rather than merely skipped: an
+    # object left in the scene still renders, and rig control widgets are
+    # visible objects sitting right on top of the subject.
+    for o in list(bpy.context.scene.objects):
+        if o.type == "MESH" and o not in meshes:
+            bpy.data.objects.remove(o, do_unlink=True)
+    return meshes
 
-    # ---- lay flat: pitch hull onto the ground, then bake into the mesh so the
-    # per-frame yaw loop spins a flat hull about world-Z ----
-    obj.rotation_euler = (math.radians(a.pitch), 0.0, 0.0)
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
 
-    # ---- material: emissive (reads bright like a sprite) mixed with a little
-    # diffuse so the form still shades ----
+def skin_material(a):
+    """One emissive-plus-diffuse material off a single texture.
+
+    Emission is what makes a low-detail model read as bright flat sprite art;
+    the diffuse share keeps the form shading rather than going uniform.
+    """
     mat = bpy.data.materials.new("skin")
     mat.use_nodes = True
     nt = mat.node_tree
@@ -140,16 +215,102 @@ def main():
     nt.links.new(emit.outputs["Emission"], mix.inputs[1])
     nt.links.new(bsdf.outputs["BSDF"], mix.inputs[2])
     nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
-    obj.data.materials.clear()
-    obj.data.materials.append(mat)
+    return mat
+
+
+def world_bounds(meshes):
+    """World-space bounding box of the evaluated meshes.
+
+    Evaluated, not raw: an object's `bound_box` is its cage before modifiers,
+    and a rope built by geometry nodes or an array can reach well outside it.
+    Framing on the raw box crops exactly that geometry out of the frame.
+    """
+    dg = bpy.context.evaluated_depsgraph_get()
+    lo = mathutils.Vector((float("inf"),) * 3)
+    hi = mathutils.Vector((float("-inf"),) * 3)
+    for o in meshes:
+        ev = o.evaluated_get(dg)
+        for corner in ev.bound_box:
+            w = ev.matrix_world @ mathutils.Vector(corner)
+            for i in range(3):
+                lo[i] = min(lo[i], w[i])
+                hi[i] = max(hi[i], w[i])
+    return lo, hi
+
+
+def build_pivot(meshes, pitch_deg):
+    """Hang the meshes off a two-empty rig and return the outer (yaw) empty.
+
+    A rig rather than a baked rotation, because the meshes cannot always be
+    joined into one object -- an authored asset's armature and modifiers do not
+    survive a join -- and N loose objects need one handle to spin.
+
+    The order matters and the nesting is what enforces it. World transform is
+    `Rz(yaw) . Rx(pitch) . T(-centre)`: the model is centred on the origin, laid
+    flat, and only then spun about world Z. Pitching after the yaw would tip the
+    hull sideways on every facing but the first.
+    """
+    lo, hi = world_bounds(meshes)
+    centre = (lo + hi) / 2.0
+
+    pivot = bpy.data.objects.new("sprite_pivot", None)
+    base = bpy.data.objects.new("sprite_base", None)
+    centred = bpy.data.objects.new("sprite_centre", None)
+    for e in (pivot, base, centred):
+        bpy.context.scene.collection.objects.link(e)
+    base.parent = pivot
+    centred.parent = base
+    base.rotation_euler = (math.radians(pitch_deg), 0.0, 0.0)
+    centred.location = -centre
+
+    # Only roots get reparented: a mesh already parented to another object in
+    # the source scene -- to the armature, typically -- keeps that parent, and
+    # moving it here would tear it off its rig.
+    for o in meshes:
+        if o.parent is None:
+            o.parent = centred
+    # An armature is a root that drives its meshes, so it has to travel too.
+    for o in bpy.context.scene.objects:
+        if o.type == "ARMATURE" and o.parent is None:
+            o.parent = centred
+
+    bpy.context.view_layer.update()
+    # `centred` sits exactly where the source file's own origin ended up, which
+    # is the one height in the frame that means something outside the render.
+    return pivot, centred
+
+
+def main():
+    a = parse_args()
+    if not a.skin and not a.keep_materials:
+        raise SystemExit("--skin is required unless --keep-materials is passed")
+    os.makedirs(a.out, exist_ok=True)
+
+    meshes = load_model(a)
+
+    if not a.keep_materials:
+        # Joining is only safe once the materials are being thrown away anyway:
+        # a join keeps the active object's modifier stack alone, so it is
+        # destructive to anything rigged. The --keep-materials path skips it.
+        bpy.ops.object.select_all(action="DESELECT")
+        for m in meshes:
+            m.select_set(True)
+        bpy.context.view_layer.objects.active = meshes[0]
+        if len(meshes) > 1:
+            bpy.ops.object.join()
+        obj = bpy.context.view_layer.objects.active
+        meshes = [obj]
+        mat = skin_material(a)
+        obj.data.materials.clear()
+        obj.data.materials.append(mat)
+
+    # ---- lay flat and give the loose meshes one handle to spin ----
+    obj, anchor = build_pivot(meshes, a.pitch)
 
     # ---- frame the model ----
-    bb = [obj.matrix_world @ mathutils.Vector(c) for c in obj.bound_box]
-    xs = [v.x for v in bb]
-    ys = [v.y for v in bb]
-    zs = [v.z for v in bb]
-    size = max(max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs))
-    min_z = min(zs)  # hull underside — where the shadow-catcher plane sits
+    lo, hi = world_bounds(meshes)
+    size = max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2])
+    min_z = lo[2]  # hull underside — where the shadow-catcher plane sits
 
     # Lift animation: the hull rises this many world units over `anim_frames`. The
     # camera + ground stay fixed (so the contact line keeps a constant screen y and
@@ -185,6 +346,20 @@ def main():
         math.radians(a.sun_az),
     )
     bpy.context.scene.collection.objects.link(light)
+
+    # ---- ambient: a flat world colour so the side the sun misses is dark rather
+    # than black. The skin material is mostly emissive and needs none of this,
+    # which is why it defaults off; a PBR asset under one sun needs it. ----
+    if a.ambient > 0.0:
+        rgb = [float(v) for v in a.ambient_color.split(",")]
+        if len(rgb) != 3:
+            raise SystemExit("--ambient-color wants three comma-separated numbers")
+        world = bpy.data.worlds.new("ambient")
+        world.use_nodes = True
+        bg = world.node_tree.nodes["Background"]
+        bg.inputs["Color"].default_value = (*rgb, 1.0)
+        bg.inputs["Strength"].default_value = a.ambient
+        bpy.context.scene.world = world
 
     sc = bpy.context.scene
     sc.render.resolution_x = a.res
@@ -253,8 +428,94 @@ def main():
             paths.append(fp)
             print(f"rendered {idx + 1}/{total} (dir {d}, lift {f})")
 
+    # Where the source file's own origin lands in the frame, as a fraction of
+    # the frame height from its bottom edge. Projected the way the camera
+    # projects: an orthographic camera at `elev` measures height along its own
+    # up axis, so a point's screen height is its dot product with that axis.
+    up_axis = mathutils.Vector((0.0, math.sin(elev), math.cos(elev)))
+    anchor_screen = anchor.matrix_world.translation.dot(up_axis) - lift_world * 0.5
+    anchor_fraction = 0.5 + anchor_screen / cam_data.ortho_scale
+
+    write_meta(
+        a, k, cam_data.ortho_scale,
+        [hi[i] - lo[i] for i in range(3)], anchor_fraction,
+    )
     postprocess(a)
     print("DONE")
+
+
+def sheet_layout(n, cols):
+    """The grid `sprite_postprocess` will lay the frames out on.
+
+    Imported from that module rather than reimplemented, by path because
+    Blender's python does not have this package on its path. It is the module
+    that actually pastes the sheet, so it is the one that gets to decide the
+    grid; if it cannot be loaded the meta simply omits the layout rather than
+    asserting a guess that might not match the pixels.
+    """
+    import importlib.util
+    here = os.path.dirname(os.path.abspath(__file__))
+    spec = importlib.util.spec_from_file_location(
+        "sprite_postprocess", os.path.join(here, "sprite_postprocess.py"))
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.layout(n, cols)
+
+
+def write_meta(a, anim_frames, ortho_scale, model_size, anchor_fraction):
+    """Record what a consumer needs to place the sprite in its own world.
+
+    A frame on its own is unplaceable: it says nothing about how many world
+    units it spans, so the engine drawing it has to guess a quad size, and the
+    guess silently changes the moment the model or the framing does. Writing the
+    orthographic width here makes that a number the game reads rather than a
+    constant someone tuned by eye.
+
+    `elev` is the other half. A billboard is only correct under the camera angle
+    it was baked at, so the value belongs beside the pixels -- if the game's
+    camera pitch ever moves, this is what says the sheet has to be rebaked.
+    """
+    meta = {
+        "frames": a.frames,
+        "anim_frames": anim_frames,
+        "res": a.res,
+        "elev_deg": a.elev,
+        "pitch_deg": a.pitch,
+        "yaw_offset_deg": a.yaw_offset,
+        # Yaw of frame 0 and the step between frames, in degrees, counter-
+        # clockwise seen from above. Frame index = round(heading / step) % frames.
+        "yaw_step_deg": 360.0 / a.frames,
+        # World units the full square frame spans, and what the model itself
+        # occupies of it. The ratio is the padding the spin needs, and it is what
+        # lets a consumer size a quad from the subject's real length rather than
+        # from the frame it happens to be padded into.
+        "frame_world_size": ortho_scale,
+        "model_world_size": [round(v, 6) for v in model_size],
+        # Longest horizontal extent, after the lay-flat pitch: for anything
+        # vehicle-shaped this is its length, which is the dimension a consumer
+        # actually knows a real-world figure for.
+        "model_world_length": round(max(model_size[0], model_size[1]), 6),
+        # Height of the source file's own origin plane within the frame, as a
+        # fraction from the bottom edge. A frame is padded blank above and below
+        # the subject, so nothing about the pixels says where the model was
+        # anchored -- and that anchor is usually the one height a consumer needs:
+        # the ground a vehicle rests on, or the water a hull floats at.
+        #
+        # Only as meaningful as the source file's origin. An asset modelled
+        # about its centre puts this in the middle of the subject and says
+        # nothing; one modelled about its waterline or its wheels puts it
+        # exactly where it belongs.
+        "origin_frame_fraction": round(anchor_fraction, 6),
+    }
+
+    grid = sheet_layout(a.frames * anim_frames, anim_frames if anim_frames > 1 else 0)
+    if grid:
+        meta["sheet_cols"], meta["sheet_rows"] = grid
+    with open(os.path.join(a.out, "meta.json"), "w") as fh:
+        json.dump(meta, fh, indent=2)
+        fh.write("\n")
 
 
 def postprocess(a):

@@ -20,7 +20,10 @@ import glob
 import math
 import os
 
-from PIL import Image, ImageFilter
+# Pillow is imported inside the functions that need it, not here. `layout` is
+# the sheet grid's one definition and `model_sprites` reads it from inside
+# Blender, whose bundled python has no Pillow -- a module-level import would
+# make loading this file for that one function raise.
 
 
 def parse_args():
@@ -41,6 +44,18 @@ def parse_args():
     return p.parse_args()
 
 
+def layout(n, cols=0):
+    """Sheet grid for `n` frames: (cols, rows).
+
+    The authority on the question, and deliberately the only one. `model_sprites`
+    records the grid in its meta.json so a consumer can find a frame without
+    re-deriving it, and a second copy of this arithmetic there would be a sheet
+    whose description disagreed with its pixels.
+    """
+    cols = cols if cols > 0 else math.ceil(math.sqrt(n))
+    return cols, math.ceil(n / cols)
+
+
 def bake_shadow(im, res, alpha, blur, squash, shear, grow, dx, dy):
     """Composite a soft iso-ground shadow under one RGBA frame, return new RGBA.
 
@@ -49,6 +64,8 @@ def bake_shadow(im, res, alpha, blur, squash, shear, grow, dx, dy):
     not straight down), dilated so a soft rim haloes out past the hull (reads as a
     grounded contact pool, not a hovering drop shadow), then offset and blurred.
     """
+    from PIL import Image, ImageFilter
+
     a = im.getchannel("A")
     bbox = a.getbbox()
     if not bbox:
@@ -80,6 +97,8 @@ def bake_shadow(im, res, alpha, blur, squash, shear, grow, dx, dy):
 
 
 def main():
+    from PIL import Image
+
     a = parse_args()
     paths = sorted(glob.glob(os.path.join(a.dir, "frame_*.png")))
     if not paths:
@@ -97,8 +116,7 @@ def main():
         frames.append(im)
 
     n = len(frames)
-    cols = a.cols if a.cols > 0 else math.ceil(math.sqrt(n))
-    rows = math.ceil(n / cols)
+    cols, rows = layout(n, a.cols)
     res = a.res
     sheet = Image.new("RGBA", (cols * res, rows * res), (0, 0, 0, 0))
     strip = Image.new("RGBA", (n * res, res), (0, 0, 0, 0))

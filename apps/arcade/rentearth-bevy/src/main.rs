@@ -18,7 +18,12 @@ use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 
 mod game;
-#[cfg(any(feature = "trees", feature = "units", feature = "water"))]
+#[cfg(any(
+    feature = "ships",
+    feature = "trees",
+    feature = "units",
+    feature = "water"
+))]
 mod private;
 
 use game::core::map::MapSpec;
@@ -31,6 +36,8 @@ use game::systems::harvest::HarvestPlugin;
 use game::systems::camera::CameraPlugin;
 use game::systems::debug::DebugPlugin;
 use game::systems::map::MapPlugin;
+#[cfg(feature = "ships")]
+use private::ships::ShipPlugin;
 #[cfg(feature = "trees")]
 use private::trees::TreePlugin;
 #[cfg(feature = "units")]
@@ -66,6 +73,8 @@ struct PrivatePlugins;
 
 impl Plugin for PrivatePlugins {
     fn build(&self, app: &mut App) {
+        #[cfg(feature = "ships")]
+        app.add_plugins(ShipPlugin);
         #[cfg(feature = "trees")]
         app.add_plugins(TreePlugin);
         #[cfg(feature = "units")]
