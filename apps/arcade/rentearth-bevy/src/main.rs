@@ -26,6 +26,7 @@ use game::core::map::MapSpec;
 use game::core::terrain::SEA_LEVEL;
 use game::systems::borders::BordersPlugin;
 use game::systems::city::CityPlugin;
+use game::systems::commands::CommandsPlugin;
 use game::systems::harvest::HarvestPlugin;
 use game::systems::camera::CameraPlugin;
 use game::systems::debug::DebugPlugin;
@@ -174,6 +175,7 @@ fn main() {
             UiPlugin,
             BordersPlugin,
             CityPlugin,
+            CommandsPlugin,
             HarvestPlugin,
         ))
         // Encrypted, and so optional. Without the git-crypt key the map, the

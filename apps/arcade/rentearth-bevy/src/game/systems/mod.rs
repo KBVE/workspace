@@ -3,7 +3,9 @@
 
 pub mod borders;
 pub mod camera;
+pub mod commands;
 pub mod city;
+pub mod conquest;
 pub mod debug;
 pub mod harvest;
 pub mod map;
