@@ -169,6 +169,28 @@ jobs:
           path: ~/.local/share/godot/export_templates
           key: godot-templates-${{ runner.os }}-${{ hashFiles('.prototools') }}
 
+      # Bevy is depended on with default features, which on Linux means the
+      # wayland and x11 windowing backends, and those are -sys crates: their
+      # build scripts need the development headers present or they fail before
+      # any of our code is compiled. The runner image does not ship them, so
+      # `rentearth-bevy:build`, `:test` and `:lint` have never once passed here
+      # -- every run died on
+      #
+      #   error: failed to run custom build command for `wayland-sys`
+      #
+      # `build-web` was unaffected and hid it: wasm needs no windowing backend,
+      # so the artifact that ships to itch built while the tests never ran at
+      # all.
+      #
+      # Unconditional rather than gated on an affected Rust project. It is one
+      # apt call against the runner's own mirror, and deciding whether to run
+      # it would mean asking moon what is affected before moon has started.
+      - name: Install the Linux windowing and audio headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            libwayland-dev libxkbcommon-dev libudev-dev libasound2-dev
+
       - name: Restore the Rust toolchain
         id: rustup-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
