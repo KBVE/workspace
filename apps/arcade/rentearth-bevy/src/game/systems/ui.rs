@@ -8,6 +8,7 @@ use bevy::prelude::*;
 use bevy::text::FontSize;
 
 use crate::game::components::camera::CameraRig;
+use crate::game::components::command::{Player, Populace, Stock};
 use crate::game::core::hex::Hex;
 use crate::game::core::map::{MapSpec, Offset};
 use crate::game::core::terrain::SEA_LEVEL;
@@ -51,6 +52,7 @@ fn update_readout(
     world: Option<Res<WorldTiles>>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform, &CameraRig)>,
+    sides: Query<(&Player, &Stock, &Populace)>,
     mut readout: Query<&mut Text, With<Readout>>,
 ) {
     let Ok(mut text) = readout.single_mut() else {
@@ -80,7 +82,17 @@ fn update_readout(
         })
         .unwrap_or_else(|| "tile    (cursor off map)".into());
 
-    **text = format!("{hover}\n{focus}");
+    // Only the player's own books. The other three sides keep theirs, and a
+    // readout that showed them would be a readout of what an opponent knows.
+    let empire = sides
+        .iter()
+        .find(|(player, _, _)| player.human)
+        .map(|(_, stock, populace)| {
+            format!("\nempire  wood {}  citizens {}", stock.wood, populace.citizens)
+        })
+        .unwrap_or_default();
+
+    **text = format!("{hover}\n{focus}{empire}");
 }
 
 /// Which tile is under the cursor.

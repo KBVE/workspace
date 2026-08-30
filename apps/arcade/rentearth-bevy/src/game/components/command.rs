@@ -59,6 +59,41 @@ pub struct Populace {
     pub citizens: u32,
 }
 
+/// What a side has put by.
+///
+/// On the side rather than on the capital, because it is the side that spends
+/// it. Wood only for now; stone is the second field and nothing else changes
+/// when it arrives, which is the point of it being a struct rather than a
+/// number.
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct Stock {
+    pub wood: u32,
+}
+
+/// A company sent to cut wood, and where it is in the round trip.
+///
+/// The whole cycle is three facts: which grove, how much is on their backs,
+/// and which way they are walking. Held on the company rather than on the men
+/// because it is one journey however many are making it -- the same reason an
+/// order is one write.
+#[derive(Component, Clone, Copy, Debug)]
+pub struct Cutting {
+    pub grove: Offset,
+    pub carrying: u32,
+    /// Walking home with a load rather than standing in the trees with an axe.
+    pub hauling: bool,
+}
+
+impl Cutting {
+    pub fn at(grove: Offset) -> Self {
+        Self {
+            grove,
+            carrying: 0,
+            hauling: false,
+        }
+    }
+}
+
 /// A body of men under one order.
 ///
 /// The unit of command, as opposed to `Unit`, which is the unit of drawing.

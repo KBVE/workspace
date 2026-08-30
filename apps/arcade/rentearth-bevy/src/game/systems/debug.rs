@@ -50,6 +50,23 @@ impl Plugin for DebugPlugin {
 #[cfg(not(target_arch = "wasm32"))]
 const SCREENSHOT_FRAME: u32 = 240;
 
+/// The same, but later, when what is being photographed takes time to happen.
+///
+/// A logging party walks to the trees, cuts, and walks home, which is a good
+/// deal longer than the four seconds a picture of the terrain needs. Rather
+/// than raising the wait for every capture, it is a knob.
+///
+/// ```text
+/// RENTEARTH_SCREENSHOT_FRAME=3000
+/// ```
+#[cfg(not(target_arch = "wasm32"))]
+fn screenshot_frame() -> u32 {
+    std::env::var("RENTEARTH_SCREENSHOT_FRAME")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(SCREENSHOT_FRAME)
+}
+
 /// Size of a captured frame. Fixed rather than taken from the window, so two
 /// shots can be compared pixel for pixel whatever the window happened to be.
 ///
@@ -153,6 +170,7 @@ fn screenshot_when_settled(
     mut exit: MessageWriter<AppExit>,
 ) {
     *frame += 1;
+    let wait = screenshot_frame();
 
     // Every frame, not once at startup: the stray scroll arrives several frames
     // in, so a single write at startup is overwritten before the shot is taken.
@@ -167,13 +185,13 @@ fn screenshot_when_settled(
     if *taken {
         // Not the frame the shot was requested on: the capture is observed a
         // frame or two later, and exiting immediately truncates it.
-        if *frame > SCREENSHOT_FRAME + 30 {
+        if *frame > wait + 30 {
             exit.write(AppExit::Success);
         }
         return;
     }
 
-    if *frame < SCREENSHOT_FRAME {
+    if *frame < wait {
         return;
     }
 

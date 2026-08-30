@@ -26,6 +26,7 @@ use game::core::map::MapSpec;
 use game::core::terrain::SEA_LEVEL;
 use game::systems::borders::BordersPlugin;
 use game::systems::city::CityPlugin;
+use game::systems::harvest::HarvestPlugin;
 use game::systems::camera::CameraPlugin;
 use game::systems::debug::DebugPlugin;
 use game::systems::map::MapPlugin;
@@ -33,6 +34,8 @@ use game::systems::map::MapPlugin;
 use private::trees::TreePlugin;
 #[cfg(feature = "units")]
 use private::units::UnitPlugin;
+#[cfg(feature = "units")]
+use private::units::labour::LabourPlugin;
 #[cfg(feature = "units")]
 use private::units::march::MarchPlugin;
 #[cfg(feature = "units")]
@@ -63,7 +66,14 @@ impl Plugin for PrivatePlugins {
         #[cfg(feature = "trees")]
         app.add_plugins(TreePlugin);
         #[cfg(feature = "units")]
-        app.add_plugins((UnitPlugin, MuseumPlugin, MarchPlugin, RealmPlugin, SelectPlugin));
+        app.add_plugins((
+            UnitPlugin,
+            MuseumPlugin,
+            MarchPlugin,
+            RealmPlugin,
+            SelectPlugin,
+            LabourPlugin,
+        ));
         let _ = app;
     }
 }
@@ -161,6 +171,7 @@ fn main() {
             UiPlugin,
             BordersPlugin,
             CityPlugin,
+            HarvestPlugin,
         ))
         // Encrypted, and so optional. Without the git-crypt key the map, the
         // camera and the terrain still build and run -- a world with no trees
