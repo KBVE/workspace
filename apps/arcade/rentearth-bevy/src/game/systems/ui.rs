@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use bevy::text::FontSize;
 
 use crate::game::components::camera::CameraRig;
-use crate::game::components::command::{Player, Populace, Stock};
+use crate::game::components::command::{Group, Player, Populace, Stance, Stock};
 use crate::game::core::hex::Hex;
 use crate::game::core::map::{MapSpec, Offset};
 use crate::game::core::terrain::SEA_LEVEL;
@@ -53,6 +53,7 @@ fn update_readout(
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform, &CameraRig)>,
     sides: Query<(&Player, &Stock, &Populace)>,
+    groups: Query<(&Group, &Stance)>,
     mut readout: Query<&mut Text, With<Readout>>,
 ) {
     let Ok(mut text) = readout.single_mut() else {
@@ -92,7 +93,27 @@ fn update_readout(
         })
         .unwrap_or_default();
 
-    **text = format!("{hover}\n{focus}{empire}");
+    // The groups the player has made, in key order, each with what it is
+    // standing to do and how many are in it. `{2} P 40` is the second group,
+    // on patrol, forty strong.
+    let mut row: Vec<(u32, char, u32)> = groups
+        .iter()
+        .map(|(group, stance)| (group.number, stance.badge(), group.strength))
+        .collect();
+    row.sort_unstable();
+
+    let formed = match row.is_empty() {
+        true => String::new(),
+        false => {
+            let listed: Vec<String> = row
+                .iter()
+                .map(|(number, badge, strength)| format!("{{{number}}} {badge} {strength}"))
+                .collect();
+            format!("\ngroups  {}", listed.join("   "))
+        }
+    };
+
+    **text = format!("{hover}\n{focus}{empire}{formed}");
 }
 
 /// Which tile is under the cursor.

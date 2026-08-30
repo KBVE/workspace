@@ -118,6 +118,52 @@ pub struct Company {
     pub field: usize,
 }
 
+/// A numbered body the player made himself, one to nine.
+///
+/// The number is the whole point: an order given to "that lot over there"
+/// needs the player to find them again first, and a key that goes straight to
+/// them is the difference between a company he uses and one he loses. Nine
+/// because that is how many keys are on the row, which is also why every game
+/// that has ever done this stopped at nine.
+///
+/// Strength is carried here rather than counted where it is shown: the men
+/// live in an array behind the encrypted half of the game, and the readout
+/// that displays this must build without it.
+#[derive(Component, Clone, Copy, Debug)]
+pub struct Group {
+    pub number: u32,
+    pub strength: u32,
+}
+
+/// What a body of men does when it has not been told anything else.
+///
+/// Standing orders rather than orders: an order is a place to walk to and is
+/// finished on arrival, a stance is what they do for as long as they hold it.
+/// That distinction is what makes a group worth having a number -- otherwise
+/// every one of them needs the player's attention every time it arrives
+/// somewhere.
+#[derive(Component, Clone, Copy, Default, PartialEq, Eq, Debug)]
+pub enum Stance {
+    /// Waiting to be told. The state a group is made in.
+    #[default]
+    Ready,
+    /// Walking the edge of what the side holds, round and round.
+    Patrol,
+    /// Holding the ground they are standing on and not being drawn off it.
+    Guard,
+}
+
+impl Stance {
+    /// The one letter it shows as, so a group reads as `{1} P`.
+    pub fn badge(self) -> char {
+        match self {
+            Stance::Ready => '-',
+            Stance::Patrol => 'P',
+            Stance::Guard => 'G',
+        }
+    }
+}
+
 /// Where a company has been told to go, in the order it was told.
 ///
 /// A queue rather than a destination, because that is the difference between
