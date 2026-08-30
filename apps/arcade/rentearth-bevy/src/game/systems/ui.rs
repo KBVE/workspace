@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use bevy::text::FontSize;
 
 use crate::game::components::camera::CameraRig;
-use crate::game::components::command::{Group, Player, Populace, Stance, Stock};
+use crate::game::components::command::{Garrison, Group, Player, Populace, Stance, Stock};
 use crate::game::core::hex::Hex;
 use crate::game::core::map::{MapSpec, Offset};
 use crate::game::core::terrain::SEA_LEVEL;
@@ -52,7 +52,7 @@ fn update_readout(
     world: Option<Res<WorldTiles>>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform, &CameraRig)>,
-    sides: Query<(&Player, &Stock, &Populace)>,
+    sides: Query<(&Player, &Stock, &Populace, &Garrison)>,
     groups: Query<(&Group, &Stance)>,
     mut readout: Query<&mut Text, With<Readout>>,
 ) {
@@ -87,9 +87,12 @@ fn update_readout(
     // readout that showed them would be a readout of what an opponent knows.
     let empire = sides
         .iter()
-        .find(|(player, _, _)| player.human)
-        .map(|(_, stock, populace)| {
-            format!("\nempire  wood {}  citizens {}", stock.wood, populace.citizens)
+        .find(|(player, _, _, _)| player.human)
+        .map(|(_, stock, populace, garrison)| {
+            format!(
+                "\nempire  wood {}  citizens {}  garrison {}",
+                stock.wood, populace.citizens, garrison.men,
+            )
         })
         .unwrap_or_default();
 

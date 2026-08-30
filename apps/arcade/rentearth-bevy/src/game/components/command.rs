@@ -118,6 +118,26 @@ pub struct Company {
     pub field: usize,
 }
 
+/// Soldiers held inside a town.
+///
+/// Not the same thing as `Populace`, and the difference is the whole point:
+/// a citizen has stopped being a soldier, a man in the garrison has only
+/// stopped being *drawn*. He can be turned out of the gate again as the man
+/// he was, which is what makes putting an army indoors a decision rather than
+/// a disposal.
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct Garrison {
+    pub men: u32,
+}
+
+/// A group walking home to be put up in the city.
+///
+/// A marker rather than a stance, because it ends: the group stops existing
+/// when the last of it is through the gate, and a stance that deleted the
+/// thing holding it would be a strange kind of standing order.
+#[derive(Component, Clone, Copy, Debug)]
+pub struct Returning;
+
 /// A numbered body the player made himself, one to nine.
 ///
 /// The number is the whole point: an order given to "that lot over there"
@@ -211,7 +231,23 @@ pub struct Roster(pub Vec<Entity>);
 
 impl Roster {
     pub fn entity(&self, company: u32) -> Option<Entity> {
-        self.0.get(company as usize).copied()
+        self.0
+            .get(company as usize)
+            .copied()
+            .filter(|entity| *entity != Entity::PLACEHOLDER)
+    }
+
+    /// A company that no longer exists.
+    ///
+    /// Its slot stays where it is rather than being removed, because a
+    /// soldier holds his company as an index and shuffling the table would
+    /// hand every man behind the gap to somebody else's orders. The number is
+    /// simply spent -- there are thirty-two, and reusing them is a problem
+    /// for the day a game gets through that many.
+    pub fn retire(&mut self, company: u32) {
+        if let Some(slot) = self.0.get_mut(company as usize) {
+            *slot = Entity::PLACEHOLDER;
+        }
     }
 
     /// Enrol a company and hand back its number.
