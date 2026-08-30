@@ -100,7 +100,7 @@ pub struct Unit {
 /// bits 4-7   equipment
 /// bits 8-9   team
 /// bit  10    quad kind: figure or banner
-/// bits 11-14 company, so the shader can tell which men are picked out
+/// bits 11-15 company, so the shader can tell which men are picked out
 /// ```
 ///
 /// Packed rather than spread across more vertex attributes because it is only
@@ -126,11 +126,23 @@ pub fn pack(
 
 /// How many companies the packing can tell apart.
 ///
-/// Four bits, so sixteen. Enough for four sides splitting their armies a few
-/// ways each, and the first number to raise if that stops being true -- there
-/// is room, because an f32 carries whole numbers exactly to two to the
-/// twenty-fourth and this uses fifteen of them.
-pub const COMPANY_MASK: u32 = 15;
+/// Five bits, so thirty-two: eight standing bodies of men -- a field army and
+/// a garrison a side -- and twenty-four squads split out of them. Raised from
+/// four bits the day squads existed, which is exactly the day sixteen stopped
+/// being enough.
+///
+/// The ceiling is not the packing, which has room to two to the twenty-fourth
+/// and uses sixteen of it. It is the selection mask: the shader is told which
+/// companies are picked out as one bit each, and a bit per company has to fit
+/// in floats that carry whole numbers exactly only to twenty-four bits. Two of
+/// them, sixteen bits apiece, is where thirty-two comes from.
+pub const COMPANY_MASK: u32 = 31;
+
+/// How many companies fit in one bank of the selection mask.
+///
+/// The mask is split over two floats because one cannot hold thirty-two bits
+/// exactly. Companies below this go in the first, the rest in the second.
+pub const COMPANIES_PER_BANK: u32 = 16;
 
 impl Unit {
     pub fn packed(self) -> [f32; 2] {

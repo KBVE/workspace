@@ -125,6 +125,20 @@ impl Roster {
     }
 }
 
+/// Which men the last selection actually caught, as indices into the unit
+/// array.
+///
+/// Selection names companies, because a company is what an order is given to.
+/// But a squad is made out of *men*, and which men were inside the box is a
+/// fact the box knew and the company does not -- so it is kept here rather
+/// than worked out again later from a rectangle nobody remembers.
+///
+/// Indices rather than anything sturdier because they are used within a frame
+/// or two of being taken, and because the alternative is an identifier per man
+/// at a hundred thousand men.
+#[derive(Resource, Default, Debug)]
+pub struct Picked(pub Vec<usize>);
+
 /// Picked out by the player.
 ///
 /// A marker rather than a list held somewhere central: "what is selected" is
