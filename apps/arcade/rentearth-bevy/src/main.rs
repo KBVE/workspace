@@ -34,7 +34,10 @@ use private::units::UnitPlugin;
 #[cfg(feature = "units")]
 use private::units::march::MarchPlugin;
 #[cfg(feature = "units")]
+use private::units::realm::RealmPlugin;
+#[cfg(feature = "units")]
 use private::units::museum::MuseumPlugin;
+use game::systems::turn::TurnPlugin;
 use game::systems::ui::UiPlugin;
 
 // The animated surface when the key is present and the feature is on, the flat
@@ -57,7 +60,7 @@ impl Plugin for PrivatePlugins {
         #[cfg(feature = "trees")]
         app.add_plugins(TreePlugin);
         #[cfg(feature = "units")]
-        app.add_plugins((UnitPlugin, MuseumPlugin, MarchPlugin));
+        app.add_plugins((UnitPlugin, MuseumPlugin, MarchPlugin, RealmPlugin));
         let _ = app;
     }
 }
@@ -153,6 +156,7 @@ fn main() {
             CameraPlugin,
             DebugPlugin,
             UiPlugin,
+            TurnPlugin,
         ))
         // Encrypted, and so optional. Without the git-crypt key the map, the
         // camera and the terrain still build and run -- a world with no trees
