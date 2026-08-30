@@ -90,6 +90,17 @@ tasks:
 
   # Ships what build-web emits, not what `build` does: `build` stays native so
   # CI does not cross-compile two wasm binaries on every change.
+  #
+  # `test` is a dependency rather than a separate CI concern because itch.yml
+  # runs this task and nothing else -- a game that compiled to wasm but failed
+  # every test published cleanly, which is the one failure a release must not
+  # have. fish-and-chip and gilded-gazette already gate their publish on
+  # `~:build` and `~:e2e`; this is the same rule for a project with neither.
+  #
+  # Worth knowing what it does not cover: `test` compiles with the default
+  # feature set, which is empty, while build-web compiles the private modules.
+  # It gates the shared code, not the encrypted half.
   publish:
     deps:
       - '~:build-web'
+      - '~:test'

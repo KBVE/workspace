@@ -86,16 +86,37 @@ if [ "${locked}" != "${installed}" ]; then
   exit 1
 fi
 
-# The private water shader is a cargo feature so a clone without the git-crypt
-# key still builds. A release should ship the real thing, but failing outright
+# Each private module is a cargo feature so a clone without the git-crypt key
+# still builds. A release should ship the real thing, but failing outright
 # would also fail every fork, so this reports and continues.
-water=()
-if [ -f "${crate_dir}/src/private/water/mod.rs" ]; then
-  if grep -qI . "${crate_dir}/src/private/water/mod.rs" 2> /dev/null; then
-    water=(--features water)
+#
+# All of them, not only water. This knew about water alone, so the browser
+# bundle was built without `units` and `trees` while `moon run
+# rentearth-bevy:run` -- which passes all three -- showed them locally. The
+# shipped game was missing the gameplay and nothing said so.
+#
+# Derived from the directories rather than listed, so a fourth private module
+# is picked up by existing here rather than by an edit that is easy to forget.
+private=()
+for module in "${crate_dir}"/src/private/*/mod.rs; do
+  [ -f "${module}" ] || continue
+  feature="$(basename "$(dirname "${module}")")"
+  # git-crypt leaves the file in place but binary, and `grep -I` reports no
+  # match on a binary file. That is what separates "still encrypted" from
+  # "decrypted", which a plain existence check cannot do.
+  if grep -qI . "${module}" 2> /dev/null; then
+    private+=("${feature}")
   else
-    echo "warning: src/private is still encrypted; building the flat water fallback." >&2
+    echo "warning: src/private/${feature} is still encrypted; building without it." >&2
   fi
+done
+
+features=()
+if [ ${#private[@]} -gt 0 ]; then
+  # One --features with a comma-separated list. `build` adds a second flag for
+  # the backend; cargo unions repeated --features rather than replacing.
+  features=(--features "$(IFS=','; echo "${private[*]}")")
+  echo "==> private features: ${private[*]}"
 fi
 
 rm -rf "${dist}"
@@ -111,7 +132,7 @@ build() {
   RUSTFLAGS="${wasm_rustflags}" PATH="${wasm_bin}:${PATH}" \
     "${wasm_bin}/cargo" build --release --target "${target}" \
     -Z build-std=std,panic_abort \
-    "${water[@]}" "$@" \
+    "${features[@]}" "$@" \
     --manifest-path "${crate_dir}/Cargo.toml"
 
   "${bindgen}" \
