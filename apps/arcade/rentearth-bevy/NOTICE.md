@@ -41,6 +41,15 @@ polygons, which are public domain (CC0).
 
 Source: https://github.com/nvkelso/natural-earth-vector
 
+## Poly Haven
+
+`assets/ships/pinnace.png` is a sprite sheet baked from Poly Haven's Ship
+Pinnace model, which is public domain (CC0). No pixel of the model ships here:
+the sheet is sixteen orthographic renders of it, one per heading, produced by
+`kbve-model-sprites`. The source `.blend` is not in this repository.
+
+Source: https://polyhaven.com/a/ship_pinnace
+
 ## Pixel Crawler
 
 The tree sprites in `assets/trees/` are cut from the Pixel Crawler Free Pack,
