@@ -100,20 +100,37 @@ pub struct Unit {
 /// bits 4-7   equipment
 /// bits 8-9   team
 /// bit  10    quad kind: figure or banner
+/// bits 11-14 company, so the shader can tell which men are picked out
 /// ```
 ///
 /// Packed rather than spread across more vertex attributes because it is only
 /// ever read together, and because these are small integers: an f32 carries
 /// whole numbers up to 2^24 exactly, so there is a great deal of room left
 /// before this has to become something else.
-pub fn pack(facing: Facing, action: Action, equipment: u32, team: u32, kind: u32) -> f32 {
+pub fn pack(
+    facing: Facing,
+    action: Action,
+    equipment: u32,
+    team: u32,
+    kind: u32,
+    company: u32,
+) -> f32 {
     let code = (facing as u32 & 3)
         | (action as u32 & 3) << 2
         | (equipment & 15) << 4
         | (team & 3) << 8
-        | (kind & 1) << 10;
+        | (kind & 1) << 10
+        | (company & COMPANY_MASK) << 11;
     code as f32
 }
+
+/// How many companies the packing can tell apart.
+///
+/// Four bits, so sixteen. Enough for four sides splitting their armies a few
+/// ways each, and the first number to raise if that stops being true -- there
+/// is room, because an f32 carries whole numbers exactly to two to the
+/// twenty-fourth and this uses fifteen of them.
+pub const COMPANY_MASK: u32 = 15;
 
 impl Unit {
     pub fn packed(self) -> [f32; 2] {
@@ -125,6 +142,7 @@ impl Unit {
                 self.equipment,
                 self.team,
                 quad_kind::FIGURE,
+                self.company,
             ),
         ]
     }
