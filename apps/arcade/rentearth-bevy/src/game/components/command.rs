@@ -44,6 +44,21 @@ pub struct Home {
     pub tile: Offset,
 }
 
+/// How many people live somewhere.
+///
+/// Hung off a home rather than counted in it, because "a place with people in
+/// it" is going to be true of more things than the capital -- a town, a camp,
+/// a captured city -- and each of those is this component on another entity
+/// rather than another field on `Home`.
+///
+/// A count rather than the men themselves: a citizen is not a soldier standing
+/// still, he is a soldier who stopped being drawn. That is the whole saving,
+/// and it is why men can be absorbed by the thousand.
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct Populace {
+    pub citizens: u32,
+}
+
 /// A body of men under one order.
 ///
 /// The unit of command, as opposed to `Unit`, which is the unit of drawing.

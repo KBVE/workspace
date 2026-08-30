@@ -3,6 +3,7 @@
 
 pub mod borders;
 pub mod camera;
+pub mod city;
 pub mod debug;
 pub mod map;
 pub mod territory;

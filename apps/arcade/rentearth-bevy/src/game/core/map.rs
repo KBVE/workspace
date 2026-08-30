@@ -144,6 +144,24 @@ impl Offset {
         }
     }
 
+    /// Roughly how many tiles apart two hexes are, the short way round.
+    ///
+    /// Both axes wrap, so the honest answer is the smaller of going forward
+    /// and going back on each -- a tile at column 1 and one at the last column
+    /// are neighbours, and a distance that says otherwise sends men the long
+    /// way round the world.
+    ///
+    /// Deliberately cheap and deliberately approximate: this is for picking
+    /// the nearer of a handful of places, not for pathing, which has a flow
+    /// field and does not need to ask.
+    pub fn distance(self, spec: MapSpec, other: Offset) -> i32 {
+        let short = |d: i32, span: i32| {
+            let d = d.abs() % span.max(1);
+            d.min(span - d)
+        };
+        short(self.col - other.col, spec.cols) + short(self.row - other.row, spec.rows)
+    }
+
     /// Index into a row-major buffer of `spec.tile_count()` entries.
     pub fn index(self, spec: MapSpec) -> usize {
         (self.row * spec.cols + self.col) as usize
@@ -168,5 +186,33 @@ impl Offset {
     pub fn to_hex(self) -> Hex {
         let q = self.col - (self.row - (self.row & 1)) / 2;
         Hex::new(q, self.row)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The world is a torus, so the far edge is a neighbour. A distance that
+    /// measured the long way round would call the town beside you the far one
+    /// and take men across the whole map to reach it.
+    #[test]
+    fn distance_goes_the_short_way_round() {
+        let spec = MapSpec {
+            cols: 100,
+            rows: 50,
+            ..MapSpec::default()
+        };
+        let west = Offset { col: 1, row: 10 };
+        let east = Offset { col: 98, row: 10 };
+
+        assert_eq!(west.distance(spec, east), 3);
+        assert_eq!(east.distance(spec, west), 3);
+        assert_eq!(west.distance(spec, west), 0);
+
+        // And north-south, which wraps the same way.
+        let north = Offset { col: 5, row: 1 };
+        let south = Offset { col: 5, row: 48 };
+        assert_eq!(north.distance(spec, south), 3);
     }
 }

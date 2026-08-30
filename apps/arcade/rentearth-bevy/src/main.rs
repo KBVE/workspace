@@ -25,6 +25,7 @@ use game::core::map::MapSpec;
 #[cfg(feature = "water")]
 use game::core::terrain::SEA_LEVEL;
 use game::systems::borders::BordersPlugin;
+use game::systems::city::CityPlugin;
 use game::systems::camera::CameraPlugin;
 use game::systems::debug::DebugPlugin;
 use game::systems::map::MapPlugin;
@@ -159,6 +160,7 @@ fn main() {
             DebugPlugin,
             UiPlugin,
             BordersPlugin,
+            CityPlugin,
         ))
         // Encrypted, and so optional. Without the git-crypt key the map, the
         // camera and the terrain still build and run -- a world with no trees
