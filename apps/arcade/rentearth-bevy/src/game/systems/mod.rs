@@ -1,10 +1,11 @@
 //! Behaviour. Each submodule owns one plugin so `main` stays a list of plugins
 //! rather than a list of systems.
 
+pub mod borders;
 pub mod camera;
 pub mod debug;
 pub mod map;
-pub mod turn;
+pub mod territory;
 pub mod ui;
 
 // Only the fallback. The animated surface is `private::water`, chosen in

@@ -24,6 +24,7 @@ mod private;
 use game::core::map::MapSpec;
 #[cfg(feature = "water")]
 use game::core::terrain::SEA_LEVEL;
+use game::systems::borders::BordersPlugin;
 use game::systems::camera::CameraPlugin;
 use game::systems::debug::DebugPlugin;
 use game::systems::map::MapPlugin;
@@ -37,7 +38,6 @@ use private::units::march::MarchPlugin;
 use private::units::realm::RealmPlugin;
 #[cfg(feature = "units")]
 use private::units::museum::MuseumPlugin;
-use game::systems::turn::TurnPlugin;
 use game::systems::ui::UiPlugin;
 
 // The animated surface when the key is present and the feature is on, the flat
@@ -156,7 +156,7 @@ fn main() {
             CameraPlugin,
             DebugPlugin,
             UiPlugin,
-            TurnPlugin,
+            BordersPlugin,
         ))
         // Encrypted, and so optional. Without the git-crypt key the map, the
         // camera and the terrain still build and run -- a world with no trees
