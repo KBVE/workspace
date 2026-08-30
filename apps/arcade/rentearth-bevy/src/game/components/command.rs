@@ -52,9 +52,19 @@ pub struct Home {
 /// thousand.
 #[derive(Component, Clone, Copy, Debug)]
 pub struct Company {
+    /// This company's number, as its men hold it.
+    ///
+    /// Carried here as well as in the `Roster` because the men are the other
+    /// side of that lookup: matching a soldier to his company needs the number
+    /// the soldier has, and reaching it any other way means resolving every
+    /// entity back through the table to ask which one this is.
+    pub id: u32,
     /// Which flow field this company walks by. Its own rather than its side's,
     /// so that splitting an army in two gives two destinations and not an
     /// argument over one.
+    ///
+    /// Not the same thing as `id`, however equal the two look while every side
+    /// has exactly one company.
     pub field: usize,
 }
 
@@ -124,7 +134,12 @@ impl Roster {
 #[derive(Component, Clone, Copy, Debug)]
 pub struct Selected;
 
-/// A drag in progress, in world coordinates on the ground plane.
+/// A drag in progress, in screen coordinates.
+///
+/// Screen rather than world because that is both where the mouse gives it and
+/// where the rectangle is drawn. Its corners are put on the ground once, when
+/// the selection is made, rather than every frame -- and the conversion is
+/// exact rather than approximate, because the camera never yaws.
 ///
 /// A resource because there is only ever one, and it belongs to the pointer
 /// rather than to anything in the world.

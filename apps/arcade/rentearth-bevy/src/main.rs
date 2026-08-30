@@ -37,6 +37,8 @@ use private::units::march::MarchPlugin;
 #[cfg(feature = "units")]
 use private::units::realm::RealmPlugin;
 #[cfg(feature = "units")]
+use private::units::select::SelectPlugin;
+#[cfg(feature = "units")]
 use private::units::museum::MuseumPlugin;
 use game::systems::ui::UiPlugin;
 
@@ -60,7 +62,7 @@ impl Plugin for PrivatePlugins {
         #[cfg(feature = "trees")]
         app.add_plugins(TreePlugin);
         #[cfg(feature = "units")]
-        app.add_plugins((UnitPlugin, MuseumPlugin, MarchPlugin, RealmPlugin));
+        app.add_plugins((UnitPlugin, MuseumPlugin, MarchPlugin, RealmPlugin, SelectPlugin));
         let _ = app;
     }
 }
