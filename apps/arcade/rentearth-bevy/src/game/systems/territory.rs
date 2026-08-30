@@ -66,6 +66,23 @@ impl Territory {
             .collect()
     }
 
+    /// The held tiles with something not held beside them.
+    ///
+    /// The edge of what a side controls, which is the only part of it worth
+    /// walking: an interior tile is guarded by the ring of tiles around it,
+    /// and a patrol that visited every hex an empire owned would spend its
+    /// life in the middle of one.
+    pub fn frontier(&self, spec: MapSpec, team: u32) -> Vec<Offset> {
+        self.held_by(spec, team)
+            .into_iter()
+            .filter(|tile| {
+                tile.neighbours()
+                    .iter()
+                    .any(|raw| self.owner_of(spec, raw.wrapped(spec)) != Some(team))
+            })
+            .collect()
+    }
+
     pub fn tiles_of(&self, team: u32) -> usize {
         self.owner.iter().filter(|o| **o == team as u8).count()
     }
@@ -103,5 +120,31 @@ mod tests {
 
         assert_eq!(territory.owner_of(spec, Offset { col: 0, row: 2 }), Some(2));
         assert_eq!(territory.tiles_of(2), 1);
+    }
+
+    /// A patrol should walk the edge, not the middle. A tile ringed entirely
+    /// by its own side is not frontier however far from home it sits, and one
+    /// on the coast is frontier even though the sea will never take it.
+    #[test]
+    fn the_frontier_is_the_edge_of_what_is_held() {
+        let spec = MapSpec {
+            cols: 12,
+            rows: 12,
+            ..MapSpec::default()
+        };
+        let mut territory = Territory::new(spec);
+
+        let middle = Offset { col: 5, row: 5 };
+        territory.claim(spec, middle, 0);
+        for raw in middle.neighbours() {
+            territory.claim(spec, raw.wrapped(spec), 0);
+        }
+
+        let frontier = territory.frontier(spec, 0);
+        assert!(
+            !frontier.contains(&middle),
+            "a tile with only its own side around it is not the edge",
+        );
+        assert_eq!(frontier.len(), 6, "the ring is the edge, all of it");
     }
 }

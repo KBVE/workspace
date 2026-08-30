@@ -35,6 +35,8 @@ use private::trees::TreePlugin;
 #[cfg(feature = "units")]
 use private::units::UnitPlugin;
 #[cfg(feature = "units")]
+use private::units::duty::DutyPlugin;
+#[cfg(feature = "units")]
 use private::units::labour::LabourPlugin;
 #[cfg(feature = "units")]
 use private::units::march::MarchPlugin;
@@ -73,6 +75,7 @@ impl Plugin for PrivatePlugins {
             RealmPlugin,
             SelectPlugin,
             LabourPlugin,
+            DutyPlugin,
         ));
         let _ = app;
     }
