@@ -50,6 +50,22 @@ impl Territory {
         }
     }
 
+    /// Every tile a side holds.
+    ///
+    /// Allocates, and is meant to: this is asked once when something needs to
+    /// place a man or grow a border, not per frame and not per unit.
+    pub fn held_by(&self, spec: MapSpec, team: u32) -> Vec<Offset> {
+        self.owner
+            .iter()
+            .enumerate()
+            .filter(|(_, owner)| **owner == team as u8)
+            .map(|(index, _)| Offset {
+                col: index as i32 % spec.cols,
+                row: index as i32 / spec.cols,
+            })
+            .collect()
+    }
+
     pub fn tiles_of(&self, team: u32) -> usize {
         self.owner.iter().filter(|o| **o == team as u8).count()
     }
