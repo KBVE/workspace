@@ -18,7 +18,120 @@
 use bevy::prelude::*;
 use bevy::text::FontSize;
 
-use crate::game::components::command::{Group, Selected};
+use crate::game::components::command::{DragBox, Group, Selected};
+use crate::game::core::terrain::SEA_LEVEL;
+
+// The drag box.
+//
+// Selection by dragging a rectangle lives here rather than with the men, and
+// not only because the ships wanted it too. The box is one thing the pointer
+// owns and several things read, and the reader that also *cleared* it decided,
+// by whichever order the schedule happened to pick, whether anybody else saw
+// the drag at all. Every reader now runs in `ReadDrag` and the box is emptied
+// once, afterwards, by the plugin that owns it.
+
+/// Below this a drag is a click.
+///
+/// Without it, every click is a drag of a pixel or two -- whatever the mouse
+/// moved between press and release -- and a box that small selects whatever
+/// happens to be under one pixel, which is not what the hand meant.
+pub const DRAG_MINIMUM: f32 = 6.0;
+
+/// Everything that reads a finished drag.
+///
+/// A set rather than an ordering between named systems, because the readers
+/// are in optional modules: with the units feature off there is no
+/// `take_selection` for anything to run before, and a schedule that named it
+/// would not build.
+#[derive(SystemSet, Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct ReadDrag;
+
+/// Where a screen point lands on the ground.
+///
+/// Public because everything that turns a pointer into a place needs it, and
+/// two answers to "what is under the cursor" is a game where the box selects
+/// one tile and the order goes to another.
+pub fn ground_at(
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    screen: Vec2,
+) -> Option<Vec3> {
+    let ray = camera.viewport_to_world(camera_transform, screen).ok()?;
+    let distance = ray.intersect_plane(
+        Vec3::new(0.0, SEA_LEVEL, 0.0),
+        InfinitePlane3d::new(Vec3::Y),
+    )?;
+    Some(ray.get_point(distance))
+}
+
+/// The rectangle, while it is being dragged.
+#[derive(Component)]
+struct DragRectangle;
+
+fn spawn_rectangle(mut commands: Commands) {
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            border: UiRect::all(Val::Px(1.0)),
+            ..default()
+        },
+        BorderColor::all(Color::srgba(0.85, 0.90, 0.95, 0.9)),
+        // Faint enough to see the ground being selected through it.
+        BackgroundColor(Color::srgba(0.60, 0.75, 0.95, 0.12)),
+        Visibility::Hidden,
+        DragRectangle,
+    ));
+}
+
+/// Follow the mouse: press starts a drag, release ends it.
+fn drag(
+    buttons: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window>,
+    mut box_: ResMut<DragBox>,
+) {
+    let Some(cursor) = windows.iter().find_map(|w| w.cursor_position()) else {
+        return;
+    };
+
+    if buttons.just_pressed(MouseButton::Left) {
+        box_.from = Some(cursor);
+    }
+    box_.to = cursor;
+}
+
+/// Draw it while the button is down.
+fn show_rectangle(
+    box_: Res<DragBox>,
+    buttons: Res<ButtonInput<MouseButton>>,
+    mut rectangle: Query<(&mut Node, &mut Visibility), With<DragRectangle>>,
+) {
+    let Ok((mut node, mut visibility)) = rectangle.single_mut() else {
+        return;
+    };
+
+    let drawn = buttons.pressed(MouseButton::Left)
+        && box_
+            .rect()
+            .is_some_and(|(low, high)| (high - low).length() >= DRAG_MINIMUM);
+
+    let Some((low, high)) = box_.rect().filter(|_| drawn) else {
+        *visibility = Visibility::Hidden;
+        return;
+    };
+
+    *visibility = Visibility::Visible;
+    node.left = Val::Px(low.x);
+    node.top = Val::Px(low.y);
+    node.width = Val::Px(high.x - low.x);
+    node.height = Val::Px(high.y - low.y);
+}
+
+/// Put the box away, once everyone who wanted it has had it.
+fn end_drag(buttons: Res<ButtonInput<MouseButton>>, mut box_: ResMut<DragBox>) {
+    if buttons.just_released(MouseButton::Left) {
+        box_.from = None;
+    }
+}
 
 /// Something a player can tell a group to do.
 #[derive(Message, Clone, Copy, PartialEq, Eq, Debug)]
@@ -204,11 +317,14 @@ pub struct CommandsPlugin;
 impl Plugin for CommandsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CommandMenu>()
+            .init_resource::<DragBox>()
             .add_message::<GroupCommand>()
-            .add_systems(Startup, spawn_menu)
+            .add_systems(Startup, (spawn_menu, spawn_rectangle))
             .add_systems(
                 Update,
                 (menu_from_env, work_the_menu, show_menu, show_hint).chain(),
-            );
+            )
+            .add_systems(Update, (drag, show_rectangle).chain().before(ReadDrag))
+            .add_systems(Update, end_drag.after(ReadDrag));
     }
 }
