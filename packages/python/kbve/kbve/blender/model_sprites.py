@@ -385,6 +385,7 @@ def main():
     # Parented to `centred`, so it is the source file's own z-plane -- it moves
     # with the centring and tilts with `--pitch` rather than being a height in
     # some intermediate space nobody can name.
+    clip = None
     if a.clip_below is not None:
         bpy.ops.mesh.primitive_plane_add(size=size * 8.0)
         clip = bpy.context.active_object
@@ -482,6 +483,26 @@ def main():
                 obj.location.z = ease * lift_world
             idx = d * k + f
             fp = os.path.join(a.out, f"frame_{idx:03d}.png")
+
+            # A second pass with the clip plane hidden, when something
+            # downstream needs to know where the water actually cut.
+            #
+            # The difference between the two renders is precisely the submerged
+            # geometry, so the top of that region is the waterline -- per column,
+            # exactly, including the fact that it does not exist under a
+            # figurehead or a spar, which project forward over open water and
+            # are cut by nothing. That is not recoverable from the finished
+            # frame: down there the lowest opaque pixel of a figurehead looks
+            # exactly like the lowest opaque pixel of a hull.
+            #
+            # Costs a second render of every frame, and only happens when the
+            # foam pass is going to consume it.
+            if clip is not None and a.foam:
+                clip.hide_render = True
+                sc.render.filepath = os.path.join(a.out, f"wl_{idx:03d}.png")
+                bpy.ops.render.render(write_still=True)
+                clip.hide_render = False
+
             sc.render.filepath = fp
             bpy.ops.render.render(write_still=True)
             paths.append(fp)

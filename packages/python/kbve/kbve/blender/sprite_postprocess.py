@@ -109,7 +109,7 @@ def bake_shadow(im, res, alpha, blur, squash, shear, grow, dx, dy):
     return out
 
 
-def bake_foam(im, res, alpha, thickness, spread, lift, color, climb=0.006):
+def bake_foam(im, res, alpha, thickness, spread, lift, color, climb=0.006, cut=None):
     """Composite a foam line where the subject cuts the water.
 
     Two things have to be true at once, and each one alone gets it wrong.
@@ -146,18 +146,27 @@ def bake_foam(im, res, alpha, thickness, spread, lift, color, climb=0.006):
     height, width = solid.shape
     rows = np.arange(height)[:, None]
 
-    # Lowest opaque pixel per column: the waterline, column by column.
-    ybot = np.where(solid, rows, -1).max(axis=0)
-    present = ybot >= 0
+    if cut is not None:
+        # The exact answer, from the bake: `cut` is the geometry the waterline
+        # plane removed, so the top of it is where the water meets the subject.
+        # A column with nothing cut is a column standing clear of the water --
+        # a figurehead, a bowsprit, a spar -- and gets no foam at all.
+        ybot = np.where(cut, rows, height * 2).min(axis=0)
+        hull = ybot < height * 2
+    else:
+        # No mask, so guess: the lowest opaque pixel per column. Right for a
+        # hull that was cut, wrong for anything overhanging the water, which is
+        # why the mask exists.
+        ybot = np.where(solid, rows, -1).max(axis=0)
+        present = ybot >= 0
+        below = rows <= ybot[None, :]
+        gap = np.where(~solid & below, rows, -1).max(axis=0)
+        run = ybot - gap
+        hull = present & (run >= max(int(0.02 * res), 3))
 
-    # How far the opaque run reaches up from there without a gap. The highest
-    # non-solid row at or below the bottom is where the run breaks.
-    below = rows <= ybot[None, :]
-    gap = np.where(~solid & below, rows, -1).max(axis=0)
-    run = ybot - gap
-    hull = present & (run >= max(int(0.02 * res), 3))
     if not hull.any():
         return im
+    ybot = np.where(hull, ybot, 0)
 
     # The band itself.
     grow = max(int(thickness * res), 1)
@@ -197,13 +206,21 @@ def main():
     frames = []
     for fp in paths:
         im = Image.open(fp).convert("RGBA")
+        cut = None
+        wl = os.path.join(os.path.dirname(fp),
+                          "wl_" + os.path.basename(fp).split("_", 1)[1])
+        if a.foam and os.path.exists(wl):
+            import numpy as np
+            with Image.open(wl) as unclipped:
+                before = np.asarray(unclipped.convert("RGBA").getchannel("A")).astype(np.int16)
+            cut = (before - np.asarray(im.getchannel("A")).astype(np.int16)) > 40
         if a.foam:
             # Before the shadow, so the shadow settles over the foam rather
             # than the foam glowing through it.
             im = bake_foam(
                 im, a.res, a.foam_alpha, a.foam_thickness, a.foam_spread,
                 a.foam_lift, tuple(int(v) for v in a.foam_color.split(",")),
-                a.foam_climb,
+                a.foam_climb, cut,
             )
             im.save(fp)
         if not a.no_shadow:

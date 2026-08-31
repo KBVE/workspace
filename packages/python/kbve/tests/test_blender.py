@@ -405,6 +405,34 @@ def test_bake_foam_traces_outside_the_hull():
     assert added[36, 32][0] < 60, "hull interior left alone"
 
 
+def test_bake_foam_uses_the_cut_mask_over_the_silhouette():
+    """What the water actually removed beats what the silhouette suggests.
+
+    A figurehead overhangs open water: its lowest pixel looks exactly like a
+    hull's lowest pixel, and only the bake knows nothing was cut beneath it.
+    Given that mask, the overhang gets no foam while the hull still does.
+    """
+    import numpy as np
+    from PIL import Image
+
+    frame = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    frame.paste((40, 40, 40, 255), (10, 30, 40, 44))   # hull, meets water at 43
+    frame.paste((40, 40, 40, 255), (44, 20, 58, 30))   # overhang, clear of it
+
+    # Only the hull was cut by the waterline plane.
+    cut = np.zeros((64, 64), dtype=bool)
+    cut[44:52, 10:40] = True
+
+    foam = sprite_postprocess.bake_foam(
+        frame, 64, 1.0, 0.03, 0.0, 0.0, (255, 255, 255), 0.006, cut)
+
+    solid = np.asarray(frame.getchannel("A")).astype(int) > 40
+    added = np.where(solid, 0, np.asarray(foam.getchannel("A")).astype(int))
+
+    assert added[28:40, 42:60].sum() == 0, "overhang picked up foam"
+    assert added[42:50, 12:38].sum() > 0, "hull did not"
+
+
 # ── pack_orm ─────────────────────────────────────────────────────────
 
 def _write_greyscale(path: Path, value: int, size=(4, 4)) -> None:
