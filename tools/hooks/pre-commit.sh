@@ -13,7 +13,18 @@ set -euo pipefail
 
 fail=0
 staged=$(git diff --cached --name-only --diff-filter=ACMR)
-[ -z "$staged" ] && exit 0
+
+# `git commit -- <paths>` builds a temporary index and leaves the real one
+# alone, so there is nothing here to look at and every check below is skipped.
+# That is a hole rather than a quiet pass: it is the form a coding agent
+# reaches for, and it is exactly the form that most needs the guard. Say so.
+if [ -z "$staged" ]; then
+  if ! git diff --quiet HEAD -- 2>/dev/null; then
+    echo "pre-commit: nothing staged, so the encrypted-path guard did not run" >&2
+    echo "  (a pathspec commit bypasses it; stage with 'git add' to be checked)" >&2
+  fi
+  exit 0
+fi
 
 while IFS= read -r file; do
   [ -z "$file" ] && continue
@@ -23,14 +34,31 @@ while IFS= read -r file; do
   [ "$filter" != "git-crypt" ] && continue
 
   # A git-crypt blob starts with NUL followed by "GITCRYPT".
-  if ! git cat-file -p ":$file" 2>/dev/null | head -c 9 | grep -q 'GITCRYPT'; then
-    if [ "$fail" -eq 0 ]; then
-      echo "pre-commit: plaintext staged in an encrypted path" >&2
-      echo >&2
-    fi
-    echo "  $file" >&2
-    fail=1
+  #
+  # Read into a variable rather than piped into a matcher, because the obvious
+  # way to write this is wrong twice over on a mac.
+  #
+  # `grep -q 'GITCRYPT'` exits 1 on a correctly encrypted blob: the leading NUL
+  # makes BSD grep call the input binary, and a binary match without -a is
+  # reported the same as no match. And once that is fixed with -a, grep exits
+  # the moment it matches, which closes the pipe under git and returns 141
+  # through `pipefail` -- so the check that now finds the magic still fails.
+  # Both faults point the same way, at "this file is plaintext", which is the
+  # one answer that stops a commit.
+  #
+  # Command substitution drops the NUL, which is why the pattern is matched
+  # loosely rather than anchored at byte one.
+  magic=$(git cat-file -p ":$file" 2>/dev/null | head -c 9 || true)
+  case "$magic" in
+    *GITCRYPT*) continue ;;
+  esac
+
+  if [ "$fail" -eq 0 ]; then
+    echo "pre-commit: plaintext staged in an encrypted path" >&2
+    echo >&2
   fi
+  echo "  $file" >&2
+  fail=1
 done <<< "$staged"
 
 if [ "$fail" -eq 1 ]; then
