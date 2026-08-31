@@ -19,6 +19,7 @@ use bevy::prelude::*;
 
 mod game;
 #[cfg(any(
+    feature = "sea",
     feature = "ships",
     feature = "trees",
     feature = "units",
@@ -36,6 +37,8 @@ use game::systems::harvest::HarvestPlugin;
 use game::systems::camera::CameraPlugin;
 use game::systems::debug::DebugPlugin;
 use game::systems::map::MapPlugin;
+#[cfg(feature = "sea")]
+use private::sea::SeaPlugin;
 #[cfg(feature = "ships")]
 use private::ships::ShipPlugin;
 #[cfg(feature = "trees")]
@@ -73,6 +76,9 @@ struct PrivatePlugins;
 
 impl Plugin for PrivatePlugins {
     fn build(&self, app: &mut App) {
+        // Before the things that read it: it owns the swell they share.
+        #[cfg(feature = "sea")]
+        app.add_plugins(SeaPlugin);
         #[cfg(feature = "ships")]
         app.add_plugins(ShipPlugin);
         #[cfg(feature = "trees")]

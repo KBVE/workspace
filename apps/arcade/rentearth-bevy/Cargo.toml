@@ -13,10 +13,14 @@ rust-version.workspace = true
 # repository, and rustc never opens a module that is cfg'd out. Turning this on
 # without the key fails to compile, which is the honest outcome.
 default = []
-ships = []
+# `sea` owns the wave arithmetic both the surface and the hulls read, so the
+# two things that float together cannot drift apart. Neither can be built
+# without it.
+sea = []
+ships = ["sea"]
 trees = []
 units = []
-water = []
+water = ["sea"]
 
 # WebGPU for the browser build. Bevy resolves the backend at compile time --
 # `webgpu` overrides the default `webgl2` in a cfg rather than falling back at
