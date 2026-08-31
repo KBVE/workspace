@@ -136,6 +136,8 @@ def parse_args():
     p.add_argument("--foam-spread", type=float, default=0.010, help="foam blur / frame")
     p.add_argument("--foam-lift", type=float, default=0.0, help="foam offset / frame")
     p.add_argument("--foam-color", default="255,255,255", help="foam rgb 0..255")
+    p.add_argument("--foam-climb", type=float, default=0.006,
+                   help="how far foam may rise above the waterline / frame")
     p.add_argument("--shadow-alpha", type=float, default=0.45, help="shadow darkness 0..1")
     p.add_argument("--shadow-blur", type=float, default=0.06, help="shadow blur radius / frame")
     p.add_argument("--shadow-squash", type=float, default=0.7, help="shadow vertical flatten 0..1")
@@ -603,6 +605,7 @@ def postprocess(a):
             "--foam-spread", str(a.foam_spread),
             "--foam-lift", str(a.foam_lift),
             "--foam-color", a.foam_color,
+            "--foam-climb", str(a.foam_climb),
         ]
     if a.no_shadow or a.real_shadow:
         cmd.append("--no-shadow")  # real shadow is already in the frames; just stitch

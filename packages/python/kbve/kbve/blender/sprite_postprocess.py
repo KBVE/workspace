@@ -52,6 +52,8 @@ def parse_args():
     p.add_argument("--foam-lift", type=float, default=0.0,
                    help="shift the foam line up (negative) or down / frame")
     p.add_argument("--foam-color", default="255,255,255", help="foam rgb 0..255")
+    p.add_argument("--foam-climb", type=float, default=0.006,
+                   help="how far the foam may rise above the waterline / frame")
     return p.parse_args()
 
 
@@ -107,20 +109,27 @@ def bake_shadow(im, res, alpha, blur, squash, shear, grow, dx, dy):
     return out
 
 
-def bake_foam(im, res, alpha, thickness, spread, lift, color):
-    """Composite a foam line around the waterline of one RGBA frame.
+def bake_foam(im, res, alpha, thickness, spread, lift, color, climb=0.006):
+    """Composite a foam line where the subject cuts the water.
 
-    A rim, not a pool. The first attempt filled a gaussian below the
-    silhouette's lowest opaque pixel per column, which is defensible on paper
-    and wrong on screen: wherever the waterline runs flat across many columns --
-    a bow seen end on -- the fill piles into a bright blob and the hull looks
-    spotlit rather than wet.
+    Two things have to be true at once, and each one alone gets it wrong.
 
-    So the foam is the silhouette dilated minus the silhouette: a band that
-    traces the outline exactly, including up the sides, at constant width. It is
-    then faded out toward the top of the subject, because a hull is only wet
-    where it meets the water and foam climbing the rigging is worse than no foam
-    at all.
+    The band is the silhouette dilated minus the silhouette, which gives a rim
+    of constant width that follows the outline however it curves. On its own
+    that is an outline effect, not a waterline one: it lights the gunwale, runs
+    up the sides and haloes the hull. Fading it by depth is not enough either,
+    because the top of a hull is still low in a frame that is mostly rigging.
+
+    So the rim is then gated, per column, to the lowest opaque pixel in that
+    column -- which after a waterline clip is exactly where the water meets the
+    planking. Foam sits at and below that line and fades out within `climb` of
+    rising above it. Per column and not as one band, because the waterline is
+    not level: seen bow on it rakes across most of the frame's height.
+
+    Columns whose lowest pixel is not hull are skipped, or the bowsprit and the
+    spars would each trail a little foam in mid air. A column qualifies by the
+    length of the unbroken run of opaque pixels ending at its lowest one: a hull
+    is tens of pixels thick there, a spar is two or three.
 
     Composited under the subject, so it gathers against the hull rather than
     washing over it.
@@ -128,28 +137,42 @@ def bake_foam(im, res, alpha, thickness, spread, lift, color):
     import numpy as np
     from PIL import Image, ImageFilter
 
-    a = im.getchannel("A")
-    box = a.getbbox()
-    if not box:
+    a_img = im.getchannel("A")
+    a = np.asarray(a_img).astype(np.int16)
+    solid = a > 40
+    if not solid.any():
         return im
 
-    # The band. Dilating the alpha and subtracting it leaves a rim of exactly
-    # the dilation width, soft where the silhouette's own edge was soft.
+    height, width = solid.shape
+    rows = np.arange(height)[:, None]
+
+    # Lowest opaque pixel per column: the waterline, column by column.
+    ybot = np.where(solid, rows, -1).max(axis=0)
+    present = ybot >= 0
+
+    # How far the opaque run reaches up from there without a gap. The highest
+    # non-solid row at or below the bottom is where the run breaks.
+    below = rows <= ybot[None, :]
+    gap = np.where(~solid & below, rows, -1).max(axis=0)
+    run = ybot - gap
+    hull = present & (run >= max(int(0.02 * res), 3))
+    if not hull.any():
+        return im
+
+    # The band itself.
     grow = max(int(thickness * res), 1)
-    widened = a.filter(ImageFilter.MaxFilter(grow * 2 + 1))
-    rim = np.asarray(widened).astype(np.int16) - np.asarray(a).astype(np.int16)
-    rim = np.clip(rim, 0, 255).astype(np.float32)
+    widened = a_img.filter(ImageFilter.MaxFilter(grow * 2 + 1))
+    rim = np.clip(
+        np.asarray(widened).astype(np.int16) - a, 0, 255
+    ).astype(np.float32)
 
-    # Fade from nothing at the top of the subject to full at its bottom, so the
-    # foam belongs to the waterline and not to the masts.
-    top, bottom = box[1], box[3]
-    span = max(bottom - top, 1)
-    height = rim.shape[0]
-    depth = (np.arange(height, dtype=np.float32) - top) / span
-    weight = np.clip(depth, 0.0, 1.0) ** 3.0
-    rim *= weight[:, None]
+    # Full strength at and below the waterline, gone shortly above it.
+    rise = max(climb * res, 1.0)
+    above = (ybot[None, :] - np.arange(height)[:, None]).astype(np.float32)
+    gate = np.clip(1.0 - above / rise, 0.0, 1.0)
+    gate[:, ~hull] = 0.0
 
-    mask = Image.fromarray(np.clip(rim, 0, 255).astype(np.uint8))
+    mask = Image.fromarray(np.clip(rim * gate, 0, 255).astype(np.uint8))
     if lift:
         mask = mask.transform(
             mask.size, Image.AFFINE, (1, 0, 0, 0, 1, -lift * res),
@@ -180,6 +203,7 @@ def main():
             im = bake_foam(
                 im, a.res, a.foam_alpha, a.foam_thickness, a.foam_spread,
                 a.foam_lift, tuple(int(v) for v in a.foam_color.split(",")),
+                a.foam_climb,
             )
             im.save(fp)
         if not a.no_shadow:

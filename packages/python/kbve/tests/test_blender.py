@@ -343,6 +343,50 @@ def test_bake_foam_gathers_at_the_bottom_not_the_top():
     assert bottom_half > top_half * 4, (top_half, bottom_half)
 
 
+def test_bake_foam_does_not_climb_the_hull():
+    """Foam marks where the water is, so almost none of it belongs above.
+
+    An ungated rim traces the whole outline and lights the gunwale, which reads
+    as a glow around the ship rather than a ship sitting in water.
+    """
+    import numpy as np
+    from PIL import Image
+
+    frame = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    frame.paste((40, 40, 40, 255), (16, 12, 48, 44))   # a block "hull"
+
+    foam = sprite_postprocess.bake_foam(
+        frame, 64, 1.0, 0.03, 0.0, 0.0, (255, 255, 255))
+
+    solid = np.asarray(frame.getchannel("A")).astype(int) > 40
+    added = np.where(solid, 0, np.asarray(foam.getchannel("A")).astype(int))
+
+    waterline = 43                      # the block's lowest opaque row
+    above = added[: waterline - 3].sum()
+    below = added[waterline - 3 :].sum()
+    assert above < below * 0.05, (above, below)
+
+
+def test_bake_foam_ignores_thin_spars():
+    """A bowsprit is not a waterline, and should trail no foam in mid air."""
+    import numpy as np
+    from PIL import Image
+
+    frame = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    frame.paste((40, 40, 40, 255), (16, 30, 48, 44))   # hull
+    frame.paste((40, 40, 40, 255), (50, 14, 62, 16))   # a thin spar, high up
+
+    foam = sprite_postprocess.bake_foam(
+        frame, 64, 1.0, 0.03, 0.0, 0.0, (255, 255, 255))
+    # Only what the foam added: compositing returns the subject's own alpha
+    # too, and the spar is opaque.
+    solid = np.asarray(frame.getchannel("A")).astype(int) > 40
+    added = np.where(solid, 0, np.asarray(foam.getchannel("A")).astype(int))
+
+    assert added[10:22, 48:64].sum() == 0, "spar picked up foam"
+    assert added[44:52, 20:44].sum() > 0, "hull did not"
+
+
 def test_bake_foam_traces_outside_the_hull():
     """A rim, not a fill: the foam lands on water, not on the subject."""
     import numpy as np
