@@ -63,6 +63,15 @@ impl FlowField {
         }
     }
 
+    /// Whether the walk has been done yet.
+    ///
+    /// A field raised this frame has no steps in it, which is indistinguishable
+    /// from a field whose goal nothing can reach -- and a mover that cannot
+    /// tell those apart gives up on an order the instant it is given one.
+    pub fn ready(&self) -> bool {
+        self.built_for.is_some()
+    }
+
     /// Which neighbour to move to from here, if anywhere.
     pub fn at(&self, spec: MapSpec, tile: Offset) -> Option<usize> {
         match self.step.get(tile.wrapped(spec).index(spec)).copied() {
