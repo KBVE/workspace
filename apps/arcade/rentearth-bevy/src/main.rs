@@ -56,6 +56,8 @@ use private::units::realm::RealmPlugin;
 #[cfg(feature = "units")]
 use private::units::select::SelectPlugin;
 #[cfg(feature = "units")]
+use private::units::war::WarPlugin;
+#[cfg(feature = "units")]
 use private::units::museum::MuseumPlugin;
 use game::systems::ui::UiPlugin;
 
@@ -92,6 +94,7 @@ impl Plugin for PrivatePlugins {
             SelectPlugin,
             LabourPlugin,
             DutyPlugin,
+            WarPlugin,
         ));
         let _ = app;
     }
