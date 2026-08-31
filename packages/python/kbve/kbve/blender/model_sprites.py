@@ -297,7 +297,9 @@ def build_pivot(meshes, pitch_deg):
     bpy.context.view_layer.update()
     # `centred` sits exactly where the source file's own origin ended up, which
     # is the one height in the frame that means something outside the render.
-    return pivot, centred
+    # `centre` comes back too, because locating a plane in the frame needs the
+    # subject's own middle to measure from.
+    return pivot, centred, centre
 
 
 def main():
@@ -325,7 +327,7 @@ def main():
         obj.data.materials.append(mat)
 
     # ---- lay flat and give the loose meshes one handle to spin ----
-    obj, anchor = build_pivot(meshes, a.pitch)
+    obj, anchor, centre = build_pivot(meshes, a.pitch)
 
     # ---- frame the model ----
     lo, hi = world_bounds(meshes)
@@ -513,12 +515,36 @@ def main():
     # projects: an orthographic camera at `elev` measures height along its own
     # up axis, so a point's screen height is its dot product with that axis.
     up_axis = mathutils.Vector((0.0, math.sin(elev), math.cos(elev)))
-    anchor_screen = anchor.matrix_world.translation.dot(up_axis) - lift_world * 0.5
-    anchor_fraction = 0.5 + anchor_screen / cam_data.ortho_scale
+
+    def frame_fraction(local_z):
+        """Where a horizontal plane at `local_z` lands in the frame.
+
+        Measured at the subject's own middle, not at the model origin. A plane
+        seen from above does not project to one height -- its screen position
+        runs with depth -- so the frame's centre line is the only reading of it
+        that is a single number, and it is also the one that does not move when
+        the subject spins.
+
+        Measuring at the origin instead read differently for every yaw, so the
+        recorded anchor depended on which heading happened to be rendered last:
+        the same bake at four frames and at sixteen disagreed by a hundredth of
+        a frame, which is a hull floating a metre high.
+        """
+        # Rotation only. The vector is already measured from the subject's
+        # centre, and the rig's translation is what put that centre on the
+        # origin -- applying the full matrix would subtract the centring twice.
+        local = mathutils.Vector((0.0, 0.0, local_z - centre.z))
+        point = anchor.matrix_world.to_3x3() @ local
+        return 0.5 + (point.dot(up_axis) - lift_world * 0.5) / cam_data.ortho_scale
+
+    anchor_fraction = frame_fraction(0.0)
+    # Where the subject was actually cut, which is the height a consumer has to
+    # hang the sprite at. Only the same as the origin when the cut is at zero.
+    clip_fraction = None if a.clip_below is None else frame_fraction(a.clip_below)
 
     write_meta(
         a, k, cam_data.ortho_scale,
-        [hi[i] - lo[i] for i in range(3)], anchor_fraction,
+        [hi[i] - lo[i] for i in range(3)], anchor_fraction, clip_fraction,
     )
     postprocess(a)
     print("DONE")
@@ -544,7 +570,7 @@ def sheet_layout(n, cols):
     return module.layout(n, cols)
 
 
-def write_meta(a, anim_frames, ortho_scale, model_size, anchor_fraction):
+def write_meta(a, anim_frames, ortho_scale, model_size, anchor_fraction, clip_fraction):
     """Record what a consumer needs to place the sprite in its own world.
 
     A frame on its own is unplaceable: it says nothing about how many world
@@ -589,6 +615,14 @@ def write_meta(a, anim_frames, ortho_scale, model_size, anchor_fraction):
         # exactly where it belongs.
         "origin_frame_fraction": round(anchor_fraction, 6),
     }
+
+    if clip_fraction is not None:
+        # The plane the subject was cut at, in the same frame-fraction terms.
+        # This is the one a consumer wants: the cut edge is the sprite's real
+        # bottom, and hanging it by the origin instead floats the subject by
+        # exactly the distance between the two planes.
+        meta["clip_below"] = a.clip_below
+        meta["waterline_frame_fraction"] = round(clip_fraction, 6)
 
     grid = sheet_layout(a.frames * anim_frames, anim_frames if anim_frames > 1 else 0)
     if grid:

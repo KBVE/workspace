@@ -13,7 +13,9 @@
     32.575071
   ],
   "model_world_length": 39.788971,
-  "origin_frame_fraction": 0.344715,
+  "origin_frame_fraction": 0.335983,
+  "clip_below": 1.2,
+  "waterline_frame_fraction": 0.350155,
   "sheet_cols": 4,
   "sheet_rows": 4
 }
