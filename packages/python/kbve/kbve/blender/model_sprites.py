@@ -80,6 +80,10 @@ def parse_args():
     p.add_argument("--show", default="",
                    help="comma-separated name patterns to un-hide before filtering; picks "
                         "the pose an asset ships switched off, e.g. sails set vs furled")
+    p.add_argument("--clip-below", type=float, default=None,
+                   help="hide everything below this height in the SOURCE model's own "
+                        "space, e.g. 0 for a hull modelled about its waterline. The cut "
+                        "follows the real geometry, so it curves with the heading")
     p.add_argument("--ambient", type=float, default=0.0,
                    help="world background strength; fills the side the sun does not reach")
     p.add_argument("--ambient-color", default="0.75,0.80,0.95",
@@ -346,6 +350,45 @@ def main():
         math.radians(a.sun_az),
     )
     bpy.context.scene.collection.objects.link(light)
+
+    # ---- clip: a holdout plane at the model's own waterline ----
+    #
+    # A holdout renders as a hole rather than as a surface: with a transparent
+    # film, everything the plane covers comes back with zero alpha. So a
+    # horizontal plane at the waterline erases exactly the submerged part of the
+    # hull, and it erases it along the line where the water really meets the
+    # planking -- a curve, different for every heading.
+    #
+    # Doing it here rather than in the consuming engine is the whole point. Down
+    # there a sprite is a flat billboard and the only cut available is a
+    # straight horizontal one, which is wrong by as much as the subject is long:
+    # a sea-level plane seen at `elev` sweeps `length * sin(elev)` of screen
+    # height from near end to far, which for this hull is 41% of the frame. Up
+    # here the geometry is still real and the cut is exact.
+    #
+    # Parented to `centred`, so it is the source file's own z-plane -- it moves
+    # with the centring and tilts with `--pitch` rather than being a height in
+    # some intermediate space nobody can name.
+    if a.clip_below is not None:
+        bpy.ops.mesh.primitive_plane_add(size=size * 8.0)
+        clip = bpy.context.active_object
+        clip.name = "sprite_clip"
+        clip.parent = anchor
+        clip.location = (0.0, 0.0, a.clip_below)
+        clip.rotation_euler = (0.0, 0.0, 0.0)
+        # A Holdout *shader*, not the object flag of the same name: the object
+        # flag is a Cycles feature and EEVEE Next quietly renders the plane as
+        # an ordinary surface instead, which moved the hull's silhouette by a
+        # few pixels rather than cutting it. The shader node works in both.
+        mat = bpy.data.materials.new("sprite_clip")
+        mat.use_nodes = True
+        nt = mat.node_tree
+        nt.nodes.clear()
+        out = nt.nodes.new("ShaderNodeOutputMaterial")
+        hold = nt.nodes.new("ShaderNodeHoldout")
+        nt.links.new(hold.outputs[0], out.inputs["Surface"])
+        clip.data.materials.clear()
+        clip.data.materials.append(mat)
 
     # ---- ambient: a flat world colour so the side the sun misses is dark rather
     # than black. The skin material is mostly emissive and needs none of this,
