@@ -308,6 +308,59 @@ def test_bake_shadow_is_derived_from_the_silhouette():
     assert shadow.getbbox() is None
 
 
+def test_bake_foam_needs_a_silhouette():
+    """Nothing in the frame means nothing meets the water."""
+    from PIL import Image
+
+    empty = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    foam = sprite_postprocess.bake_foam(
+        empty, 32, 0.4, 0.05, 0.02, 0.0, (255, 255, 255))
+    assert foam.getbbox() is None
+
+
+def test_bake_foam_gathers_at_the_bottom_not_the_top():
+    """The reason the band is weighted by depth.
+
+    Foam belongs where a hull meets the water. An even rim would put just as
+    much of it around the mastheads, which is the tell that it is an outline
+    effect rather than a waterline one.
+    """
+    import numpy as np
+    from PIL import Image
+
+    frame = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    frame.paste((40, 40, 40, 255), (24, 8, 40, 56))   # a tall block
+
+    foam = sprite_postprocess.bake_foam(
+        frame, 64, 1.0, 0.05, 0.01, 0.0, (255, 255, 255))
+
+    alpha = np.asarray(foam.getchannel("A")).astype(int)
+    solid = np.asarray(frame.getchannel("A")).astype(int) > 40
+    added = np.where(solid, 0, alpha)          # only what the foam contributed
+
+    top_half = added[:32].sum()
+    bottom_half = added[32:].sum()
+    assert bottom_half > top_half * 4, (top_half, bottom_half)
+
+
+def test_bake_foam_traces_outside_the_hull():
+    """A rim, not a fill: the foam lands on water, not on the subject."""
+    import numpy as np
+    from PIL import Image
+
+    frame = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    frame.paste((40, 40, 40, 255), (24, 24, 40, 48))
+
+    foam = sprite_postprocess.bake_foam(
+        frame, 64, 1.0, 0.05, 0.0, 0.0, (255, 255, 255))
+    added = np.asarray(foam)[:, :, :3]
+
+    # Directly under the block's bottom edge is foam; the block's own middle
+    # is untouched by it.
+    assert added[52, 32][0] > 120, "foam below the hull"
+    assert added[36, 32][0] < 60, "hull interior left alone"
+
+
 # ── pack_orm ─────────────────────────────────────────────────────────
 
 def _write_greyscale(path: Path, value: int, size=(4, 4)) -> None:

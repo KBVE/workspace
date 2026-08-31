@@ -127,6 +127,15 @@ def parse_args():
     p.add_argument("--samples", type=int, default=64, help="Cycles samples (real-shadow)")
     # --- fake 2D shadow (default; post-process) ---
     p.add_argument("--no-shadow", action="store_true", help="skip the baked ground shadow")
+    # --- foam, forwarded to sprite_postprocess ---
+    p.add_argument("--foam", action="store_true",
+                   help="bake a foam line along the bottom of the silhouette; for a hull "
+                        "cut at its waterline that is exactly where the water meets it")
+    p.add_argument("--foam-alpha", type=float, default=0.40, help="foam opacity 0..1")
+    p.add_argument("--foam-thickness", type=float, default=0.010, help="foam band width / frame")
+    p.add_argument("--foam-spread", type=float, default=0.010, help="foam blur / frame")
+    p.add_argument("--foam-lift", type=float, default=0.0, help="foam offset / frame")
+    p.add_argument("--foam-color", default="255,255,255", help="foam rgb 0..255")
     p.add_argument("--shadow-alpha", type=float, default=0.45, help="shadow darkness 0..1")
     p.add_argument("--shadow-blur", type=float, default=0.06, help="shadow blur radius / frame")
     p.add_argument("--shadow-squash", type=float, default=0.7, help="shadow vertical flatten 0..1")
@@ -586,6 +595,15 @@ def postprocess(a):
         # row-major layout: one row per facing, one column per anim frame, so
         # Phaser's frame index == dir * anim_frames + f (EnvDef directions x frames).
         cmd += ["--cols", str(a.anim_frames)]
+    if a.foam:
+        cmd += [
+            "--foam",
+            "--foam-alpha", str(a.foam_alpha),
+            "--foam-thickness", str(a.foam_thickness),
+            "--foam-spread", str(a.foam_spread),
+            "--foam-lift", str(a.foam_lift),
+            "--foam-color", a.foam_color,
+        ]
     if a.no_shadow or a.real_shadow:
         cmd.append("--no-shadow")  # real shadow is already in the frames; just stitch
     cmd += [
