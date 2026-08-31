@@ -58,6 +58,17 @@ pub fn spawn_camera(mut commands: Commands, spec: Res<MapSpec>) {
     // Start centred on the map rather than at the origin corner.
     let focus = Vec3::new(spec.world_width() / 2.0, 0.0, spec.world_depth() / 2.0);
 
+    // Opening zoom, for comparing a render change across the range without
+    // driving the wheel by hand. Pairs with RENTEARTH_SCREENSHOT: anything that
+    // is sensitive to how much world a pixel covers -- a sprite's mip level, a
+    // fade threshold, which of two blended surfaces ends up in front -- shows
+    // up as one still per zoom rather than as a description of a wobble.
+    let zoom = std::env::var("RENTEARTH_ZOOM")
+        .ok()
+        .and_then(|v| v.parse::<f32>().ok())
+        .map(|z| z.clamp(CameraRig::MIN_ZOOM, CameraRig::MAX_ZOOM))
+        .unwrap_or(CameraRig::default().zoom);
+
     commands.spawn((
         Camera3d::default(),
         Projection::from(OrthographicProjection {
@@ -89,7 +100,7 @@ pub fn spawn_camera(mut commands: Commands, spec: Res<MapSpec>) {
             brightness: 260.0,
             ..default()
         },
-        CameraRig { focus, ..default() },
+        CameraRig { focus, zoom },
     ));
 
     // Sun, angled across the map rather than straight down so column sides
