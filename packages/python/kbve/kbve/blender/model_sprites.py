@@ -116,8 +116,13 @@ def parse_args():
     # --- real shadow (Cycles shadow-catcher pass) ---
     p.add_argument("--real-shadow", action="store_true",
                    help="render a TRUE cast shadow (Cycles + ground catcher); overrides the fake 2D shadow")
-    p.add_argument("--sun-elev", type=float, default=55.0, help="sun elevation deg (real-shadow)")
-    p.add_argument("--sun-az", type=float, default=135.0, help="sun azimuth deg (real-shadow; shadow falls opposite)")
+    p.add_argument("--sun-elev", type=float, default=55.0,
+                   help="sun elevation deg; applies to every bake, not only --real-shadow")
+    p.add_argument("--sun-az", type=float, default=135.0,
+                   help="sun azimuth deg; the shadow falls opposite. Always applies")
+    p.add_argument("--sun-energy", type=float, default=3.0,
+                   help="sun strength. Set with --ambient: it is their ratio, not either "
+                        "alone, that decides how washed out the result looks")
     p.add_argument("--sun-soft", type=float, default=4.0, help="sun angular size deg = penumbra softness")
     p.add_argument("--samples", type=int, default=64, help="Cycles samples (real-shadow)")
     # --- fake 2D shadow (default; post-process) ---
@@ -340,7 +345,7 @@ def main():
     # ---- sun: straight down at sun_elev=90, tilted toward the horizon otherwise,
     # rotated by azimuth. The cast shadow falls opposite the sun. ----
     light_data = bpy.data.lights.new("sun", "SUN")
-    light_data.energy = 3.0
+    light_data.energy = a.sun_energy
     if a.real_shadow:
         light_data.angle = math.radians(a.sun_soft)  # penumbra
     light = bpy.data.objects.new("sun", light_data)
