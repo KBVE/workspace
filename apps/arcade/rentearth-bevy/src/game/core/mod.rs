@@ -6,6 +6,7 @@
 
 pub mod depth;
 pub mod earth;
+pub mod flow;
 pub mod hex;
 pub mod map;
 pub mod terrain;
