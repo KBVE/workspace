@@ -15,6 +15,28 @@ pub const TEAMS: u32 = 4;
 /// against later.
 pub const HUMAN: u32 = 0;
 
+/// What each side is drawn in.
+///
+/// Here rather than in either shader, and it began in one of them. Ships and
+/// men both have to say whose they are and there is exactly one right answer
+/// to what side two is -- two copies of that in two shading languages is the
+/// drift this file already keeps `Territory` apart from `Siege` to avoid.
+/// Sent as a uniform, so the cost is four vectors per material and nothing per
+/// figure.
+///
+/// Separated in lightness as well as in hue. These were four dark colours --
+/// navy, forest, olive, maroon -- and at map zoom a dark colour is a dark
+/// colour: they muddied into the same brown and the only thing telling two
+/// armies apart was which way they walked. Red and gold read at any size, and
+/// the blue and green are far enough up to keep their hue when a figure is
+/// four pixels tall.
+pub const COLOURS: [Vec4; TEAMS as usize] = [
+    Vec4::new(0.62, 0.14, 0.15, 1.0),
+    Vec4::new(0.16, 0.30, 0.68, 1.0),
+    Vec4::new(0.20, 0.52, 0.22, 1.0),
+    Vec4::new(0.78, 0.62, 0.12, 1.0),
+];
+
 /// Nobody's land.
 const UNOWNED: u8 = u8::MAX;
 
