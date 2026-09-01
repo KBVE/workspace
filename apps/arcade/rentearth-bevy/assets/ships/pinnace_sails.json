@@ -1,0 +1,21 @@
+{
+  "frames": 32,
+  "anim_frames": 1,
+  "res": 512,
+  "elev_deg": 41.25,
+  "pitch_deg": 0.0,
+  "yaw_offset_deg": 0.0,
+  "yaw_step_deg": 11.25,
+  "frame_world_size": 63.662353515625,
+  "model_world_size": [
+    9.606007,
+    39.788971,
+    32.575071
+  ],
+  "model_world_length": 39.788971,
+  "origin_frame_fraction": 0.335983,
+  "clip_below": 1.2,
+  "waterline_frame_fraction": 0.350155,
+  "sheet_cols": 6,
+  "sheet_rows": 6
+}
