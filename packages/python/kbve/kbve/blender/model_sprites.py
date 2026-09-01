@@ -80,6 +80,20 @@ def parse_args():
     p.add_argument("--show", default="",
                    help="comma-separated name patterns to un-hide before filtering; picks "
                         "the pose an asset ships switched off, e.g. sails set vs furled")
+    p.add_argument("--mask-material", default="",
+                   help="render a coverage mask instead of the model: faces whose "
+                        "material name matches this fnmatch pattern come out white and "
+                        "everything else black, with alpha and occlusion unchanged. For "
+                        "picking one part of a baked sprite out later -- sails to tint "
+                        "by side, say -- without a second guess at which pixels those "
+                        "were. Bake it with the same flags as the beauty pass and "
+                        "WITHOUT --foam or the shadow, which are not part of the model")
+    p.add_argument("--mask-object", default="",
+                   help="objects whose NAME matches this fnmatch pattern come out white "
+                        "in the mask, on top of --mask-material. For a pose where the "
+                        "part wanted is not its own material: an asset with its sails "
+                        "furled may carry the stowed canvas on the rigging mesh, and "
+                        "then the only thing that names it is the object")
     p.add_argument("--clip-below", type=float, default=None,
                    help="hide everything below this height in the SOURCE model's own "
                         "space, e.g. 0 for a hull modelled about its waterline. The cut "
@@ -422,6 +436,68 @@ def main():
         bg.inputs["Color"].default_value = (*rgb, 1.0)
         bg.inputs["Strength"].default_value = a.ambient
         bpy.context.scene.world = world
+
+    # ---- mask: the same render with every material flattened to a light ----
+    #
+    # White where the named material is, black everywhere else, and nothing else
+    # about the scene touched -- same camera, same yaw sequence, same clip, so
+    # frame N of the mask is frame N of the beauty pass to the pixel.
+    #
+    # Emission rather than base colour because emission is the one channel that
+    # does not care about the sun: a white diffuse surface would still be shaded,
+    # and a mask with a shadow across it is a mask that dyes half a sail.
+    #
+    # The alpha input is deliberately left wired. The sails are a cutout -- their
+    # shape is an alpha texture on a quad, not geometry -- so a mask that dropped
+    # that link would mark the whole quad and dye the sky between the shrouds.
+    # Everything else is left in the scene as well, unflattened but black, which
+    # is what keeps a mast in front of a sail punching a hole in it.
+    if a.mask_material or a.mask_object:
+        # Objects first, and by a copy of each material rather than the material
+        # itself: a material is shared, so lighting up `ship_pinnace_rigging`
+        # because one object wants it would light up every rope on the ship.
+        lit_objects = patterns(a.mask_object)
+        for o in bpy.context.scene.objects:
+            if o.type != "MESH" or not any(
+                fnmatch.fnmatch(o.name, p) for p in lit_objects
+            ):
+                continue
+            for slot in o.material_slots:
+                if slot.material is not None:
+                    slot.material = slot.material.copy()
+                    slot.material.name = f"mask_lit_{slot.material.name}"
+
+        for m in bpy.data.materials:
+            if not m.use_nodes:
+                continue
+            bsdf = next(
+                (n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None
+            )
+            if bsdf is None:
+                continue
+            lit = m.name.startswith("mask_lit_") or (
+                bool(a.mask_material) and fnmatch.fnmatch(m.name, a.mask_material)
+            )
+            for name, value in (
+                ("Base Color", (0.0, 0.0, 0.0, 1.0)),
+                ("Emission Color", (1.0, 1.0, 1.0, 1.0) if lit else (0.0, 0.0, 0.0, 1.0)),
+                ("Emission Strength", 1.0),
+                ("Metallic", 0.0),
+                ("Roughness", 1.0),
+                # Named for the socket rather than the effect: a black surface
+                # still has a specular highlight, and a highlight in a mask is a
+                # bright spot that is not the thing being masked.
+                ("Specular IOR Level", 0.0),
+            ):
+                socket = bsdf.inputs.get(name)
+                if socket is None:
+                    continue
+                for link in list(socket.links):
+                    m.node_tree.links.remove(link)
+                socket.default_value = value
+        # No sky either: an ambient world lights the black and lifts the floor
+        # off zero, and a mask wants exactly two values in it.
+        bpy.context.scene.world = None
 
     sc = bpy.context.scene
     sc.render.resolution_x = a.res
