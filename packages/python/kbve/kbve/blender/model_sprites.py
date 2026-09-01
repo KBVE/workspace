@@ -88,6 +88,15 @@ def parse_args():
                         "by side, say -- without a second guess at which pixels those "
                         "were. Bake it with the same flags as the beauty pass and "
                         "WITHOUT --foam or the shadow, which are not part of the model")
+    p.add_argument("--bone-move", default="",
+                   help="pose control bones before rendering, as "
+                        "'PATTERN:x,y,z' in the bone's own space, several "
+                        "separated by ';'. For an asset whose variants are "
+                        "driven rather than switched: a rigged ship shows its "
+                        "sails set or furled according to how far apart two "
+                        "control bones are, and no amount of un-hiding the "
+                        "meshes will change that -- the driver puts the flag "
+                        "straight back. Move the control instead")
     p.add_argument("--mask-object", default="",
                    help="objects whose NAME matches this fnmatch pattern come out white "
                         "in the mask, on top of --mask-material. For a pose where the "
@@ -208,7 +217,47 @@ def load_model(a):
     if show:
         for o in bpy.context.scene.objects:
             if any(fnmatch.fnmatch(o.name, p) for p in show):
+                # Both switches, and the second one is why this did not work.
+                # An asset's unused pose is usually switched off twice over --
+                # once for the render and once for the viewport -- and clearing
+                # only the render flag leaves the object out of the depsgraph
+                # the frame is evaluated from. It survives every filter, reports
+                # a real bounding box, and draws nothing, which reads as a pose
+                # that exists and is empty rather than as one still switched off.
                 o.hide_render = False
+                o.hide_viewport = False
+                o.hide_set(False)
+
+    # ---- pose the rig, before anything looks at what is visible ----
+    #
+    # Before the filter below and not after it, which is the whole of a bug
+    # worth naming: a driven variant is hidden until its control says
+    # otherwise, and the filter drops hidden meshes. Posing afterwards moves
+    # the controls of a ship whose other set of sails has already been deleted,
+    # and renders bare poles while reporting that it moved ten bones.
+    if a.bone_move:
+        for spec in a.bone_move.split(";"):
+            spec = spec.strip()
+            if not spec:
+                continue
+            name, _, vector = spec.partition(":")
+            offset = [float(v) for v in vector.split(",")]
+            if len(offset) != 3:
+                raise SystemExit(f"--bone-move wants 'PATTERN:x,y,z', got {spec!r}")
+            moved = 0
+            for rig in bpy.context.scene.objects:
+                if rig.type != "ARMATURE":
+                    continue
+                for bone in rig.pose.bones:
+                    if fnmatch.fnmatch(bone.name, name.strip()):
+                        bone.location = offset
+                        moved += 1
+            # Loudly, because the failure mode is silent: a pattern that
+            # matches nothing renders the pose it was told to change.
+            print(f"bone-move {name.strip()!r} moved {moved} bones")
+        # So the drivers that read those controls have run before anything asks
+        # an object whether it is visible.
+        bpy.context.view_layer.update()
 
     include, exclude = patterns(a.include), patterns(a.exclude)
     meshes = [
